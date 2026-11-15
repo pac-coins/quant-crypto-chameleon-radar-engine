@@ -102,7 +102,9 @@ class PositionSizer:
         symbol_filters: SymbolFilters,
         drawdown_risk_multiplier: Decimal | str = Decimal("1.0"),
         ml_calibrated_prob: Optional[float] = None,
-        ml_Proposed_grade: Optional[SignalGrade] = None,
+        ml_proposed_grade: Optional[SignalGrade] = None,
+        portfolio_cvar99_loss_pct: Optional[float] = None,
+        phase2b_graduation_stage: int = 2,
     ) -> SizingDecision: ...
 ```
 
@@ -139,13 +141,16 @@ class DefenseStatus:
     kill_switch_reason: KillSwitchReason
     conviction_downgraded: bool
     sideways_disabled: bool
+    bnb_below_recommended_reserve: bool = False
+    commission_rate_valid: bool = True
 
 
 class ShadowManager:
     """
     Gerencia High-Water Mark tático, CPPI Drawdown Control (-4% -> 0.5x risco),
-    CUSUM Shadow Mode (4 vitórias virtuais com E[R]>0), Auto-Downgrade de Fase
-    e os 4 Hard Kill-Switches (-12% DD, BNB < $2, 3 falhas de reconciliação/API, >6 trades/24h).
+    CUSUM Shadow Mode (4 vitórias virtuais com E[R]>0), Auto-Downgrade de Fase,
+    checagem preventiva de reserva de BNB ($5.00 USDT) e /api/v3/account/commission,
+    além dos 4 Hard Kill-Switches (-12% DD, BNB < $2, 3 falhas de reconciliação/API, >6 trades/24h).
     """
 ```
 

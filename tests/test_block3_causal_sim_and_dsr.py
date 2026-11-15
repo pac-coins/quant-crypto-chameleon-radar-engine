@@ -427,9 +427,11 @@ def test_gate3d_ablation_order_flow_sideways_rr_guard_dsr_and_notebooks(tmp_path
 
             nb_client.get_server_time_ms = _fake_server_time  # type: ignore[attr-defined]
             nb_client.get_klines = _fake_get_klines  # type: ignore[attr-defined]
+            ns["REGISTRY_CSV"] = tmp_path / "nb02_trials_registry.csv"
             aligned = ns["download_and_build_aligned_universe"](start_ms=start_ms, end_ms=end_ms)  # type: ignore[operator]
             ablation_res = ns["run_ablation_and_gate3"](aligned)  # type: ignore[operator]
             assert "gate3_report" in ablation_res
+            assert (tmp_path / "nb02_trials_registry.csv").exists()
             nb_db.close()
 
 

@@ -119,6 +119,8 @@ class PositionSizer:
         drawdown_risk_multiplier: Decimal | str = Decimal("1.0"),
         ml_calibrated_prob: Optional[float] = None,
         ml_proposed_grade: Optional[SignalGrade] = None,
+        portfolio_cvar99_loss_pct: Optional[float] = None,
+        phase2b_graduation_stage: int = 2,
     ) -> SizingDecision:
         p_entry_raw = to_decimal(entry_price)
         p_stop_raw = to_decimal(stop_price)
@@ -224,9 +226,16 @@ class PositionSizer:
                     ml_grade_silent=silent_grade_str,
                     ml_p_cal_silent=silent_p_cal,
                 )
+            cvar_breach = (
+                portfolio_cvar99_loss_pct is not None and abs(float(portfolio_cvar99_loss_pct)) > 0.05
+            )
             active_grade = (
                 SignalGrade.A_PLUS
-                if (inferred_grade == SignalGrade.A_PLUS and self.sizing_cfg.conviction_sizing_enabled)
+                if (
+                    inferred_grade == SignalGrade.A_PLUS
+                    and self.sizing_cfg.conviction_sizing_enabled
+                    and not cvar_breach
+                )
                 else SignalGrade.B
             )
         else:
@@ -254,9 +263,13 @@ class PositionSizer:
                 ml_p_cal_silent=silent_p_cal,
             )
 
-        # 3. Parâmetros da Nota Ativa (Nota B vs Nota A+)
+        # 3. Parâmetros da Nota Ativa (Nota B vs Nota A+ com escada Fase 2B: 1.5% -> 2.0%)
         if active_grade == SignalGrade.A_PLUS and self.sizing_cfg.conviction_sizing_enabled:
-            base_risk_pct = _dec_from_float_cfg(self.sizing_cfg.grade_a_plus_risk_pct)
+            full_a_plus_risk = _dec_from_float_cfg(self.sizing_cfg.grade_a_plus_risk_pct)
+            if int(phase2b_graduation_stage) == 1:
+                base_risk_pct = min(full_a_plus_risk, Decimal("0.015"))
+            else:
+                base_risk_pct = full_a_plus_risk
             max_cash_pct = _dec_from_float_cfg(self.sizing_cfg.grade_a_plus_max_cash_pct)
         else:
             base_risk_pct = _dec_from_float_cfg(self.sizing_cfg.default_grade_b_risk_pct)

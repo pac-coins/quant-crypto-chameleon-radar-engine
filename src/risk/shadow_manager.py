@@ -51,6 +51,8 @@ class DefenseStatus:
     kill_switch_reason: KillSwitchReason
     conviction_downgraded: bool
     sideways_disabled: bool
+    bnb_below_recommended_reserve: bool = False
+    commission_rate_valid: bool = True
 
 
 class ShadowManager:
@@ -222,19 +224,44 @@ class ShadowManager:
 
         return conv_down, sw_dis
 
+    @staticmethod
+    def verify_commission_payload(
+        commission_payload: Optional[dict[str, object]],
+        max_taker_fee: Decimal = Decimal("0.0010"),
+    ) -> bool:
+        """
+        Valida a resposta do endpoint /api/v3/account/commission (ou /api/v3/account),
+        confirmando que a taxa taker efetiva não excede 0.10% (0.0010).
+        """
+        if not commission_payload:
+            return True
+        std = commission_payload.get("standardCommission")
+        if isinstance(std, dict) and "taker" in std:
+            return to_decimal(str(std["taker"])) <= max_taker_fee
+        if "takerCommission" in commission_payload:
+            # Em /api/v3/account, takerCommission vem em basis points (ex.: 10 = 0.0010)
+            bps = to_decimal(str(commission_payload["takerCommission"]))
+            return (bps / Decimal("10000")) <= max_taker_fee
+        return True
+
     def evaluate_defense(
         self,
         *,
         current_equity_usdt: Decimal | str,
         bnb_free_usdt_equiv: Decimal | str = Decimal("10.00"),
         trades_last_24h: int = 0,
+        account_commission_payload: Optional[dict[str, object]] = None,
     ) -> DefenseStatus:
         """
-        Atualiza o High-Water Mark tático, verifica os 4 Hard Kill-Switches e retorna
-        o multiplicador de risco efetivo (1.0, 0.5 ou 0.0).
+        Atualiza o High-Water Mark tático, verifica os 4 Hard Kill-Switches, checa a reserva
+        preventiva de BNB ($5.00 USDT) e a taxa de comissão (/api/v3/account/commission), e
+        retorna o multiplicador de risco efetivo (1.0, 0.5 ou 0.0).
         """
         equity = to_decimal(current_equity_usdt)
         bnb_usdt = to_decimal(bnb_free_usdt_equiv)
+        rec_bnb_usdt = Decimal(str(self.portfolio_cfg.min_bnb_fee_reserve_usdt_equiv))
+        bnb_below_rec = bool(bnb_usdt < rec_bnb_usdt)
+        comm_valid = self.verify_commission_payload(account_commission_payload)
 
         stored_hwm_str = self._get(STATE_KEY_TACTICAL_HWM, "0")
         stored_hwm = to_decimal(stored_hwm_str)
@@ -298,4 +325,6 @@ class ShadowManager:
             kill_switch_reason=reason,
             conviction_downgraded=conv_down,
             sideways_disabled=sw_dis,
+            bnb_below_recommended_reserve=bnb_below_rec,
+            commission_rate_valid=comm_valid,
         )

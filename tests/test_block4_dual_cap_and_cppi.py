@@ -101,8 +101,41 @@ def test_gate4a_dual_cap_wide_stop_and_pending_hodl_discount(monkeypatch: pytest
     )
     assert dec_wide_aplus.approved is True
     assert dec_wide_aplus.grade == SignalGrade.A_PLUS
+    assert dec_wide_aplus.effective_risk_pct == Decimal("0.02")
     assert dec_wide_aplus.cap_binding == "RISK_CAP"
     assert dec_wide_aplus.quote_order_qty <= Decimal("323.00")
+
+    # Fase 2B Estágio 1 (primeiros 30 trades da Fase 2B): Nota A+ limita risco a 1.5% (0.015)
+    dec_aplus_stage1 = sizer_phase2.evaluate_and_size(
+        symbol="SOLUSDT",
+        entry_price="100.00",
+        stop_price="94.00",
+        target_price="115.00",
+        free_usdt="1000.00",
+        symbol_filters=filters,
+        ml_calibrated_prob=0.65,
+        ml_proposed_grade=SignalGrade.A_PLUS,
+        phase2b_graduation_stage=1,
+    )
+    assert dec_aplus_stage1.approved is True
+    assert dec_aplus_stage1.grade == SignalGrade.A_PLUS
+    assert dec_aplus_stage1.effective_risk_pct == Decimal("0.015")
+
+    # Guarda de CVaR 99% > 5.0% de perda na cauda: rebaixa Nota A+ de volta para Nota B (1.0%)
+    dec_aplus_cvar_guard = sizer_phase2.evaluate_and_size(
+        symbol="SOLUSDT",
+        entry_price="100.00",
+        stop_price="94.00",
+        target_price="115.00",
+        free_usdt="1000.00",
+        symbol_filters=filters,
+        ml_calibrated_prob=0.65,
+        ml_proposed_grade=SignalGrade.A_PLUS,
+        portfolio_cvar99_loss_pct=0.058,
+    )
+    assert dec_aplus_cvar_guard.approved is True
+    assert dec_aplus_cvar_guard.grade == SignalGrade.B
+    assert dec_aplus_cvar_guard.effective_risk_pct == Decimal("0.01")
 
     # 2. Stop curto de 1% (Entry = 100.00, Stop = 99.00) com banca de 300 USDT e 40 USDT no pending_hodl_bucket:
     # Caixa operável = 300 - 40 = 260 USDT -> Teto de caixa 50% = 130 USDT (menor que V_cap_risk = 2.60 / 0.0121 = 214.87 USDT)
@@ -325,8 +358,25 @@ def test_gate4d_cppi_drawdown_cusum_shadow_downgrade_and_kill_switches(
     assert conv_down is True
     assert sw_dis is True
 
-    # 6. Os 4 Hard Kill-Switches
-    # (a) BNB < $2.00
+    # 6. Reserva preventiva de BNB ($5.00 USDT) e validação de /api/v3/account/commission + 4 Hard Kill-Switches
+    s_bnb_warn = sm.evaluate_defense(
+        current_equity_usdt="300.00",
+        bnb_free_usdt_equiv="3.50",
+        account_commission_payload={"standardCommission": {"maker": "0.0010", "taker": "0.0010"}},
+    )
+    assert s_bnb_warn.emergency_halt is False
+    assert s_bnb_warn.bnb_below_recommended_reserve is True
+    assert s_bnb_warn.commission_rate_valid is True
+
+    s_comm_bad = sm.evaluate_defense(
+        current_equity_usdt="300.00",
+        bnb_free_usdt_equiv="8.00",
+        account_commission_payload={"standardCommission": {"maker": "0.0015", "taker": "0.0015"}},
+    )
+    assert s_comm_bad.bnb_below_recommended_reserve is False
+    assert s_comm_bad.commission_rate_valid is False
+
+    # (a) BNB < $2.00 (Hard Kill-Switch)
     s_bnb = sm.evaluate_defense(current_equity_usdt="300.00", bnb_free_usdt_equiv="1.80")
     assert s_bnb.emergency_halt is True
     assert s_bnb.kill_switch_reason == KillSwitchReason.BNB_FEE_RESERVE_DEPLETED
