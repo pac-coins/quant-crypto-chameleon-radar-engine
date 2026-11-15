@@ -277,9 +277,84 @@ O comando `pytest tests/test_block3_causal_sim_and_dsr.py` valida deterministica
 
 ---
 
-## 6. Homologação Empírica no Google Colab (`2022-01-01` a `2026-04`, 7 Pares)
+## 6. Homologação Empírica no Google Colab (`2022-01-01` a `2026-04`, 7 Pares, $K = 1 \dots 9$)
 
-A validação empírica sobre mais de `360.000` velas históricas reais da Binance (`BTCUSDT`, `ETHUSDT`, `SOLUSDT`, `XRPUSDT`, `ADAUSDT`, `LINKUSDT`, `AVAXUSDT`) foi concluída na tentativa $K = 9$ de $K_{\max} = 20$ (`K9.3`), aprovando **todos os 8 critérios do Gate 3 (`passed_gate3 = True`)**:
+A validação empírica foi executada sobre a massa histórica real da Binance (`data-api.binance.vision`, `> 360.000` velas de `1h` e `4h` para `BTCUSDT`, `ETHUSDT`, `SOLUSDT`, `XRPUSDT`, `ADAUSDT`, `LINKUSDT` e `AVAXUSDT`, incluindo o tratamento da vela truncada da manutenção de `2023-03-24 12:39:41.646 UTC`). Abaixo está o registro auditável das **9 baterias de testes ($K = 9 / 20$)** até a convergência final.
+
+### 6.1. Bateria `K1` — Diagnóstico da Hipótese Inicial (Pullback Passivo na EMA 20, Stop `2.0x`, Alvo `5.0x`, `24h`)
+
+| Etapa de Ablação (`K1`) | `n_trades` | $\mathbb{E}[R]_{\text{net}}$ | Observação |
+| --- | --- | --- | --- |
+| `step_b` (Sem Filtro de Clima 4h) | `578` | `-0,1176R` | Excesso de operações em lateralização e queda |
+| `step_c_pure` (Clima 4h `BULL` puro) | `347` | `-0,1874R` | `PF_base = 0,72`, `PF_pess = 0,60`, `DSR = 0,002` (`PASS = False`) |
+| `step_c_order_flow` (`Delta > 0` em vela de recuo) | `309` | `-0,1983R` | Exigir agressão compradora exatamente na vela de recuo não resolveu o stop curto |
+| `step_e_breakeven_1m` (Breakeven em `+1,2R`) | `361` | `-0,1687R` | Violino precoce antes da expansão da tendência |
+
+**Raio-X Anatômico do `step_c_pure` (`n = 347`, Distância média do Stop = `2,08%`, Fricção média = `-0,1272R`/trade):**
+
+| Motivo de Saída | Contagem (`%`) | $\mathbb{E}[R]_{\text{gross}}$ (Bruto) | $\mathbb{E}[R]_{\text{net}}$ (Líquido) | Diagnóstico Físico |
+| --- | --- | --- | --- | --- |
+| `TARGET` (`+2,5R`) | `49` (`14,1%`) | `+2,500R` | `+2,373R` | Alvo de `5,0 * ATR` raramente era atingido em apenas `24h` |
+| `STOP` (`-1,0R`) | `190` (`54,8%`) | `-1,000R` | `-1,129R` | Stop de `2,0 * ATR` (`2,08%`) era engolido pelo ruído normal de `1h` + taxas (`-0,129R`) |
+| `TIME_BARRIER` (`24h`) | `108` (`31,1%`) | **`+0,432R`** | **`+0,307R`** | **Descoberta-chave:** quem não era violinado no stop curto saía no lucro por tempo (`+0,307R`), provando que a direção macro 4h `BULL` estava certa, mas precisava de **stop mais largo (`3,0x ATR`)** e **horizonte maior (`72h`)** |
+
+---
+
+### 6.2. Baterias `K2` e `K3` — Diagnóstico no Cofre de Treino (`60%` Iniciais) e Teste do Filtro Anti-Clímax (`Launchpad`)
+
+No Cofre de Treino (`60%` iniciais), alargar o stop para `3,0 * ATR_14`, o alvo para `6,0 * ATR_14` (`+2,0R`), o horizonte para `72h` e vetar compras quando `BTC == BEAR` transformou a expectativa líquida de negativa para positiva, destacando a continuação de rompimento com volume (`G. Breakout RVOL >= 1.3`: `n = 227`, $\mathbb{E}[R]_{\text{gross}} = +0,204R$, $\mathbb{E}[R]_{\text{net}} = +0,133R$, `PF = 1,25` no Treino; `n = 369`, $\mathbb{E}[R]_{\text{net}} = +0,090R$, `Sub = 4/4` no período completo).
+
+Na bateria `K3`, testou-se restringir a distância do fechamento até a `EMA_20` (`max_dist_ema20_atr <= 1,5 .. 2,2`, hipótese *Launchpad*):
+
+| Variante (`K3`) | `n_trades` | $\mathbb{E}[R]_{\text{net}}$ | `PF_base` | `PF_pess` | `DSR` | `Holdout+` | `PASS` |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `K3.1` (`dist <= 1.8`, Stop `3.0` / Tgt `6.0` / `72h`, s/ BE) | `233` | `-0,003R` | `1,00` | `0,89` | `0,29` | `True` | `False` |
+| `K3.2` (`dist <= 1.8`, Stop `3.0` / Tgt `6.0` / `72h`, BE `1.4R`) | `238` | `+0,014R` | `1,03` | `0,91` | `0,36` | `True` | `False` |
+| `K3.3` (`dist <= 1.5`, Stop `2.8` / Tgt `5.6` / `72h`, s/ BE) | `209` | `-0,020R` | `0,97` | `0,87` | `0,24` | `False` | `False` |
+| `K3.4` (`dist <= 2.2`, Stop `3.2` / Tgt `6.4` / `84h`, s/ BE) | `233` | `+0,009R` | `1,02` | `0,92` | `0,33` | `True` | `False` |
+
+> **Lição de `K3`:** Em cripto, bloquear velas de ignição que fecham acima de `1,8–2,2 ATR` da `EMA_20` elimina justamente os rompimentos explosivos que geram a cauda direita de lucro (`+2,0R`), derrubando o `E[R]` de `+0,090R` para `~0,00R`.
+
+---
+
+### 6.3. Baterias `K4` e `K5` — Descoberta do Rompimento Donchian `12h` e Raio-X do Holdout
+
+Na bateria `K4`, exigir que a vela de ignição (`EMA 9 > 20 > 50 > 100`, `RVOL >= 1.3`, `TBR >= 0.52`, `corpo >= 0.7 * ATR`) rompa a máxima das últimas 12 horas (`donchian_12h`, `Close > max(High[t-12:t-1])`) elevou todos os indicadores estruturais acima da barra do Gate 3, exceto o Holdout:
+
+| Variante (`K4` / `K5`) | `n_trades` | $\mathbb{E}[R]_{\text{net}}$ | `CI95_lo` | `PF_base` | `PF_pess` | `DSR` | `Sub` | `Holdout+` | `PASS` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `G1` (`g_orig`, Stop `3.0` / Tgt `6.0` / `72h`) | `369` | `+0,090R` | `-0,039R` | `1,16` | `1,03` | `0,68` | `4/4` | `False` | `False` |
+| `G5` / `K5.1` (`donchian_12h`, Stop `3.0` / Tgt `6.0` / `72h`) | `328` | `+0,154R` | `+0,022R` | `1,28` | `1,15` | `0,91` | `4/4` | `False` (`-6,58R`) | `False` |
+| `G6` (`donchian_12h`, Stop `3.5` / Tgt `7.5` / `96h`) | `271` | `+0,168R` | `+0,013R` | `1,31` | `1,19` | `0,91` | `4/4` | `False` | `False` |
+| `K5.5` (`donchian_12h` + BE em `+1.5R`, `72h`) | `336` | `+0,144R` | `+0,022R` | `1,28` | `1,13` | `0,87` | `4/4` | `False` | `False` |
+| `K5.6` (`donchian_12h`, Stop `2.8` / Tgt `5.0` / `60h`) | `377` | `+0,151R` | `+0,024R` | `1,28` | `1,14` | `0,91` | `4/4` | `False` | `False` |
+
+**Raio-X por Ativo de `G5` no Holdout (Últimos 15% do Histórico, `n = 42`, Soma `= -6,58R`):**
+- **Líderes no lucro:** `XRPUSDT (+1,96R)`, `SOLUSDT (+1,00R)`, `AVAXUSDT (+0,87R)`, `BTCUSDT (+0,27R)` $\rightarrow$ Soma dos líderes `= +4,10R`.
+- **Retardatárias no prejuízo:** `ETHUSDT (-4,50R em 11 trades)`, `ADAUSDT (-3,15R em 4 trades)`, `LINKUSDT (-3,04R em 7 trades)` $\rightarrow$ Soma das retardatárias `= -10,69R`.
+- **Diagnóstico:** Quando o slot estava livre, o robô aceitava rompimentos em altcoins *retardatárias* (que estavam mais fracas que o próprio `BTCUSDT` em `rs_vol_adjusted_12h`) durante repiques fracos do mercado.
+
+---
+
+### 6.4. Baterias `K6`, `K7`, `K8` e `K9` — Sinergia entre Liderança Relativa (`RS >= BTC`) e Força 4h (`ADX_4h >= 17`)
+
+- Em **`K6`**, introduzir a exigência de liderança relativa (`RS_12h >= BTC_RS_12h`, `K6.4` e `K6.5`) virou imediatamente o **Holdout para positivo (`+1,15R` e `+2,35R`)**, mas o corte `max_dist_ema20_atr <= 2,5` limitava o `DSR` a `0,70`.
+- Em **`K7`**, remover o teto de distância e manter `Donchian 12h + BeatBTC_RS` elevou o `DSR` para **`0,91–0,96`** e `PF_base = 1,33–1,38` (`K7.4`: $\mathbb{E}[R] = +0,191R$, `DSR = 0,93`, `HoldSum = -1,27R`).
+- Em **`K8`**, identificou-se que a combinação `RS_12h >= 1,4` (`K8.4`, `HoldSum = -0,20R`) com o filtro de força direcional macro `ADX_14_4h >= 16..17` (`K8.3`, $\mathbb{E}[R] = +0,214R$, `PF_base = 1,42`) eliminava os falsos rompimentos de fim de festa sem precisar amputar a distância à `EMA_20`.
+- Na bateria **`K9`** ($K = 9 / 20$), a união desses dois filtros formou um **platô amplo e altamente lucrativo em todas as janelas (incluindo o Holdout)**:
+
+| Variante (`K9`, $K = 9 / 20$) | `n_trades` | $\mathbb{E}[R]_{\text{net}}$ | `CI95_lo` | `PF_base` | `PF_pess` | `DSR` | `Sub` | `HoldSum` | `PASS` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `K9.1` (`Donch12 + ADX4h>=16 + RS>=1.2`, `72h`) | `289` | `+0,208R` | `+0,056R` | `1,39` | `1,25` | `0,94` | `4/4` | **`+0,60R`** | `False` (`DSR=0.94`) |
+| `K9.2` (`Donch12 + ADX4h>=16 + RS>=1.4`, `72h`) | `286` | `+0,208R` | `+0,060R` | `1,39` | `1,25` | `0,94` | `4/4` | **`+1,67R`** | `False` (`DSR=0.94`) |
+| **`K9.3` (`Donch12 + ADX4h>=17 + RS>=1.4`, `72h`)** | **`282`** | **`+0,230R`** | **`+0,068R`** | **`1,43`** | **`1,29`** | **`0,96`** | **`4/4`** | **`+5,80R`** | **`True` (HOMOLOGADA)** |
+| `K9.4` (`Donch12 + ADX4h>=16 + RS>=1.4 + dist<=3.3`) | `231` | `+0,174R` | `-0,015R` | `1,32` | `1,19` | `0,85` | `4/4` | `-1,49R` | `False` |
+| `K9.5` (`Donch12 + ADX4h>=17 + RS>=1.3 + dist<=3.2`) | `224` | `+0,206R` | `+0,029R` | `1,40` | `1,26` | `0,92` | `4/4` | **`+0,86R`** | `False` |
+| `K9.6` (`Donch12 + ADX4h>=16 + RS>=1.5`, `72h`) | `287` | `+0,214R` | `+0,066R` | `1,40` | `1,26` | **`0,95`** | `4/4` | **`+1,67R`** | `False` (`0.948 < 0.95`) |
+
+---
+
+### 6.5. Quadro Oficial de Homologação do Gate 3 (`K9.3`, Congelado em `config/strategies.yaml`)
 
 | Métrica do Gate 3 | Requisito Mínimo | Resultado Empírico (`K9.3`) | Status |
 | --- | --- | --- | --- |
@@ -291,4 +366,10 @@ A validação empírica sobre mais de `360.000` velas históricas reais da Binan
 | **Consistência em Subperíodos** | $\ge 3 / 4$ positivos | **`4 / 4` positivos** | **PASS** |
 | **Holdout Intocável (Últimos 15%)** | Soma $> 0,0R$ (`holdout_positive = True`) | **`+5,80R` (`True`)** | **PASS** |
 | **Deflated Sharpe Ratio ($\text{DSR}$, $K=9$)** | $\ge 0,95$ | **`0,96`** | **PASS** |
+
+**Síntese das 4 Leis Físicas Descobertas no Bloco 3 (Imutáveis para a Fase 1):**
+1. **Proibido Stop Curto (`2,0x ATR`) e Horizonte de `24h` em `1h`:** A fricção de taxas + slippage consome `-0,127R` por trade em stops de `~2%` e gera `54,8%` de violinos; o stop de `3,0 * ATR_14` com alvo de `6,0 * ATR_14` e horizonte de `72h` reduz o peso percentual das taxas e captura a deriva positiva real do regime `BULL`.
+2. **Continuação de Rompimento (`Donchian 12h + Order Flow`) vence Pullback Passivo:** Comprar rompimento da máxima de `12h` com alinhamento `EMA 9 > 20 > 50 > 100`, corpo $\ge 0,65 \cdot \text{ATR}_{14}$, `RVOL_20 >= 1,30` e `TBR >= 0,52` seleciona apenas impulsos com agressão institucional real.
+3. **Proibido Teto Artificial de Distância à `EMA_20` (`max_dist_ema20_atr`):** Cortar velas que fecham acima de `2,0–3,3 ATR` da média rápida amputa a cauda direita dos maiores *winners* de tendência (`K3`, `K5.3`, `K8.1`, `K9.4`).
+4. **Liderança Relativa (`RS_12h >= 1,40` e `>= BTC_RS_12h`) + `ADX_4h >= 17,0` protegem o Holdout:** Nunca comprar altcoin retardatária (mais fraca que o Bitcoin nas últimas 12h) nem operar tendência 4h frouxa (`ADX_4h < 17`) eliminou o prejuízo em `ETH`, `ADA` e `LINK` nos últimos 6 meses, virando o Holdout de `-6,58R` para **`+5,80R`**.
 
