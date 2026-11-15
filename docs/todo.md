@@ -65,10 +65,10 @@
 - [x] **Execução Empírica no Google Colab:** rodar os notebooks `01`, `02` e `04` no Colab sobre a massa histórica real (`2022-01-01`+, `> 360.000` velas) congelando a configuração `K9.3` (Rompimento Donchian 12h + `ADX_14_4h >= 17.0` + `Order Flow RVOL >= 1.30 / TBR >= 0.52` + `RS_12h >= 1.40` e `>= BTC_RS_12h`, `Stop 3.0x / Target 6.0x / 72h`) e homologando o **Gate 3 Empírico (`PASS = True` na tentativa $K = 9 / 20$):** `n_trades = 282` ($\ge 150$), $\mathbb{E}[R]_{\text{net}} = +0,230R$ ($> +0,10R$), IC 95% inferior $= +0,068R$ ($> 0,0R$ via *Block Bootstrap*), $\text{PF}_{\text{base}} = 1,43$ ($\ge 1,20$), $\text{PF}_{\text{pess}} = 1,29$ ($> 1,05$), Subperíodos `4/4`, Holdout `+5,80R` (`True`) e $\text{DSR} = 0,96$ ($\ge 0,95$).
 
 ## Bloco 4: Dimensionamento de Teto Duplo, Drawdown Scaling e Cofre
-- [ ] Implementar `src/risk/position_sizer.py` com teto duplo (risco de 1% e máximo de 50% do caixa operável), trava proporcional $\min(500\text{ USDT}, 55\%\text{ da banca})$, desconto de `pending_hodl_bucket_usdt` e aborto se menor que $1,05 \times \text{minNotional}$.
-- [ ] Implementar `src/risk/shadow_manager.py` com corte de risco pela metade em drawdown de 4% e gatilhos de *Auto-Downgrade* e *Hard Stop* (-12%).
-- [ ] Implementar `src/risk/profit_splitter.py` com regra de *High-Water Mark* e transferência `MAIN_FUNDING`.
-- [ ] Passar 100% no **Gate 4** (`pytest tests/test_block4_dual_cap_and_cppi.py`).
+- [x] Implementar `src/risk/position_sizer.py` com teto duplo (risco de 1% e máximo de 50% do caixa operável), trava proporcional $\min(500\text{ USDT}, 55\%\text{ da banca})$, desconto de `pending_hodl_bucket_usdt` e aborto se menor que $1,05 \times \text{minNotional}$.
+- [x] Implementar `src/risk/shadow_manager.py` com corte de risco pela metade em drawdown de 4% e gatilhos de *Auto-Downgrade* e *Hard Stop* (-12%).
+- [x] Implementar `src/risk/profit_splitter.py` com regra de *High-Water Mark* e transferência `MAIN_FUNDING`, além de `src/features/ml_judge.py` (*Platt Scaling* e Modo Observador Silencioso) e `notebooks/03_tail_stress_cppi_cusum.ipynb`.
+- [x] Passar 100% no **Gate 4** (`pytest tests/test_block4_dual_cap_and_cppi.py`, conforme [Especificação do Bloco 4](block-4-spec.md)).
 
 ## Bloco 5: Execução OCO, Paper Executor e Cura no Boot
 - [ ] Implementar `src/execution/executor_protocol.py` e `src/execution/paper_executor.py` (modo `SHADOW_CHAMELEON`, usando `bookTicker` real e `outcome_resolver.py`).

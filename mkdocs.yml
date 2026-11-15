@@ -54,6 +54,7 @@ nav:
   - Especificação do Bloco 1: block-1-spec.md
   - Especificação do Bloco 2: block-2-spec.md
   - Especificação do Bloco 3: block-3-spec.md
+  - Especificação do Bloco 4: block-4-spec.md
   - Decisões (ADR): decisions.md
   - Metodologia e roadmap: methodology-and-roadmap.md
   - TODO: todo.md
