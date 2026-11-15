@@ -1,8 +1,8 @@
 site_name: QuantCrypto Chameleon & Radar Engine
 site_description: Arquitetura unificada, auditoria de integração, contrato de dados e metodologia do QuantCrypto Chameleon & Radar Engine
-site_url: https://pac-coins.github.io/quant-crypto-chameleon-engine-v6/
-repo_url: https://github.com/pac-coins/quant-crypto-chameleon-engine-v6
-repo_name: pac-coins/quant-crypto-chameleon-engine-v6
+site_url: https://pac-coins.github.io/quant-crypto-chameleon-radar-engine/
+repo_url: https://github.com/pac-coins/quant-crypto-chameleon-radar-engine
+repo_name: pac-coins/quant-crypto-chameleon-radar-engine
 
 theme:
   name: material
