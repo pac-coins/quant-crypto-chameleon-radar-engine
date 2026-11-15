@@ -1,0 +1,131 @@
+# ==============================================================================
+# QUANTCRYPTO CHAMELEON ENGINE (v6.0) - CONFIGURAÇÃO CENTRAL AUDITADA
+# ==============================================================================
+
+version: "6.0.0"
+rollout_phase: "PHASE_1_CORE_VALIDATION"    # Fase 1: Apenas 1 estratégia validada, risco fixo 1%, sem complexidade prematura
+
+portfolio:
+  core_hold_asset: "XRP"
+  core_hold_amount: 150.0                   # 150 XRP fora da chave Spot (Risco operacional zero; exposto ao risco de mercado do XRP)
+  tactical_quote_asset: "USDT"              # ~145.5 XRP convertidos em USDT para giro tático na carteira Spot (MAIN)
+  fee_reserve_asset: "BNB"
+  min_bnb_fee_reserve_usdt_equiv: 5.00      # Reserva intocável de BNB (~4.5 XRP) para garantir taxa de 0.075% e evitar erro -2010 na OCO
+  max_concurrent_positions: 1               # Modo Sniper Single-Slot: 1 posição aberta por vez
+  min_notional_safety_buffer: 1.05          # Exige lote >= 1.05 * minNotional dinâmico lido de /api/v3/exchangeInfo (aborta se menor)
+  max_single_order_usdt_cap: 500.00         # Teto absoluto por ordem individual
+  max_single_order_equity_pct: 0.55         # Disjuntor proporcional: min(500 USDT, 55% da banca)
+  max_daily_trades_cap: 6                   # Disjuntor contra loop infinito de ordens em caso de anomalia
+
+execution_and_resilience:
+  clock_sync_interval_minutes: 15           # Ressincroniza offset monotônico (Cristian RTT/2) a cada 15 min
+  clock_safety_margin_ms: 200               # Subtrai 200ms para evitar erro -1021 (Timestamp ahead of server)
+  recv_window_ms: 5000                      # Janela de validade de assinatura Ed25519
+  candle_close_fetch_delay_seconds: 3       # Aguarda XX:00:03 UTC para garantir fechamento completo da vela no agregador Binance
+  candle_fetch_max_retries: 5               # Retentativas de 1s caso close_time da vela [-2] ainda não tenha virado
+  oco_endpoint: "/api/v3/orderList/oco"     # Endpoint oficial atual da Binance Spot
+  oco_below_type: "STOP_LOSS_LIMIT"         # Opções: "STOP_LOSS_LIMIT" (com buffer) ou "STOP_LOSS" (stop a mercado puro)
+  oco_stop_limit_buffer_pct: 0.025          # 2.5% abaixo do stopPrice para mitigar salto de livro em flash-crashes
+  fallback_to_market_on_stop_breach: true   # Vende a MARKET no mesmo segundo se preço atual <= stopPrice (-2010)
+  sqlite_wal_mode: true                     # PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;
+  daily_sqlite_backup_enabled: true         # Backup criptografado diário contra perda de disco em VPS efêmera
+
+position_sizing:                            # Dimensionamento Fracionário Fixo com Teto Duplo e Trava de Expectância
+  mode: "FIXED_FRACTIONAL_DUAL_CAP"         # Substitui o antigo rótulo impreciso de "Kelly"
+  default_grade_b_risk_pct: 0.010           # Fase 1 / Sinal Nota B: Arrisca estritamente 1.0% da Carteira Tática no Stop
+  default_grade_b_max_cash_pct: 0.50        # Teto máximo de alocação de caixa para Sinal Nota B = 50% do USDT operável
+  conviction_sizing_enabled: false          # Começa DESLIGADO na Fase 1; só liga na Fase 2 se Degrau D vencer com DSR > 0.95
+  grade_a_plus_risk_pct: 0.020              # Fase 2 (Sinal Nota A+): Arrisca no máximo 2.0% da Carteira Tática (sujeito a CVaR 99% <= 5%)
+  grade_a_plus_max_cash_pct: 0.85           # Reduzido de 95% para 85% para absorver gaps de cauda e preservar margem
+  min_expectancy_margin_over_breakeven: 0.03 # Exige P_calibrada > p_indiferenca + 3% para aprovar qualquer operação
+  roundtrip_fee_assumption_pct: 0.0015      # 0.15% ida e volta (Taker/Taker com BNB)
+  stress_slippage_assumption_pct: 0.0006    # 0.06% de slippage base embutido no cálculo da distância efetiva do stop
+
+mid_trade_management:
+  breakeven_enabled: false                  # DESLIGADO na Fase 1 (evita violino sob deriva positiva e race condition sem WebSocket)
+  breakeven_trigger_r: 1.2                  # Avaliado exclusivamente como Degrau E no Bloco 3 com velas de 1 minuto (1m)
+  require_realtime_websocket_for_be: true   # Proíbe ligar breakeven se o loop assíncrono de bookTicker não estiver ativo
+
+drawdown_and_shadow_protection:             # Defesa contra meses adversos (substitui a regra frágil de 2 vitórias / +2.0R)
+  protection_mode: "CPPI_DRAWDOWN_CONTROL"  # Opções: "CPPI_DRAWDOWN_CONTROL", "CUSUM_SHADOW_MODE", "DISABLED"
+  cppi_drawdown_threshold_pct: 0.04         # Se a Carteira Tática cair 4.0% abaixo do topo (High-Water Mark)...
+  cppi_risk_reduction_factor: 0.50          # ...corta o risco por operação pela metade (de 1.0% para 0.5%) até recuperar o topo
+  shadow_mode_enabled: false                # Modo Fantasma binário desligado na Fase 1 (testado via CUSUM no Notebook 03)
+  shadow_max_consecutive_live_losses: 3     # Se modo fantasma for usado no futuro, exige 3 stops ou gatilho CUSUM
+  shadow_virtual_wins_to_reactivate: 4      # Unificado: exige 4 trades virtuais com E[R] > 0 (removido o atalho de +2.0R em 1 trade)
+
+profit_splitter:                            # Alimentador blindado da carteira de longo prazo
+  enabled: false                            # Começa DESLIGADO na Fase 1 até comprovar lucro real fora da amostra
+  reinvest_bot_pct: 0.70                    # 70% do lucro líquido permanece no caixa tático (juros compostos)
+  send_to_hodl_pct: 0.30                    # 30% acumula em pending_hodl_bucket_usdt (descontado do caixa operável do robô!)
+  min_bucket_to_transfer_usdt: 10.00        # Ao somar >= 10 USDT, transfere direto para a carteira FUNDING
+  transfer_method: "MAIN_TO_FUNDING_USDT"   # Usa POST /sapi/v1/asset/transfer (type="MAIN_FUNDING") — zero saldo órfão na Spot!
+  hodl_target_reference_asset: "XRP"        # Ativo de referência contábil para conversão posterior na carteira Funding
+
+universe:
+  backtest_min_start_date: "2022-01-01"     # Mitiga survivorship bias garantindo liquidez consolidada nos 7 pares
+  phase_1_tie_breaker: "rs_vol_adjusted_12h" # Fase 1 (apenas Bull ativo): (Close[t] - Close[t-12]) / ATR_14[t]
+  phase_2_tie_breaker: "net_expected_r"     # Fase 2 (múltiplos regimes): E[R_i] = P_cal * R_target - (1 - P_cal) - C_R
+  symbols:                                  # BNBUSDT removido propositalmente para jamais liquidar a reserva de taxas em BNB
+    - "BTCUSDT"
+    - "ETHUSDT"
+    - "SOLUSDT"
+    - "XRPUSDT"
+    - "ADAUSDT"
+    - "LINKUSDT"
+    - "AVAXUSDT"
+
+regimes_and_strategies:
+  macro_compass_timeframe: "4h"             # Alinhado estritamente por close_time_utc (backward merge_asof)
+  execution_timeframe: "1h"                 # Operado no fechamento confirmado da vela de 1h
+  intracandle_sim_timeframe: "1m"           # Resolução obrigatória no Colab para eliminar viés de trajetória intra-vela
+
+  regime_thresholds_4h:                     # Partição MECE de 4 Estados: BEAR (1º) -> BULL (2º) -> SIDEWAYS (3º) -> TRANSITION (4º)
+    ema_macro_period: 100
+    chop_period: 14                         # Calculado na base log10 canônica
+    chop_bull_max: 50.0                     # Abaixo de 50 = tendência limpa
+    chop_sideways_min: 55.0                 # Acima ou igual a 55 = consolidação lateral (entre 50 e 55 cai em TRANSITION)
+    adx_period: 14                          # Calculado com suavização RMA de Wilder (TA-Lib)
+    adx_sideways_max: 22.0                  # Abaixo de 22 confirma ausência de força direcional
+
+  bull_trend_pullback:                      # CLIMA BULL (Sol Aberto) — ÚNICA ESTRATÉGIA ATIVA NA FASE 1
+    enabled: true
+    ema_fast_1h: 20
+    ema_slow_1h: 100
+    stop_atr_mult: 2.0                      # Stop inicial em 2.0 * ATR_14 (-1.0R)
+    target_atr_mult: 5.0                    # Alvo em 5.0 * ATR_14 (+2.5R bruto)
+    time_barrier_candles_1h: 24             # Saída atômica por tempo após 24 horas (validada contra decaimento de E[R])
+
+  sideways_pingpong:                        # CLIMA SIDEWAYS (Pista Ensaboada) — DESLIGADO NA FASE 1
+    enabled: false
+    bollinger_period: 20
+    bollinger_std: 2.0
+    rsi_period: 14
+    rsi_oversold_entry: 32.0
+    stop_atr_mult: 1.5
+    target_band: "middle_bollinger"         # Alvo fixado no valor da SMA_20 no instante da entrada
+    min_initial_rr_ratio: 1.50              # TRAVA GEOMÉTRICA v6: Bloqueia entrada se (SMA_20 - Entry) / (1.5 * ATR_14) < 1.5
+    time_barrier_candles_1h: 12
+
+  bear_capitulation_snap:                   # CLIMA BEAR (Tempestade) — EM QUARENTENA (Alto risco de continuação em Bear Market)
+    enabled: false                          # Mantém 100% em USDT durante Bear Market até provar alpha OOS com filtro de exaustão
+    rsi_fast_period: 2
+    rsi_panic_threshold: 5.0
+    relative_volume_min: 3.0
+    min_lower_wick_ratio: 0.40              # Exige pavio inferior >= 40% da vela de 1h provando rejeição compradora real
+    stop_atr_mult: 1.8
+    target_atr_mult: 3.6                    # Alvo de repique (+2.0R)
+    time_barrier_candles_1h: 8
+
+ml_judge_and_validation:
+  use_ml_filter: false                      # Começa DESLIGADO na Fase 1; exige vencer Degrau C no Colab
+  segregate_models_by_regime: true          # Proíbe misturar estratégias com razões R:R diferentes no mesmo modelo
+  sample_uniqueness_method: "afml_mean_uniqueness" # Média de 1/c_t ao longo de toda a janela [t_entry, t_exit]
+  purge_window_hours: 24                    # Expurgo de 24h entre treino e validação/teste
+  embargo_pct: 0.02                         # Embargo de 2% após cada fold de teste
+  calibration_method: "platt_scaling"       # Platt Scaling (< 2.000 trades; exige ECE <= 0.05 fora da amostra)
+  max_allowed_ece: 0.05
+  ranking_metric: "net_expected_r"          # Classifica tercis por E[R] líquido, nunca por P(win) bruto
+  reject_bottom_quantile: 0.33              # Tercil inferior (ou E[R] <= 0) = Nota C (Ignora)
+  grade_a_plus_top_quantile: 0.70           # Top 30% de E[R] (com P_cal > p_indiferenca + 0.03) = Nota A+
+  min_deflated_sharpe_ratio: 0.95           # Exige DSR >= 0.95 descontando o número total de trials testados no Colab

@@ -45,11 +45,11 @@
 # Checklist de Execução por Bloco (Ordem Estrita de Construção)
 
 ## Bloco 1: Fundação, Banco SQLite WAL, Relógio, Governador e Coletor Causal
-- [ ] Criar `config/strategies.yaml` (v6.0) e `config/analyst.yaml` (v1.1) com validador estrito em `src/core/config.py` (`RunMode`, `validate_mode_invariants`, trava `affects_execution: false` e segregação `execution_universe`).
-- [ ] Implementar `src/core/database.py` com `PRAGMA journal_mode=WAL`, `synchronous=FULL`, `isolation_level=None`, `write_tx()` (`BEGIN IMMEDIATE` + `WrongThreadError`), schema completo (v1) de [Contrato de Dados](data-contract.md) e rotina nativa `sqlite3.backup()`.
-- [ ] Implementar `src/core/binance_client.py` com assinatura Ed25519, `WeightGovernor` (`CRITICAL > HIGH > LOW`, `critical_section()`), sincronização monotônica (`RTT/2`), cache dinâmico de `/api/v3/exchangeInfo`, arredondamento `Decimal` direcional (`tickSize` / `stepSize`) e mock automático para `/sapi/*` na Testnet.
-- [ ] Implementar `src/data/candle_collector.py` persistindo colunas 0..10 (incluindo `quote_volume` e `taker_buy_quote_volume`), normalizando `close_time` (`+1ms`), detectando gaps e fazendo junção 4h/1h e BTC via `merge_asof(..., direction='backward', allow_exact_matches=True)`.
-- [ ] Passar 100% no **Gate 1 Unificado** (`pytest tests/test_block1_causal_and_decimal.py tests/test_block1_db_governor_modes.py`, conforme [Especificação do Bloco 1](block-1-spec.md)).
+- [x] Criar `config/strategies.yaml` (v6.0) e `config/analyst.yaml` (v1.1) com validador estrito em `src/core/config.py` (`RunMode`, `validate_mode_invariants`, trava `affects_execution: false` e segregação `execution_universe`).
+- [x] Implementar `src/core/database.py` com `PRAGMA journal_mode=WAL`, `synchronous=FULL`, `isolation_level=None`, `write_tx()` (`BEGIN IMMEDIATE` + `WrongThreadError`), schema completo (v1) de [Contrato de Dados](data-contract.md) e rotina nativa `sqlite3.backup()`.
+- [x] Implementar `src/core/binance_client.py` com assinatura Ed25519, `WeightGovernor` (`CRITICAL > HIGH > LOW`, `critical_section()`), sincronização monotônica (`RTT/2`), cache dinâmico de `/api/v3/exchangeInfo`, arredondamento `Decimal` direcional (`tickSize` / `stepSize`) e mock automático para `/sapi/*` na Testnet.
+- [x] Implementar `src/data/candle_collector.py` persistindo colunas 0..10 (incluindo `quote_volume` e `taker_buy_quote_volume`), normalizando `close_time` (`+1ms`), detectando gaps e fazendo junção 4h/1h e BTC via `merge_asof(..., direction='backward', allow_exact_matches=True)`.
+- [x] Passar 100% no **Gate 1 Unificado** (`pytest tests/test_block1_causal_and_decimal.py tests/test_block1_db_governor_modes.py`, conforme [Especificação do Bloco 1](block-1-spec.md)).
 
 ## Bloco 2: Indicadores Canônicos, FeatureStore, Order Flow e Clima MECE
 - [ ] Implementar `src/features/indicators.py`, `src/features/order_flow.py` e `src/features/price_action.py` (funções puras compartilhadas entre Chameleon e Radar, com guardas de divisão por zero / `NaN` e `CHOP` base 10).
