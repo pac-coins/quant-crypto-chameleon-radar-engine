@@ -215,7 +215,7 @@ def test_gate3c_afml_uniqueness_temporal_vaults_and_trial_budget(tmp_path: Path)
         )
 
 
-def test_gate3d_ablation_order_flow_sideways_rr_guard_dsr_and_notebooks() -> None:
+def test_gate3d_ablation_order_flow_sideways_rr_guard_dsr_and_notebooks(tmp_path: Path) -> None:
     """
     Gate 3D:
     - Ablação do filtro de Order Flow no Degrau C filtra sinais com Delta <= 0;
@@ -321,4 +321,59 @@ def test_gate3d_ablation_order_flow_sideways_rr_guard_dsr_and_notebooks() -> Non
         for cell in code_cells:
             src_code = "".join(cell.get("source", []))
             exec(compile(src_code, f"{nb_name}", "exec"), ns)
+
+        if nb_name == "02_ablation_and_dsr_sim.ipynb":
+            # Testa a execução ponta-a-ponta de download_and_build_aligned_universe + run_ablation_and_gate3
+            nb_client = ns["client"]
+            nb_db = ns["db"]
+            nb_db.path = tmp_path / "colab_test.sqlite"
+            nb_db.close()
+            nb_db.migrate()
+
+            end_ms = 1_700_000_000_000
+            start_ms = end_ms - 600 * 3_600_000
+
+            def _fake_server_time() -> int:
+                return end_ms
+
+            def _fake_get_klines(
+                symbol: str,
+                interval: str,
+                *,
+                start_time_ms: int | None = None,
+                end_time_ms: int | None = None,
+                limit: int = 1000,
+            ) -> list[list[object]]:
+                delta = 3_600_000 if interval == "1h" else 14_400_000
+                s = ((int(start_time_ms or start_ms)) // delta) * delta
+                e = int(end_time_ms or end_ms)
+                rows = []
+                t = s
+                while t + delta <= e and len(rows) < limit:
+                    rows.append(
+                        [
+                            t,
+                            "100.0",
+                            "102.0",
+                            "99.0",
+                            "101.0",
+                            "50.0",
+                            t + delta - 1,
+                            "5050.0",
+                            100,
+                            "30.0",
+                            "3030.0",
+                            "0",
+                        ]
+                    )
+                    t += delta
+                return rows
+
+            nb_client.get_server_time_ms = _fake_server_time  # type: ignore[attr-defined]
+            nb_client.get_klines = _fake_get_klines  # type: ignore[attr-defined]
+            aligned = ns["download_and_build_aligned_universe"](start_ms=start_ms, end_ms=end_ms)  # type: ignore[operator]
+            ablation_res = ns["run_ablation_and_gate3"](aligned)  # type: ignore[operator]
+            assert "gate3_report" in ablation_res
+            nb_db.close()
+
 
