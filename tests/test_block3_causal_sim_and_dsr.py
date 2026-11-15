@@ -305,7 +305,7 @@ def test_gate3d_ablation_order_flow_sideways_rr_guard_dsr_and_notebooks() -> Non
     )
     assert report.passed_gate3 is True
 
-    # Verifica notebooks do Bloco 3
+    # Verifica e executa todas as células de código dos 3 notebooks do Bloco 3
     for nb_name in (
         "01_download_causal_1h_4h_1m.ipynb",
         "02_ablation_and_dsr_sim.ipynb",
@@ -315,4 +315,10 @@ def test_gate3d_ablation_order_flow_sideways_rr_guard_dsr_and_notebooks() -> Non
         assert nb_path.exists(), f"Notebook ausente: {nb_name}"
         nb_data = json.loads(nb_path.read_text(encoding="utf-8"))
         assert nb_data.get("nbformat") == 4
-        assert len(nb_data.get("cells", [])) >= 2
+        code_cells = [c for c in nb_data.get("cells", []) if c.get("cell_type") == "code"]
+        assert len(code_cells) >= 2
+        ns: dict[str, object] = {}
+        for cell in code_cells:
+            src_code = "".join(cell.get("source", []))
+            exec(compile(src_code, f"{nb_name}", "exec"), ns)
+

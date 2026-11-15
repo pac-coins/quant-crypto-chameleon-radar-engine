@@ -279,6 +279,10 @@ class CausalSingleSlotSimulator:
             sym: {int(r[_time_col(df)]): r for _, r in df.iterrows()}
             for sym, df in indexed_frames.items()
         }
+        regime_lookup: Dict[str, Dict[int, MarketRegime]] = {}
+        if not ignore_regime_filter:
+            for sym, full_df in aligned_frames.items():
+                regime_lookup[sym] = regime_detector.detect_series_from_aligned_frame(full_df)
 
         trades: List[SimulatedTrade] = []
         slot_busy_until_ms: int = -1
@@ -298,10 +302,7 @@ class CausalSingleSlotSimulator:
                 if ignore_regime_filter:
                     regime = MarketRegime.BULL
                 else:
-                    full_df = aligned_frames[sym]
-                    tcol_full = _time_col(full_df)
-                    up_to_t = full_df[full_df[tcol_full] <= t_ms]
-                    regime = regime_detector.detect_from_aligned_frame(up_to_t).regime
+                    regime = regime_lookup[sym].get(t_ms, MarketRegime.TRANSITION)
 
                 for strat in strategies:
                     cand = strat.evaluate_row(

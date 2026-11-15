@@ -270,3 +270,63 @@ class RegimeDetector:
             has_min_history=has_hist,
         )
 
+    def detect_series_from_aligned_frame(
+        self,
+        df_aligned: pd.DataFrame,
+    ) -> dict[int, MarketRegime]:
+        """
+        Precomputes the exact causal 4h regime for every 1h close_time_ms in O(N) time.
+        Identical to calling detect_from_aligned_frame(df_aligned[t <= t_ms]) for each row.
+        """
+        if df_aligned.empty:
+            return {}
+
+        tcol_1h = "close_time_ms" if "close_time_ms" in df_aligned.columns else "close_time"
+        ct_4h_col = "close_time_ms_4h" if "close_time_ms_4h" in df_aligned.columns else "close_time_4h"
+        ema_col = f"ema_{self.thresholds.ema_macro_period}_4h"
+        chop_col = f"chop_{self.thresholds.chop_period}_4h"
+        adx_col = f"adx_{self.thresholds.adx_period}_4h"
+
+        if ct_4h_col not in df_aligned.columns or ema_col not in df_aligned.columns:
+            return {int(t): MarketRegime.TRANSITION for t in df_aligned[tcol_1h].tolist()}
+
+        # Build causal lookup per unique 4h close_time_ms
+        unique_4h = (
+            df_aligned.dropna(subset=[ct_4h_col])
+            .drop_duplicates(subset=[ct_4h_col], keep="first")
+            .sort_values(ct_4h_col, kind="mergesort")
+            .reset_index(drop=True)
+        )
+        regime_by_4h_close: dict[int, MarketRegime] = {}
+        prev_e_4h: float | None = None
+        for idx_4h, (_, row_4h) in enumerate(unique_4h.iterrows()):
+            t_4h = int(row_4h[ct_4h_col])
+            c_4h = float(row_4h.get("close_4h", float("nan")))
+            e_4h = float(row_4h.get(ema_col, float("nan")))
+            slope_4h = (e_4h - prev_e_4h) if prev_e_4h is not None else float("nan")
+            prev_e_4h = e_4h
+            chop_4h = float(row_4h.get(chop_col, float("nan")))
+            adx_4h = float(row_4h.get(adx_col, float("nan")))
+            has_hist = (idx_4h + 1) >= self.min_warmup_candles
+            snap = classify_regime_values(
+                close_4h=c_4h,
+                ema100_4h=e_4h,
+                ema100_slope_4h=slope_4h,
+                chop14_4h=chop_4h,
+                adx14_4h=adx_4h,
+                thresholds=self.thresholds,
+                has_min_history=has_hist,
+            )
+            regime_by_4h_close[t_4h] = snap.regime
+
+        out: dict[int, MarketRegime] = {}
+        for _, row_1h in df_aligned.iterrows():
+            t_1h = int(row_1h[tcol_1h])
+            raw_4h = row_1h.get(ct_4h_col)
+            if raw_4h is None or not math.isfinite(float(raw_4h)):
+                out[t_1h] = MarketRegime.TRANSITION
+            else:
+                out[t_1h] = regime_by_4h_close.get(int(raw_4h), MarketRegime.TRANSITION)
+        return out
+
+

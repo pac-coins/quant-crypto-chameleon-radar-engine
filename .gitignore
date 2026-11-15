@@ -5,8 +5,10 @@ __pycache__/
 .venv/
 venv/
 .env
-data/
+/data/
+/logs/
 site/
 *.db
+*.sqlite
 *.db-wal
 *.db-shm
