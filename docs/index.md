@@ -35,9 +35,11 @@ As decisões centrais da arquitetura unificada são:
    Categoria 1 (C1-A a C1-E) e 9 refinamentos de Categoria 2 (C2-1 a C2-9).
 3. **[Contrato de Dados](data-contract.md):** schema SQL completo (v1) e
    máquina de estados de `trades`.
-4. **[Especificação do Bloco 1](block-1-spec.md):** assinaturas (`type hints`)
-   de `config.py`, `database.py`, `binance_client.py` e `candle_collector.py`,
-   além do Gate 1 unificado.
+4. **[Especificação do Bloco 1](block-1-spec.md)** e **[Especificação do Bloco 2](block-2-spec.md):**
+   assinaturas (`type hints`) congeladas do Bloco 1 (`config.py`, `database.py`,
+   `binance_client.py`, `candle_collector.py`) e do Bloco 2 (`indicators.py`,
+   `order_flow.py`, `price_action.py`, `feature_store.py`, `regime_detector.py`),
+   além dos Gates 1 e 2 unificados.
 5. **[Executor (Chameleon v6)](architecture.md)** e **[Radar & Auditor (v1.1)](radar.md):**
    especificações matemáticas e operacionais de cada subsistema.
 6. **[Decisões (ADR)](decisions.md)**, **[Metodologia e roadmap](methodology-and-roadmap.md)**

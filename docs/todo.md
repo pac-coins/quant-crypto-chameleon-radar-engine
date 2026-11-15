@@ -52,10 +52,10 @@
 - [x] Passar 100% no **Gate 1 Unificado** (`pytest tests/test_block1_causal_and_decimal.py tests/test_block1_db_governor_modes.py`, conforme [Especificação do Bloco 1](block-1-spec.md)).
 
 ## Bloco 2: Indicadores Canônicos, FeatureStore, Order Flow e Clima MECE
-- [ ] Implementar `src/features/indicators.py`, `src/features/order_flow.py` e `src/features/price_action.py` (funções puras compartilhadas entre Chameleon e Radar, com guardas de divisão por zero / `NaN` e `CHOP` base 10).
-- [ ] Implementar `src/features/feature_store.py` calculando a união de `FeatureRequest` (EMA 9/20/50/100/200, ATR, ADX, RSI, CHOP, RVOL, TBR, Delta, Sweep) uma única vez por ciclo.
-- [ ] Implementar `src/regimes/regime_detector.py` com partição MECE de 4 estados (`BEAR` -> `BULL` -> `SIDEWAYS` -> `TRANSITION`) como fonte única de clima (ADR-008) e fallback automático para `TRANSITION` em caso de `NaN` ou histórico menor que 120 velas.
-- [ ] Passar 100% no **Gate 2** (`pytest tests/test_block2_talib_and_mece.py`).
+- [x] Implementar `src/features/indicators.py`, `src/features/order_flow.py` e `src/features/price_action.py` (funções puras compartilhadas entre Chameleon e Radar, com guardas de divisão por zero / `NaN` e `CHOP` base 10).
+- [x] Implementar `src/features/feature_store.py` calculando a união de `FeatureRequest` (EMA 9/20/50/100/200, ATR, ADX, RSI, CHOP, RVOL, TBR, Delta, Sweep) uma única vez por ciclo.
+- [x] Implementar `src/regimes/regime_detector.py` com partição MECE de 4 estados (`BEAR` -> `BULL` -> `SIDEWAYS` -> `TRANSITION`) como fonte única de clima (ADR-008) e fallback automático para `TRANSITION` em caso de `NaN` ou histórico menor que 120 velas.
+- [x] Passar 100% no **Gate 2** (`pytest tests/test_block2_talib_and_mece.py`, conforme [Especificação do Bloco 2](block-2-spec.md)).
 
 ## Bloco 3: Simulador Causal Single-Slot e Ablação no Google Colab
 - [ ] Criar `notebooks/01_download_causal_1h_4h_1m.ipynb` baixando dados desde `2022-01-01` das 7 moedas (`BTC`, `ETH`, `SOL`, `XRP`, `ADA`, `LINK`, `AVAX`) incluindo volume de agressão compradora (cols 9 e 10).

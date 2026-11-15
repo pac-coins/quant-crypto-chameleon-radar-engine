@@ -20,14 +20,14 @@ O sistema roda em três modos selecionáveis via `MODE` no `.env`:
 - **Radar & Auditor (v1.1):** funil de 5 camadas, banda efetiva simétrica no `/api/v3/depth`, grade ancorada para *Whale Walls* e Auditor Virtual.
 - **Auditoria de Integração:** 5 falhas inéditas de Categoria 1 (C1-A a C1-E) e 9 refinamentos de Categoria 2 (C2-1 a C2-9) descobertos na unificação, com suas correções.
 - **Contrato de Dados:** schema SQL completo (v1) validado em SQLite WAL, uso de tabelas por modo e máquina de estados de `trades`.
-- **Especificação do Bloco 1:** assinaturas exatas (`type hints`) de `config.py`, `database.py`, `binance_client.py` e `candle_collector.py`, mais o Gate 1 unificado.
+- **Especificações dos Blocos 1 e 2:** assinaturas exatas (`type hints`) de `config.py`, `database.py`, `binance_client.py` e `candle_collector.py` ([Bloco 1](docs/block-1-spec.md)) e de `indicators.py`, `order_flow.py`, `price_action.py`, `feature_store.py` e `regime_detector.py` ([Bloco 2](docs/block-2-spec.md)).
 - **Decisões (ADR):** registro vinculante ADR-001 a ADR-014.
 - **Metodologia, Roadmap e TODO:** construção em 6 blocos, gates `PASS`/`FAIL`, transições de fase, kill-switches e quadro de triagem atualizado.
 
 ## Documentação online
 
 A documentação completa é publicada via MkDocs Material em
-[pac-coins.github.io/quant-crypto-chameleon-engine-v6](https://pac-coins.github.io/quant-crypto-chameleon-engine-v6/).
+[pac-coins.github.io/quant-crypto-chameleon-radar-engine](https://pac-coins.github.io/quant-crypto-chameleon-radar-engine/).
 
 Para visualizar localmente:
 
@@ -38,7 +38,7 @@ mkdocs serve
 
 ## Renomeação do repositório
 
-Este repositório será renomeado posteriormente de `quant-crypto-chameleon-engine-v6` para **`quant-crypto-chameleon-radar-engine`** (ADR-014) para refletir a unificação dos dois motores no mesmo código-fonte. Após a renomeação no GitHub, atualize `site_url`, `repo_url` e `repo_name` em `mkdocs.yml`.
+O repositório foi renomeado para **`quant-crypto-chameleon-radar-engine`** (ADR-014) para refletir a unificação dos dois motores no mesmo código-fonte.
 
 ## Estado do projeto
 
