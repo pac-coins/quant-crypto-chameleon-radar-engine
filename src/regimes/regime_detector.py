@@ -213,3 +213,60 @@ class RegimeDetector:
             )
             regimes.append(snap.regime.value)
         return pd.Series(regimes, index=df_4h.index, name="regime")
+
+    def detect_from_aligned_frame(self, df_aligned: pd.DataFrame) -> RegimeSnapshot:
+        """Classifies regime from an aligned 1h+4h DataFrame produced by FeatureStore.build()."""
+        if df_aligned.empty:
+            return classify_regime_values(
+                close_4h=None,
+                ema100_4h=None,
+                ema100_slope_4h=None,
+                chop14_4h=None,
+                adx14_4h=None,
+                thresholds=self.thresholds,
+                has_min_history=False,
+            )
+
+        ema_col = f"ema_{self.thresholds.ema_macro_period}_4h"
+        chop_col = f"chop_{self.thresholds.chop_period}_4h"
+        adx_col = f"adx_{self.thresholds.adx_period}_4h"
+        ct_4h_col = "close_time_ms_4h" if "close_time_ms_4h" in df_aligned.columns else "close_time_4h"
+
+        if ct_4h_col in df_aligned.columns:
+            unique_4h = df_aligned.dropna(subset=[ct_4h_col]).drop_duplicates(
+                subset=[ct_4h_col], keep="last"
+            )
+        else:
+            unique_4h = df_aligned
+
+        has_hist = len(unique_4h) >= self.min_warmup_candles
+        if len(unique_4h) < 2 or ema_col not in unique_4h.columns:
+            return classify_regime_values(
+                close_4h=None,
+                ema100_4h=None,
+                ema100_slope_4h=None,
+                chop14_4h=None,
+                adx14_4h=None,
+                thresholds=self.thresholds,
+                has_min_history=False,
+            )
+
+        last_row = unique_4h.iloc[-1]
+        prev_row = unique_4h.iloc[-2]
+        c_4h = float(last_row.get("close_4h", float("nan")))
+        e_4h = float(last_row.get(ema_col, float("nan")))
+        prev_e_4h = float(prev_row.get(ema_col, float("nan")))
+        slope_4h = e_4h - prev_e_4h
+        chop_4h = float(last_row.get(chop_col, float("nan")))
+        adx_4h = float(last_row.get(adx_col, float("nan")))
+
+        return classify_regime_values(
+            close_4h=c_4h,
+            ema100_4h=e_4h,
+            ema100_slope_4h=slope_4h,
+            chop14_4h=chop_4h,
+            adx14_4h=adx_4h,
+            thresholds=self.thresholds,
+            has_min_history=has_hist,
+        )
+

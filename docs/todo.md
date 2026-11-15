@@ -58,10 +58,11 @@
 - [x] Passar 100% no **Gate 2** (`pytest tests/test_block2_talib_and_mece.py`, conforme [Especificação do Bloco 2](block-2-spec.md)).
 
 ## Bloco 3: Simulador Causal Single-Slot e Ablação no Google Colab
-- [ ] Criar `notebooks/01_download_causal_1h_4h_1m.ipynb` baixando dados desde `2022-01-01` das 7 moedas (`BTC`, `ETH`, `SOL`, `XRP`, `ADA`, `LINK`, `AVAX`) incluindo volume de agressão compradora (cols 9 e 10).
-- [ ] Criar `notebooks/02_ablation_and_dsr_sim.ipynb` com partição `60% Treino / 25% Validação / 15% Holdout (6 meses)`, cálculo empírico de $\mathbb{E}[R]$ (incluindo saídas por tempo de 24h), comparação com e sem filtro de *Order Flow Delta* e registro automático em `trials_registry.csv`.
-- [ ] Criar `notebooks/04_radar_layers_123_backtest.ipynb` para validar as Camadas 1, 2 e 3 do Radar sob a mesma governança anti-overfitting.
-- [ ] Passar no **Gate 3**: mínimo de 150 trades fora da amostra, $\bar{R}$ maior que $+0,10R$ (IC 95% positivo via *Block Bootstrap*), *Profit Factor* maior ou igual a $1,20$ no custo Base e maior que $1,05$ no custo Pessimista, e $\text{DSR}$ maior ou igual a $0,95$.
+- [x] Criar `notebooks/01_download_causal_1h_4h_1m.ipynb` (com paginação `backfill_historical_range` em `candle_collector.py`) baixando dados desde `2022-01-01` das 7 moedas (`BTC`, `ETH`, `SOL`, `XRP`, `ADA`, `LINK`, `AVAX`) incluindo volume de agressão compradora (cols 9 e 10).
+- [x] Criar `notebooks/02_ablation_and_dsr_sim.ipynb` (apoiado em `src/strategies/` e `src/backtest/`) com partição `60% Treino / 25% Validação / 15% Holdout (6 meses)`, cálculo empírico de $\mathbb{E}[R]$ (incluindo saídas por tempo de 24h), comparação com e sem filtro de *Order Flow Delta* e registro automático em `trials_registry.csv`.
+- [x] Criar `notebooks/04_radar_layers_123_backtest.ipynb` para validar as Camadas 1, 2 e 3 do Radar sob a mesma governança anti-overfitting.
+- [x] Passar 100% no **Gate 3 de Engenharia e Matemática** (`pytest tests/test_block3_causal_sim_and_dsr.py`, conforme [Especificação do Bloco 3](block-3-spec.md)).
+- [ ] **Execução Empírica no Google Colab:** rodar os notebooks `01`, `02` e `04` no Colab sobre a massa histórica real (`2022-01-01`+) para congelar a escolha do Degrau C (puro vs. com filtro de *Order Flow Delta*) e homologar o **Gate 3 Empírico** ($\ge 150$ trades fora da amostra, $\bar{R} > +0,10R$ com IC 95% positivo via *Block Bootstrap*, *Profit Factor* $\ge 1,20$ no custo Base e $> 1,05$ no custo Pessimista, e $\text{DSR} \ge 0,95$).
 
 ## Bloco 4: Dimensionamento de Teto Duplo, Drawdown Scaling e Cofre
 - [ ] Implementar `src/risk/position_sizer.py` com teto duplo (risco de 1% e máximo de 50% do caixa operável), trava proporcional $\min(500\text{ USDT}, 55\%\text{ da banca})$, desconto de `pending_hodl_bucket_usdt` e aborto se menor que $1,05 \times \text{minNotional}$.

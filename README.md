@@ -20,7 +20,7 @@ O sistema roda em três modos selecionáveis via `MODE` no `.env`:
 - **Radar & Auditor (v1.1):** funil de 5 camadas, banda efetiva simétrica no `/api/v3/depth`, grade ancorada para *Whale Walls* e Auditor Virtual.
 - **Auditoria de Integração:** 5 falhas inéditas de Categoria 1 (C1-A a C1-E) e 9 refinamentos de Categoria 2 (C2-1 a C2-9) descobertos na unificação, com suas correções.
 - **Contrato de Dados:** schema SQL completo (v1) validado em SQLite WAL, uso de tabelas por modo e máquina de estados de `trades`.
-- **Especificações dos Blocos 1 e 2:** assinaturas exatas (`type hints`) de `config.py`, `database.py`, `binance_client.py` e `candle_collector.py` ([Bloco 1](docs/block-1-spec.md)) e de `indicators.py`, `order_flow.py`, `price_action.py`, `feature_store.py` e `regime_detector.py` ([Bloco 2](docs/block-2-spec.md)).
+- **Especificações dos Blocos 1, 2 e 3:** assinaturas exatas (`type hints`) de `config.py`, `database.py`, `binance_client.py` e `candle_collector.py` ([Bloco 1](docs/block-1-spec.md)), de `indicators.py`, `order_flow.py`, `price_action.py`, `feature_store.py` e `regime_detector.py` ([Bloco 2](docs/block-2-spec.md)), e de `strategies/`, `causal_simulator.py`, `ablation_and_dsr.py` e `notebooks/` ([Bloco 3](docs/block-3-spec.md)).
 - **Decisões (ADR):** registro vinculante ADR-001 a ADR-014.
 - **Metodologia, Roadmap e TODO:** construção em 6 blocos, gates `PASS`/`FAIL`, transições de fase, kill-switches e quadro de triagem atualizado.
 
@@ -42,4 +42,4 @@ O repositório foi renomeado para **`quant-crypto-chameleon-radar-engine`** (ADR
 
 ## Estado do projeto
 
-O repositório contém a especificação consolidada, o contrato de dados e a especificação do Bloco 1 prontos para codificação. O robô não deve operar com capital real antes que os gates definidos na metodologia sejam aprovados e registrados.
+Os **Blocos 1, 2 e 3** (Fundação, FeatureStore/Clima MECE e Simulador Causal Single-Slot/Ablação/DSR) estão especificados, implementados e aprovados em seus respectivos Gates (`pytest`). O robô não deve operar com capital real antes que todos os 6 blocos e seus gates sejam aprovados e registrados.
