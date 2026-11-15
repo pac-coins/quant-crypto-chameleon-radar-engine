@@ -243,6 +243,43 @@ def test_gate3d_ablation_order_flow_sideways_rr_guard_dsr_and_notebooks(tmp_path
     assert bull.evaluate_row("ETHUSDT", row_neg_delta, MarketRegime.BULL, require_order_flow_filter=False) is not None
     assert bull.evaluate_row("ETHUSDT", row_neg_delta, MarketRegime.BULL, require_order_flow_filter=True) is None
 
+    # Modo K9.3 (Donchian 12h + ADX_4h >= 17.0 + RS >= 1.40 + Beat BTC RS)
+    row_k93 = pd.Series(
+        {
+            "close_time_ms": 10_000_000,
+            "open": 100.0,
+            "high": 104.0,
+            "low": 99.5,
+            "close": 103.0,
+            "ema_9": 102.0,
+            "ema_20": 101.0,
+            "ema_50": 99.0,
+            "ema_100": 96.0,
+            "atr_14": 2.0,
+            "adx_14_4h": 21.5,
+            "rvol_20": 1.65,
+            "tbr": 0.56,
+            "of_delta_quote": 15_000.0,
+            "rs_vol_adjusted_12h": 1.85,
+            "btc_rs_12h": 1.10,
+            "btc_regime_4h": "BULL",
+            "prev_high_12h": 102.5,
+        }
+    )
+    sig_k93 = bull.evaluate_row("SOLUSDT", row_k93, MarketRegime.BULL)
+    assert sig_k93 is not None
+    assert pytest.approx(sig_k93.stop_price) == 103.0 - 3.0 * 2.0
+    assert pytest.approx(sig_k93.target_price) == 103.0 + 6.0 * 2.0
+    assert sig_k93.time_barrier_hours == 72
+
+    # Veto se ADX_4h < 17.0 ou se ativo perder em RS para o BTCUSDT
+    row_k93_low_adx = row_k93.copy()
+    row_k93_low_adx["adx_14_4h"] = 15.0
+    assert bull.evaluate_row("SOLUSDT", row_k93_low_adx, MarketRegime.BULL) is None
+    row_k93_lag_btc = row_k93.copy()
+    row_k93_lag_btc["btc_rs_12h"] = 2.10
+    assert bull.evaluate_row("SOLUSDT", row_k93_lag_btc, MarketRegime.BULL) is None
+
     # Trava geométrica v6 de sideways_pingpong (RR < 1.50 é bloqueado)
     sw = SidewaysPingPongStrategy(enabled=True, min_initial_rr_ratio=1.50)
     row_tight_bb = pd.Series(

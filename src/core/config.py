@@ -160,6 +160,14 @@ class BullTrendPullbackCfg(_Strict):
     stop_atr_mult: float
     target_atr_mult: float
     time_barrier_candles_1h: int
+    donchian_lookback_1h: int = 12
+    min_adx_4h: float = 17.0
+    min_rvol_1h: float = 1.30
+    min_taker_buy_ratio: float = 0.52
+    min_body_atr_1h: float = 0.65
+    min_rs_12h: float = 1.40
+    require_beat_btc_rs_12h: bool = True
+    veto_if_btc_bear: bool = True
 
 
 class SidewaysPingpongCfg(_Strict):

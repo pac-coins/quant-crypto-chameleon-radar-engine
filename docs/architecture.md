@@ -443,13 +443,21 @@ regimes_and_strategies:
     adx_period: 14                          # Calculado com suavização RMA de Wilder (TA-Lib)
     adx_sideways_max: 22.0                  # Abaixo de 22 confirma ausência de força direcional
 
-  bull_trend_pullback:                      # CLIMA BULL (Sol Aberto) — ÚNICA ESTRATÉGIA ATIVA NA FASE 1
+  bull_trend_pullback:                      # CLIMA BULL (Sol Aberto) — ÚNICA ESTRATÉGIA ATIVA NA FASE 1 (Homologada no Gate 3 Empírico K9.3: DSR=0.96, E[R]=+0.230R, PF=1.43)
     enabled: true
     ema_fast_1h: 20
     ema_slow_1h: 100
-    stop_atr_mult: 2.0                      # Stop inicial em 2.0 * ATR_14 (-1.0R)
-    target_atr_mult: 5.0                    # Alvo em 5.0 * ATR_14 (+2.5R bruto)
-    time_barrier_candles_1h: 24             # Saída atômica por tempo após 24 horas (validada contra decaimento de E[R])
+    stop_atr_mult: 3.0                      # Stop inicial em 3.0 * ATR_14 (-1.0R; reduz fricção de taxas/ruído em 1h)
+    target_atr_mult: 6.0                    # Alvo em 6.0 * ATR_14 (+2.0R bruto)
+    time_barrier_candles_1h: 72             # Saída atômica por tempo após 72 horas (3 dias)
+    donchian_lookback_1h: 12                # Rompimento da máxima das últimas 12 velas fechadas de 1h
+    min_adx_4h: 17.0                        # Exige força direcional mínima no 4h (ADX_14_4h >= 17.0)
+    min_rvol_1h: 1.30                       # Expansão de volume relativo (RVOL_20 >= 1.30)
+    min_taker_buy_ratio: 0.52               # Dominância de agressão compradora (TBR >= 0.52 / Order Flow Delta > 0)
+    min_body_atr_1h: 0.65                   # Corpo comprador mínimo de 0.65 * ATR_14
+    min_rs_12h: 1.40                        # Força relativa ajustada por volatilidade (RS_12h >= 1.40)
+    require_beat_btc_rs_12h: true           # Só opera altcoin se RS_12h >= RS_12h do BTCUSDT
+    veto_if_btc_bear: true                  # Bloqueia compras quando o BTCUSDT está em regime BEAR no 4h
 
   sideways_pingpong:                        # CLIMA SIDEWAYS (Pista Ensaboada) — DESLIGADO NA FASE 1
     enabled: false

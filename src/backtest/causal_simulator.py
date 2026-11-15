@@ -258,6 +258,36 @@ class CausalSingleSlotSimulator:
         """
         Executa a simulação cronológica Single-Slot sobre todos os pares do universo.
         """
+        regime_lookup: Dict[str, Dict[int, MarketRegime]] = {}
+        if not ignore_regime_filter:
+            for sym, full_df in aligned_frames.items():
+                regime_lookup[sym] = regime_detector.detect_series_from_aligned_frame(full_df)
+        elif "BTCUSDT" in aligned_frames:
+            regime_lookup["BTCUSDT"] = regime_detector.detect_series_from_aligned_frame(
+                aligned_frames["BTCUSDT"]
+            )
+
+        btc_rs_lookup: Dict[int, float] = {}
+        btc_regime_str_lookup: Dict[int, str] = {
+            t: reg.value for t, reg in regime_lookup.get("BTCUSDT", {}).items()
+        }
+        if "BTCUSDT" in aligned_frames:
+            btc_df = aligned_frames["BTCUSDT"]
+            tcol_btc = _time_col(btc_df)
+            btc_sorted = btc_df.sort_values(tcol_btc, kind="mergesort").reset_index(drop=True)
+            if "rs_vol_adjusted_12h" not in btc_sorted.columns and "atr_14" in btc_sorted.columns:
+                btc_rs_series = (btc_sorted["close"] - btc_sorted["close"].shift(12)) / btc_sorted[
+                    "atr_14"
+                ].replace(0.0, float("nan"))
+            elif "rs_vol_adjusted_12h" in btc_sorted.columns:
+                btc_rs_series = btc_sorted["rs_vol_adjusted_12h"]
+            else:
+                btc_rs_series = pd.Series(0.0, index=btc_sorted.index)
+            btc_rs_lookup = {
+                int(t): float(v)
+                for t, v in zip(btc_sorted[tcol_btc].tolist(), btc_rs_series.tolist())
+            }
+
         all_times: set[int] = set()
         indexed_frames: Dict[str, pd.DataFrame] = {}
         for sym, df in aligned_frames.items():
@@ -267,6 +297,12 @@ class CausalSingleSlotSimulator:
                 sub["rs_vol_adjusted_12h"] = (sub["close"] - sub["close"].shift(12)) / sub[
                     "atr_14"
                 ].replace(0.0, float("nan"))
+            if "prev_high_12h" not in sub.columns and "high" in sub.columns:
+                sub["prev_high_12h"] = sub["high"].shift(1).rolling(12, min_periods=12).max()
+            if "btc_rs_12h" not in sub.columns and btc_rs_lookup:
+                sub["btc_rs_12h"] = sub[tcol].map(btc_rs_lookup)
+            if "btc_regime_4h" not in sub.columns and btc_regime_str_lookup:
+                sub["btc_regime_4h"] = sub[tcol].map(btc_regime_str_lookup)
             if start_time_ms is not None:
                 sub = sub[sub[tcol] >= start_time_ms]
             if end_time_ms is not None:
@@ -279,10 +315,6 @@ class CausalSingleSlotSimulator:
             sym: {int(r[_time_col(df)]): r for _, r in df.iterrows()}
             for sym, df in indexed_frames.items()
         }
-        regime_lookup: Dict[str, Dict[int, MarketRegime]] = {}
-        if not ignore_regime_filter:
-            for sym, full_df in aligned_frames.items():
-                regime_lookup[sym] = regime_detector.detect_series_from_aligned_frame(full_df)
 
         trades: List[SimulatedTrade] = []
         slot_busy_until_ms: int = -1

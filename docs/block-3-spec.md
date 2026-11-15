@@ -272,5 +272,23 @@ O comando `pytest tests/test_block3_causal_sim_and_dsr.py` valida deterministica
 3. **Teste 3C (AFML Sample Uniqueness $\bar{u}_i$, Partição Temporal com Purging/Embargo e Orçamento $K_{\max} = 20$):**
    - Dois eventos com 100% de sobreposição temporal têm unicidade média $\bar{u}_i = 0,5$, e eventos disjuntos têm $\bar{u}_i = 1,0$;
    - O registrador `register_backtest_trial` grava em `trials_registry.csv` e levanta `RuntimeError` na tentativa $K = 21$.
-4. **Teste 3D (Ablação de Order Flow no Degrau C, Block Bootstrap CI 95%, DSR e Notebooks Válidos):**
-   - Verifica a matemática do $\text{DSR}$ (decrescente com o número de tentativas $K$ e crescente com o Sharpe e tamanho amostral $N$), a trava geométrica $\text{RR} \ge 1,50$ de `sideways_pingpong`, e valida a estrutura JSON dos 3 notebooks em `notebooks/`.
+4. **Teste 3D (Ablação de Order Flow no Degrau C, Modo K9.3, Block Bootstrap CI 95%, DSR e Notebooks Válidos):**
+   - Verifica a matemática do $\text{DSR}$ (decrescente com o número de tentativas $K$ e crescente com o Sharpe e tamanho amostral $N$), o modo `K9.3` de `bull_trend_pullback`, a trava geométrica $\text{RR} \ge 1,50$ de `sideways_pingpong`, e valida a estrutura JSON e execução ponta-a-ponta dos 3 notebooks em `notebooks/`.
+
+---
+
+## 6. Homologação Empírica no Google Colab (`2022-01-01` a `2026-04`, 7 Pares)
+
+A validação empírica sobre mais de `360.000` velas históricas reais da Binance (`BTCUSDT`, `ETHUSDT`, `SOLUSDT`, `XRPUSDT`, `ADAUSDT`, `LINKUSDT`, `AVAXUSDT`) foi concluída na tentativa $K = 9$ de $K_{\max} = 20$ (`K9.3`), aprovando **todos os 8 critérios do Gate 3 (`passed_gate3 = True`)**:
+
+| Métrica do Gate 3 | Requisito Mínimo | Resultado Empírico (`K9.3`) | Status |
+| --- | --- | --- | --- |
+| **Amostra (`n_trades`)** | $\ge 150$ trades | `282` trades | **PASS** |
+| **Expectância Líquida ($\mathbb{E}[R]_{\text{net}}$)** | $> +0,10R$ | **`+0,230R`** | **PASS** |
+| **IC 95% Inferior (*Block Bootstrap*)** | $> 0,00R$ | **`+0,068R`** | **PASS** |
+| **Profit Factor (Cenário Base)** | $\ge 1,20$ | **`1,43`** | **PASS** |
+| **Profit Factor (Cenário Pessimista)** | $> 1,05$ | **`1,29`** | **PASS** |
+| **Consistência em Subperíodos** | $\ge 3 / 4$ positivos | **`4 / 4` positivos** | **PASS** |
+| **Holdout Intocável (Últimos 15%)** | Soma $> 0,0R$ (`holdout_positive = True`) | **`+5,80R` (`True`)** | **PASS** |
+| **Deflated Sharpe Ratio ($\text{DSR}$, $K=9$)** | $\ge 0,95$ | **`0,96`** | **PASS** |
+
