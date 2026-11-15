@@ -1,5 +1,5 @@
-site_name: QuantCrypto Chameleon Engine v6
-site_description: Arquitetura, metodologia e roadmap do QuantCrypto Chameleon Engine
+site_name: QuantCrypto Chameleon & Radar Engine
+site_description: Arquitetura unificada, auditoria de integração, contrato de dados e metodologia do QuantCrypto Chameleon & Radar Engine
 site_url: https://pac-coins.github.io/quant-crypto-chameleon-engine-v6/
 repo_url: https://github.com/pac-coins/quant-crypto-chameleon-engine-v6
 repo_name: pac-coins/quant-crypto-chameleon-engine-v6
@@ -30,7 +30,11 @@ markdown_extensions:
   - pymdownx.highlight
   - pymdownx.inlinehilite
   - pymdownx.keys
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed
   - pymdownx.arithmatex:
       generic: true
@@ -42,8 +46,15 @@ extra_javascript:
 
 nav:
   - Início: index.md
-  - Arquitetura: architecture.md
+  - Arquitetura Unificada: unified-architecture.md
+  - Executor (Chameleon v6): architecture.md
+  - Radar & Auditor (v1.1): radar.md
+  - Auditoria de Integração: integration-audit.md
+  - Contrato de Dados (SQLite): data-contract.md
+  - Especificação do Bloco 1: block-1-spec.md
+  - Decisões (ADR): decisions.md
   - Metodologia e roadmap: methodology-and-roadmap.md
-  - Migração v5 → v6: v5-to-v6.md
-  - v5: v5.md
   - TODO: todo.md
+  - Histórico:
+      - Migração v5 → v6: v5-to-v6.md
+      - v5: v5.md

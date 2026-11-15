@@ -1,5 +1,13 @@
 # Arquitetura sistemática, validação estatística e execução blindada
 
+!!! info "Contexto no ecossistema unificado"
+    Esta página detalha o **Braço Executor (Chameleon v6.0)**. Para a visão
+    consolidada com o **Radar & Auditor (v1.1)** em um único processo e banco
+    SQLite, consulte [Arquitetura Unificada](unified-architecture.md),
+    [Auditoria de Integração](integration-audit.md),
+    [Contrato de Dados](data-contract.md), [Especificação do Bloco 1](block-1-spec.md)
+    e [Decisões (ADR)](decisions.md).
+
 Este repositório contém a arquitetura de engenharia de software, o pipeline de validação econométrica e a metodologia de construção incremental em seis estágios para um robô de **Trading Sistemático Adaptativo (1h/4h)** na **Binance Spot**.
 
 O sistema foi projetado para administrar um capital inicial de **300 XRP** sem uso de alavancagem, sob duas premissas inegociáveis:
@@ -163,7 +171,7 @@ Calculadas apenas sobre velas 100% fechadas:
 
 3. **Meta-Labeling Segregado por Regime e Calibração Real de Probabilidade (`ECE`):**
 * É proibido misturar sinais de `BULL` (alvo $+2.5R$) com sinais de `SIDEWAYS` (alvo curto na média) dentro de um mesmo ranking de probabilidade bruta $P_{\text{win}}$. Cada estratégia possui seu próprio modelo secundário.
-* As probabilidades brutas do classificador passam por **Calibração Isotônica / Platt Scaling** em conjunto de validação fora da amostra, exigindo **Expected Calibration Error ($\text{ECE}$) menor que $0,05$** nos *Reliability Diagrams* antes de liberar o uso dos quantis.
+* As probabilidades brutas do classificador passam por **Calibração por *Platt Scaling*** (preferencial para amostras com menos de 2.000 trades, evitando que a calibração isotônica decore amostras pequenas) em conjunto de validação fora da amostra, exigindo **Expected Calibration Error ($\text{ECE}$) menor que $0,05$** nos *Reliability Diagrams* antes de liberar o uso dos quantis.
 
 
 4. **Três Cenários de Custos e Estresse de Gaps:**
@@ -173,11 +181,11 @@ Todo backtest é reportado sob três matrizes de atrito:
 * *Cenário Pessimista (Estresse de Cauda):* Taxa sem BNB (0,20% ida e volta) + 0,12% de slippage + choques de *gap* adverso no Stop Loss calibrados na distribuição histórica de caudas (medindo o CVaR a 99%).
 
 
-5. **Estudo de Ablação em 5 Degraus + Deflated Sharpe Ratio ($\text{DSR}$):**
+5. **Estudo de Ablação em 5 Degraus + Ablação de *Order Flow* + Deflated Sharpe Ratio ($\text{DSR}$):**
 Comparamos fora da amostra:
 * **Degrau A:** Benchmark passivo (50% XRP + 50% USDT e Buy & Hold BTC).
 * **Degrau B:** Apenas `bull_trend_pullback` sem filtro de clima 4h (risco fixo 1%).
-* **Degrau C (Candidato da Fase 1):** Cérebro Camaleão MECE (Clima `BULL` operando com risco fixo 1% + `BEAR` e `TRANSITION` 100% em USDT).
+* **Degrau C (Candidato da Fase 1):** Cérebro Camaleão MECE (Clima `BULL` operando com risco fixo 1% + `BEAR` e `TRANSITION` 100% em USDT), avaliado em **ablação com e sem filtro de *Order Flow Delta* / *Liquidity Sweep*** (só ativa o filtro se elevar o $\mathbb{E}[R]$ líquido fora da amostra).
 * **Degrau D:** Degrau C + Juiz de IA calibrado filtrando Nota C e modulando Nota B / A+.
 * **Degrau E:** Teste de impacto de ativar ou não o Breakeven em $+1.2R$ (resolvido com velas de 1 minuto) e o controle de drawdown CPPI.
 * *Critério Estatístico de Aprovação:* Registro obrigatório do número total de configurações testadas ($K$) para cálculo do **Deflated Sharpe Ratio ($\text{DSR} \gt 0,95$)** e do **Minimum Track Record Length ($\text{MinTRL}$)** de Bailey & López de Prado.
@@ -192,7 +200,7 @@ Para garantir que nenhuma falha de hardware, rede ou corretora deixe posições 
 
 1. **Aritmética Exata com `decimal.Decimal` e Cache Dinâmico do `exchangeInfo`:**
 * O uso de `float` binário para preços e quantidades é proibido no envio de ordens. O módulo `binance_client.py` baixa e atualiza a cada 1 hora os filtros `PRICE_FILTER` (`tickSize`), `LOT_SIZE` (`stepSize`, `minQty`) e `NOTIONAL` (`minNotional`) de `/api/v3/exchangeInfo`.
-* Preços são truncados/arredondados para múltiplos exatos de `tickSize` e quantidades são sempre arredondadas para baixo (`ROUND_DOWN`) para múltiplos exatos de `stepSize` usando `decimal.Decimal` serializado como `str`.
+* Preços são arredondados para múltiplos exatos de `tickSize` de forma direcional (`round_price_to_tick`): na OCO de venda, `abovePrice` (Take Profit) arredonda para baixo (`DOWN`, facilitando execução), `stopPrice` arredonda para cima (`UP`) e `stopLimitPrice` arredonda para baixo (`DOWN`), garantindo pelo menos 1 `tickSize` de folga para nunca colar `stopPrice == stopLimitPrice`. Quantidades são sempre arredondadas para baixo (`ROUND_DOWN`) para múltiplos exatos de `stepSize` usando `decimal.Decimal` serializado como `str`.
 
 
 2. **Sincronização Monotônica de Relógio (Algoritmo de Cristian) e Buffer de Virada de Vela:**
@@ -360,7 +368,8 @@ portfolio:
   min_bnb_fee_reserve_usdt_equiv: 5.00      # Reserva intocável de BNB (~4.5 XRP) para garantir taxa de 0.075% e evitar erro -2010 na OCO
   max_concurrent_positions: 1               # Modo Sniper Single-Slot: 1 posição aberta por vez
   min_notional_safety_buffer: 1.05          # Exige lote >= 1.05 * minNotional dinâmico lido de /api/v3/exchangeInfo (aborta se menor)
-  max_single_order_usdt_cap: 500.00         # Disjuntor de segurança máximo por ordem individual
+  max_single_order_usdt_cap: 500.00         # Teto absoluto por ordem individual
+  max_single_order_equity_pct: 0.55         # Disjuntor proporcional: min(500 USDT, 55% da banca)
   max_daily_trades_cap: 6                   # Disjuntor contra loop infinito de ordens em caso de anomalia
 
 execution_and_resilience:
@@ -469,7 +478,7 @@ ml_judge_and_validation:
   sample_uniqueness_method: "afml_mean_uniqueness" # Média de 1/c_t ao longo de toda a janela [t_entry, t_exit]
   purge_window_hours: 24                    # Expurgo de 24h entre treino e validação/teste
   embargo_pct: 0.02                         # Embargo de 2% após cada fold de teste
-  calibration_method: "isotonic"            # Calibração explícita de probabilidade (exige ECE <= 0.05 fora da amostra)
+  calibration_method: "platt_scaling"       # Platt Scaling (< 2.000 trades; exige ECE <= 0.05 fora da amostra)
   max_allowed_ece: 0.05
   ranking_metric: "net_expected_r"          # Classifica tercis por E[R] líquido, nunca por P(win) bruto
   reject_bottom_quantile: 0.33              # Tercil inferior (ou E[R] <= 0) = Nota C (Ignora)

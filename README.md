@@ -1,42 +1,45 @@
-# QuantCrypto Chameleon Engine v6
+# QuantCrypto Chameleon & Radar Engine
 
-O **QuantCrypto Chameleon Engine** é um projeto de engenharia para um robô de
-trading sistemático adaptativo na Binance Spot, operando em 1h/4h e sem
-alavancagem. A arquitetura prioriza preservação de capital, validação
-estatística, execução idempotente e operação gradual por gates.
+Repositório unificado para o ecossistema **QuantCrypto** na Binance Spot (1h/4h, sem alavancagem), integrando em **um único processo Python** e **um único banco SQLite (WAL)** dois subsistemas complementares:
 
-## O que existe neste repositório
+1. **QuantCrypto Chameleon Engine (v6.0 — Braço Executor):** motor de execução Spot blindado (Single-Slot, OCO, Reconciliador de Boot, Teto Duplo de Risco e segregação via carteira `FUNDING`).
+2. **QuantCrypto Radar & Analyst Engine (v1.1 — Cérebro Analítico):** scanner multi-ativo (15 a 20 moedas) com funil de 5 camadas (EMA 9/50/200, Price Action, Order Flow e Order Book anti-spoofing) e Auditor Virtual no SQLite.
 
-- **Arquitetura:** separação Core/Satellite, regimes de mercado, gestão de
-  risco, execução OCO e resiliência operacional.
-- **Metodologia:** construção em seis blocos, critérios binários de aprovação,
-  validação fora da amostra e protocolos de downgrade.
-- **Migração v5 → v6:** diferenças estruturais, matemáticas e operacionais
-  entre as versões.
-- **Triagem:** itens críticos e refinamentos que ainda orientam a implementação.
+## Modos de operação
 
-## Documentação
+O sistema roda em três modos selecionáveis via `MODE` no `.env`:
 
-A documentação completa está publicada em
+- `ANALYST_ONLY` — roda apenas o Radar, a leitura do livro de ofertas, o Auditor Virtual e os alertas no Telegram (chaves privadas da Binance são proibidas no boot).
+- `SHADOW_CHAMELEON` — adiciona o simulador do Chameleon (`paper_executor`) em dados reais de mercado, sem chaves privadas.
+- `LIVE_CHAMELEON_PHASE_1` — execução real blindada na Binance Spot (Testnet ou Produção), restrita na Fase 1 ao sinal `bull_trend_pullback` e travada por `LIVE_CONFIRMATION` + hash SHA-256 do `strategies.yaml`.
+
+## O que existe na documentação
+
+- **Arquitetura Unificada:** papéis, fronteiras (`Radar` nunca envia ordens na Fase 1), os 3 modos, processo único (`< 100 MB` RAM), contrato de concorrência SQLite WAL, orçamento de `REQUEST_WEIGHT` da Binance, `FeatureStore` compartilhado e árvore de diretórios.
+- **Executor (Chameleon v6.0):** separação Core/Satellite, regimes MECE, gestão de risco, execução OCO e resiliência operacional.
+- **Radar & Auditor (v1.1):** funil de 5 camadas, banda efetiva simétrica no `/api/v3/depth`, grade ancorada para *Whale Walls* e Auditor Virtual.
+- **Auditoria de Integração:** 5 falhas inéditas de Categoria 1 (C1-A a C1-E) e 9 refinamentos de Categoria 2 (C2-1 a C2-9) descobertos na unificação, com suas correções.
+- **Contrato de Dados:** schema SQL completo (v1) validado em SQLite WAL, uso de tabelas por modo e máquina de estados de `trades`.
+- **Especificação do Bloco 1:** assinaturas exatas (`type hints`) de `config.py`, `database.py`, `binance_client.py` e `candle_collector.py`, mais o Gate 1 unificado.
+- **Decisões (ADR):** registro vinculante ADR-001 a ADR-014.
+- **Metodologia, Roadmap e TODO:** construção em 6 blocos, gates `PASS`/`FAIL`, transições de fase, kill-switches e quadro de triagem atualizado.
+
+## Documentação online
+
+A documentação completa é publicada via MkDocs Material em
 [pac-coins.github.io/quant-crypto-chameleon-engine-v6](https://pac-coins.github.io/quant-crypto-chameleon-engine-v6/).
 
-Para executar localmente:
+Para visualizar localmente:
 
 ```bash
 python -m pip install -r requirements-docs.txt
 mkdocs serve
 ```
 
-O site é publicado automaticamente no GitHub Pages a cada atualização da
-branch `main`.
+## Renomeação do repositório
+
+Este repositório será renomeado posteriormente de `quant-crypto-chameleon-engine-v6` para **`quant-crypto-chameleon-radar-engine`** (ADR-014) para refletir a unificação dos dois motores no mesmo código-fonte. Após a renomeação no GitHub, atualize `site_url`, `repo_url` e `repo_name` em `mkdocs.yml`.
 
 ## Estado do projeto
 
-O repositório contém a especificação e o roadmap auditado do sistema. O robô
-não deve operar com capital real antes que os gates definidos na metodologia
-sejam aprovados e registrados.
-
-## Licença
-
-Consulte os arquivos e configurações do repositório para informações de
-licenciamento.
+O repositório contém a especificação consolidada, o contrato de dados e a especificação do Bloco 1 prontos para codificação. O robô não deve operar com capital real antes que os gates definidos na metodologia sejam aprovados e registrados.
