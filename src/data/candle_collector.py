@@ -169,7 +169,12 @@ class CandleCollector:
         for sym in symbols:
             now_ms = self.clock.server_now_ms()
             raw_list = self.client.get_klines(sym, interval, limit=limit)
-            parsed = [parse_kline(r, sym, interval, now_ms) for r in raw_list]
+            parsed: list[CandleRow] = []
+            for r in raw_list:
+                try:
+                    parsed.append(parse_kline(r, sym, interval, now_ms))
+                except KlineIntegrityError:
+                    continue
             closed = drop_unclosed(parsed, now_ms)
             counts[sym] = self.db.upsert_candles(closed)
         return counts
@@ -182,7 +187,11 @@ class CandleCollector:
         start_time_ms: int,
         end_time_ms: int | None = None,
     ) -> int:
-        """Paginates 1000-candle chunks from start_time_ms to end_time_ms for Colab historical backfills."""
+        """
+        Paginates 1000-candle chunks from start_time_ms to end_time_ms for Colab historical backfills.
+        Automatically skips truncated maintenance klines (e.g., Binance 2023-03-24 matching engine halt
+        at raw_close_time_ms=1679661581646) so indicator series only receive complete aligned bars.
+        """
         delta_ms = INTERVAL_MS[interval]
         cursor_ms = (int(start_time_ms) // delta_ms) * delta_ms
         target_end_ms = int(end_time_ms) if end_time_ms is not None else self.clock.server_now_ms()
@@ -199,14 +208,25 @@ class CandleCollector:
             )
             if not raw_list:
                 break
-            parsed = [parse_kline(r, symbol, interval, now_ms) for r in raw_list]
+            parsed: list[CandleRow] = []
+            for r in raw_list:
+                try:
+                    parsed.append(parse_kline(r, symbol, interval, now_ms))
+                except KlineIntegrityError:
+                    # Historical Binance maintenance outage candle (truncated close_time or unaligned open_time)
+                    continue
             closed = drop_unclosed(parsed, now_ms)
             if closed:
                 total_upserted += self.db.upsert_candles(closed)
-            last_close_ms = parsed[-1].close_time_ms
-            if last_close_ms <= cursor_ms:
+            last_raw_open = int(raw_list[-1][0])
+            last_raw_close_plus_1 = int(raw_list[-1][6]) + 1
+            next_cursor_ms = max(
+                ((last_raw_open // delta_ms) + 1) * delta_ms,
+                ((last_raw_close_plus_1 + delta_ms - 1) // delta_ms) * delta_ms,
+            )
+            if next_cursor_ms <= cursor_ms:
                 break
-            cursor_ms = last_close_ms
+            cursor_ms = next_cursor_ms
             if len(raw_list) < 1000:
                 break
 

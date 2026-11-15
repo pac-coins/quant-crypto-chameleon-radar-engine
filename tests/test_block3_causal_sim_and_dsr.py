@@ -350,22 +350,41 @@ def test_gate3d_ablation_order_flow_sideways_rr_guard_dsr_and_notebooks(tmp_path
                 rows = []
                 t = s
                 while t + delta <= e and len(rows) < limit:
-                    rows.append(
-                        [
-                            t,
-                            "100.0",
-                            "102.0",
-                            "99.0",
-                            "101.0",
-                            "50.0",
-                            t + delta - 1,
-                            "5050.0",
-                            100,
-                            "30.0",
-                            "3030.0",
-                            "0",
-                        ]
-                    )
+                    if t == s + 10 * delta:
+                        # Simula a vela truncada real da manutenção da Binance em 2023-03-24 12:39:41.646 UTC
+                        rows.append(
+                            [
+                                t,
+                                "100.0",
+                                "102.0",
+                                "99.0",
+                                "101.0",
+                                "50.0",
+                                t + 2_381_646,
+                                "5050.0",
+                                100,
+                                "30.0",
+                                "3030.0",
+                                "0",
+                            ]
+                        )
+                    else:
+                        rows.append(
+                            [
+                                t,
+                                "100.0",
+                                "102.0",
+                                "99.0",
+                                "101.0",
+                                "50.0",
+                                t + delta - 1,
+                                "5050.0",
+                                100,
+                                "30.0",
+                                "3030.0",
+                                "0",
+                            ]
+                        )
                     t += delta
                 return rows
 
