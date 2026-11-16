@@ -180,11 +180,11 @@ O robô interrompe imediatamente **qualquer nova compra** (mantendo a vigilânci
 
 ---
 
-## 6. Registro Histórico de Triagem Homologada (Blocos 1 a 5) e Itens Cosméticos Descartados
+## 6. Registro Histórico de Triagem Homologada (Blocos 1 a 6) e Itens Cosméticos Descartados
 
-Todos os itens abaixo foram auditados, implementados e validados por testes automatizados (`pytest`) e/ou execução empírica no Google Colab durante a conclusão dos **Blocos 1 a 5**, tendo sido migrados do [`docs/todo.md`](todo.md) para esta documentação permanente.
+Todos os itens abaixo foram auditados, implementados e validados por testes automatizados (`pytest`) e/ou execução empírica no Google Colab durante a conclusão dos **Blocos 1 a 6**, tendo sido migrados do [`docs/todo.md`](todo.md) para esta documentação permanente.
 
-### 6.1. Itens de Categoria 1 e Categoria 2 Concluídos nos Blocos 1 a 5
+### 6.1. Itens de Categoria 1 e Categoria 2 Concluídos nos Blocos 1 a 6
 
 | Categoria | Item Validado e Homologado | Quem Apontou | Bloco / Módulo Implementado | Impacto Prático Comprovado |
 | --- | --- | --- | --- | --- |
@@ -198,6 +198,8 @@ Todos os itens abaixo foram auditados, implementados e validados por testes auto
 | **1 — Catastrófico** | Filtro exato do erro `-2010` e Stop Pendurado | ChatGPT e DeepSeek | Bloco 5 (`src/execution/oco_order_manager.py`) | Evita vender errado ou ficar sem stop (`FALLBACK_MARKET_2010` e `STOP_WATCHDOG`) |
 | **1 — Catastrófico** | Saldo excedente não rastreado entra em `HALT_REVIEW` (nunca vende posição manual) (**C1-D**) | Auditoria de Integração | Bloco 5 (`src/core/state_reconciler.py`) | Evita liquidar posição manual do operador na mesma conta |
 | **1 — Catastrófico** | Escritas pós-fill *best-effort* nunca interrompem criação da OCO (**C1-E**) | Auditoria de Integração | Blocos 1 e 5 (`database.py` e `oco_order_manager.py`) | Garante que falha de SQLite pós-fill não deixe posição nua |
+| **1 — Catastrófico** | Orquestração de Kill-Switches e Manutenção API (`/sapi/v1/system/status`) | Gemini e DeepSeek | Bloco 6 (`src/main.py`) | Bloqueia novas entradas em manutenção da corretora ou `EMERGENCY_HALT` |
+| **1 — Catastrófico** | Banda efetiva simétrica no `/api/v3/depth` (`band_eff` e `obi_valid`) (**C1-A**) | Auditoria de Integração | Bloco 6 — Radar L4 (`src/radar/orderbook_inspector.py`) | Evita OBI e Whale Walls inválidos em livros profundos/truncados (`BTC`/`ETH`) |
 | **2 — Refinamento** | Mock de `/sapi/*` na Testnet e Permissão `Universal Transfer` | ChatGPT e DeepSeek | Blocos 1 e 4 (`binance_client.py` / `profit_splitter.py`) | Testnet não aceita `/sapi/*` (evita erro 404 na transferência `MAIN_FUNDING`) |
 | **2 — Refinamento** | *High-Water Mark* (Topo Histórico) no Cofre de Lucros | ChatGPT | Bloco 4 (`src/risk/profit_splitter.py`) | Só separa 30% quando superar prejuízos anteriores acima do HWM |
 | **2 — Refinamento** | Teto de ordem em % da banca (`55%`) e BNB em Dólar (`$5`) | ChatGPT e DeepSeek | Bloco 4 (`strategies.yaml`, `position_sizer.py`, `shadow_manager.py`) | Protege bancas pequenas desde o dia 1 ($\min(500\text{ USDT}, 55\%)$ e alerta BNB $< \$5$) |
@@ -209,18 +211,23 @@ Todos os itens abaixo foram auditados, implementados e validados por testes auto
 | **2 — Refinamento** | Testar ablação Com vs. Sem *Order Flow* no Colab | Gemini (Trader Ref) | Bloco 3 (`notebooks/02_ablation_and_dsr_sim.ipynb`) | Validou a combinação Donchian 12h + `RVOL >= 1.30` + `TBR >= 0.52` |
 | **2 — Refinamento** | IA em *Modo Observador Silencioso* na Fase 1 (60 trades) | Gemini | Bloco 4 (`src/features/ml_judge.py` e `position_sizer.py`) | Grava `ml_grade_silent` e `ml_p_cal_silent` sem bloquear ordens na Fase 1 |
 | **2 — Refinamento** | `outcome_resolver.py` compartilhado (pior caso intra-vela) (**C2-3**) | Auditoria de Integração | Bloco 5 (`src/auditing/outcome_resolver.py` e `paper_executor.py`) | Evita divergência entre Auditor Virtual e Shadow Executor (`SAME_CANDLE_STOP`) |
-| **2 — Refinamento** | Modelo de custo único lido de `strategies.yaml` (**C2-4**) | Auditoria de Integração | Blocos 1, 3, 4 e 5 (`config.py` / `position_sizer.py` / `paper_executor.py`) | Estatísticas do Radar e Chameleon comparáveis ($0,15\%$ + $0,06\%$) |
+| **2 — Refinamento** | Modelo de custo único lido de `strategies.yaml` (**C2-4**) | Auditoria de Integração | Blocos 1, 3, 4, 5 e 6 (`config.py` / `confluence_scorer.py`) | Estatísticas do Radar e Chameleon comparáveis ($0,15\%$ + $0,06\%$) |
 | **2 — Refinamento** | Persistir `quote_volume` (col 7) e `taker_buy_quote_volume` (col 10) (**C2-5**) | Auditoria de Integração | Bloco 1 (`candles` em `database.py` / `candle_collector.py`) | Delta financeiro em USDT exato |
 | **2 — Refinamento** | Guardas de zero no `TBR` e `RVOL` (`V=0` ou mediana=0 $\rightarrow$ `NaN`) (**C2-6**) | Auditoria de Integração | Bloco 2 (`order_flow.py` / `indicators.py`) | Evita `inf` passar em limiares numéricos |
-| **2 — Refinamento** | Gravar apenas agregados/faixas do livro (~1 KB) sem JSON bruto (**C2-8**) | Auditoria de Integração | Bloco 1 (Schema SQLite `orderbook_snapshots`) | Mantém backup abaixo de 50 MB (limite Telegram) |
+| **2 — Refinamento** | Gravar apenas agregados/faixas do livro (~1 KB) sem JSON bruto (**C2-8**) | Auditoria de Integração | Blocos 1 e 6 (`orderbook_snapshots` / `orderbook_inspector.py`) | Mantém backup abaixo de 50 MB (limite Telegram) |
+| **2 — Refinamento** | Faixas de 0,1% do livro ancoradas em `mid_0` (**C2-1**) | Auditoria de Integração | Bloco 6 (`src/radar/orderbook_inspector.py`) | Evita deslizamento de faixas entre as 3 fotos |
+| **2 — Refinamento** | Auditor inicia em `t+1` usando `ask` do snapshot 0 (**C2-2**) | Auditoria de Integração | Bloco 6 (`src/auditing/virtual_auditor.py`) | Entrada realista alinhada ao atraso do alerta |
+| **2 — Refinamento** | Horizonte por tempo (`*_end_ms`) no Auditor Virtual (**C2-7**) | Auditoria de Integração | Bloco 6 (`src/auditing/virtual_auditor.py`) | Imunidade a janelas de manutenção da Binance (`INVALID_GAP`) |
+| **2 — Refinamento** | Execução do Chameleon antes da L4; 3 fotos intercaladas (**C2-9**) | Auditoria de Integração | Bloco 6 (`src/main.py` / `orderbook_inspector.py`) | Não adiciona 10–15 s de latência ao slippage do Gate 6B |
 
-### 6.2. Checklist de Construção Homologado (Blocos 1 a 5)
+### 6.2. Checklist de Construção Homologado (Blocos 1 a 6)
 
 - **Bloco 1 ([Especificação do Bloco 1](block-1-spec.md)):** `config/strategies.yaml` (v6.0) + `config/analyst.yaml` (v1.1), `src/core/config.py`, `src/core/database.py` (SQLite WAL, `write_tx()`, schema v1, `sqlite3.backup()`), `src/core/binance_client.py` (Ed25519, `WeightGovernor`, `MonotonicClock`, `Decimal`), `src/data/candle_collector.py` e **Gate 1 Unificado (`100% PASS`)**.
 - **Bloco 2 ([Especificação do Bloco 2](block-2-spec.md)):** `src/features/indicators.py`, `src/features/order_flow.py`, `src/features/price_action.py`, `src/features/feature_store.py`, `src/regimes/regime_detector.py` (MECE 4 estados) e **Gate 2 Unificado (`100% PASS`)**.
 - **Bloco 3 ([Especificação do Bloco 3](block-3-spec.md)):** `src/strategies/*`, `src/backtest/causal_simulator.py`, `src/backtest/ablation_and_dsr.py`, Notebooks `01`, `02` e `04`, e **Gate 3 de Engenharia e Empírico no Colab (`K9.3`, `PASS = True` na tentativa $K = 9 / 20$)**.
 - **Bloco 4 ([Especificação do Bloco 4](block-4-spec.md)):** `src/risk/position_sizer.py`, `src/risk/shadow_manager.py`, `src/risk/profit_splitter.py`, `src/features/ml_judge.py`, `notebooks/03_tail_stress_cppi_cusum.ipynb` e **Gate 4 Unificado (`100% PASS`)**.
 - **Bloco 5 ([Especificação do Bloco 5](block-5-spec.md)):** `src/auditing/outcome_resolver.py` (`C2-3`), `src/execution/executor_protocol.py`, `src/execution/paper_executor.py`, `src/execution/oco_order_manager.py` (`-1007`, `-2010`, `STOP_WATCHDOG`, Time-Stop de 4 passos, `C1-E`), `src/core/state_reconciler.py` (cura de OCO parcial e `HALT_REVIEW` `C1-D`) e **Gate 5 Unificado (`100% PASS`)**.
+- **Bloco 6 ([Especificação do Bloco 6](block-6-spec.md)):** `src/radar/*` (`structure_ema.py`, `orderbook_inspector.py` `C1-A`/`C2-1`/`C2-8`/`C2-9`, `confluence_scorer.py`), `src/auditing/virtual_auditor.py` (`C2-2`/`C2-7`), `src/notifications/telegram.py` (outbox persistente), `src/main.py` (`QuantOrchestrator`), `Dockerfile`, `docker-compose.yml`, `deploy/quant-chameleon.service` e **Gate 6 Unitário (`100% PASS`)**.
 
 ### 6.3. Itens de Categoria 3 (Cosméticos — Descartados Permanentemente)
 

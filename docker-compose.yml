@@ -1,0 +1,17 @@
+services:
+  quant-chameleon:
+    build: .
+    container_name: quant-chameleon-radar
+    restart: unless-stopped
+    mem_limit: 100m
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./secrets:/app/secrets:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

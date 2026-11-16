@@ -1,0 +1,18 @@
+[Unit]
+Description=QuantCrypto Chameleon & Radar Engine (v6.0 / v1.1)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/quant-crypto-chameleon
+EnvironmentFile=/opt/quant-crypto-chameleon/.env
+ExecStart=/opt/quant-crypto-chameleon/.venv/bin/python -m src.main
+Restart=always
+RestartSec=10
+MemoryMax=100M
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
