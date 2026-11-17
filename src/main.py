@@ -28,9 +28,9 @@ from src.core.config import (
     StrategiesConfig,
     load_config,
 )
-from src.core.database import CycleHealth, Database
-from src.core.state_reconciler import StateReconciler
-from src.data.candle_collector import CandleCollector, align_4h_to_1h, load_frame
+from src.core.database import CandleRow, CycleHealth, Database
+from src.core.state_reconciler import ReconcileAction, StateReconciler
+from src.data.candle_collector import CandleCollector, align_4h_to_1h, align_btc_context, load_frame
 from src.execution.executor_protocol import ExecutionReport, ExecutionRequest, NoOpExecutor
 from src.execution.oco_order_manager import OcoOrderManager
 from src.execution.paper_executor import PaperExecutor
@@ -130,9 +130,9 @@ class QuantOrchestrator:
             strategies_cfg.portfolio,
         )
         self.shadow_manager = ShadowManager(
-            db,
-            strategies_cfg.portfolio,
             strategies_cfg.drawdown_and_shadow_protection,
+            strategies_cfg.portfolio,
+            db=db,
         )
         self.ml_judge = ml_judge or MLJudge(
             strategies_cfg.ml_judge_and_validation,
@@ -173,21 +173,72 @@ class QuantOrchestrator:
         self._last_clock_sync_ms: int = 0
         self._last_backup_day_utc: int = -1
 
-    def boot_reconcile(self) -> None:
-        """Run startup clock sync, exchangeInfo refresh, and StateReconciler (LIVE only)."""
+    def _all_universe_symbols(self) -> tuple[str, ...]:
+        return tuple(
+            dict.fromkeys(
+                list(self.strategies_cfg.universe.symbols)
+                + list(self.analyst_cfg.scanner_universe.symbols)
+                + ["BNBUSDT"]
+            )
+        )
+
+    def boot_reconcile(self, *, enqueue_startup_alert: bool = True) -> None:
+        """Run startup clock sync, exchangeInfo refresh, initial backfill, and StateReconciler."""
         self.clock.sync(self.public_client.get_server_time_ms)
         now_ms = self.clock.server_now_ms()
         self._last_clock_sync_ms = now_ms
         self.exchange_cache.refresh_if_stale(now_ms)
+
+        # Ensure minimum historical candles exist on fresh DB boot so 4h regime & EMA 200 work immediately
+        all_syms = self._all_universe_symbols()
+        need_1h: list[str] = []
+        need_4h: list[str] = []
+        with self.db.read() as conn:
+            for sym in all_syms:
+                c1 = conn.execute(
+                    "SELECT COUNT(*) FROM candles WHERE symbol = ? AND interval = '1h'",
+                    (sym,),
+                ).fetchone()[0]
+                c4 = conn.execute(
+                    "SELECT COUNT(*) FROM candles WHERE symbol = ? AND interval = '4h'",
+                    (sym,),
+                ).fetchone()[0]
+                if int(c1) < 240:
+                    need_1h.append(sym)
+                if int(c4) < 140:
+                    need_4h.append(sym)
+        if need_1h:
+            self.collector.backfill(need_1h, "1h", lookback_candles=350)
+        if need_4h:
+            self.collector.backfill(need_4h, "4h", lookback_candles=250)
+
         if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1 and self.reconciler is not None:
             res = self.reconciler.reconcile()
-            if res.halted:
+            if res.action == ReconcileAction.HALT_REVIEW_UNTRACKED_BALANCE or (
+                self.db.get_state("emergency_halt") == "1"
+            ):
                 self.outbox.enqueue(
                     "KILL_SWITCH",
-                    format_kill_switch_alert(self.settings.mode.value, res.details),
+                    format_kill_switch_alert(
+                        self.settings.mode.value,
+                        res.details or res.action.value,
+                    ),
                     now_ms=now_ms,
                 )
                 self.outbox.flush(now_ms=now_ms)
+
+        if enqueue_startup_alert:
+            offset_ms = self.clock.last_sample.offset_ms if self.clock.last_sample else 0.0
+            self.outbox.enqueue(
+                "BOT_START",
+                (
+                    f"🤖 QuantCrypto iniciado\n"
+                    f"Modo: {self.settings.mode.value} ({self.settings.binance_env.value})\n"
+                    f"Símbolos monitorados: {len(all_syms)} | Offset relógio: {offset_ms:+.1f} ms"
+                ),
+                now_ms=now_ms,
+            )
+            self.outbox.flush(now_ms=now_ms)
 
     def _check_maintenance(self) -> bool:
         if self.signed_client is None:
@@ -241,8 +292,8 @@ class QuantOrchestrator:
         with self.db.read() as conn:
             row = conn.execute(
                 """
-                SELECT trade_id, symbol, status, oco_order_list_id, oco_stop_price,
-                       oco_stop_limit_price, time_barrier_end_ms
+                SELECT trade_id, symbol, status, oco_order_list_id, oco_qty,
+                       oco_stop_price, oco_stop_limit_price, time_barrier_end_ms
                 FROM trades
                 WHERE status IN ('PENDING_ENTRY','ENTRY_FILLED','PROTECTED','CLOSING','HALT_REVIEW')
                 LIMIT 1
@@ -250,13 +301,64 @@ class QuantOrchestrator:
             ).fetchone()
         return dict(row) if row else None
 
+    def _load_recent_1h_candle_rows(self, symbol: str, since_ms: int) -> list[CandleRow]:
+        with self.db.read() as conn:
+            rows = conn.execute(
+                """
+                SELECT symbol, interval, open_time_ms, close_time_ms, open, high, low, close,
+                       volume, quote_volume, number_of_trades, taker_buy_base_volume,
+                       taker_buy_quote_volume, ingested_at_ms
+                FROM candles
+                WHERE symbol = ? AND interval = '1h' AND open_time_ms >= ?
+                ORDER BY open_time_ms ASC
+                """,
+                (symbol, int(since_ms)),
+            ).fetchall()
+        return [
+            CandleRow(
+                symbol=str(r["symbol"]),
+                interval="1h",
+                open_time_ms=int(r["open_time_ms"]),
+                close_time_ms=int(r["close_time_ms"]),
+                open=float(r["open"]),
+                high=float(r["high"]),
+                low=float(r["low"]),
+                close=float(r["close"]),
+                volume=float(r["volume"]),
+                quote_volume=float(r["quote_volume"]),
+                number_of_trades=int(r["number_of_trades"]),
+                taker_buy_base_volume=float(r["taker_buy_base_volume"]),
+                taker_buy_quote_volume=float(r["taker_buy_quote_volume"]),
+                ingested_at_ms=int(r["ingested_at_ms"]),
+            )
+            for r in rows
+        ]
+
     def _manage_open_positions(self, now_ms: int) -> None:
         if self.settings.mode == RunMode.SHADOW_CHAMELEON:
-            if self.paper_executor.has_open_shadow_trade():
-                self.paper_executor.evaluate_open_shadow_trade()
+            with self.db.read() as conn:
+                open_sh = conn.execute(
+                    "SELECT symbol, signal_close_time_ms FROM shadow_trades WHERE status = 'OPEN' LIMIT 1"
+                ).fetchone()
+            if open_sh is not None:
+                sym = str(open_sh["symbol"])
+                bars = self._load_recent_1h_candle_rows(sym, int(open_sh["signal_close_time_ms"]))
+                self.paper_executor.evaluate_open_shadow_trade({sym: bars})
             return
 
         if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1 and self.oco_manager is not None:
+            if self.reconciler is not None:
+                res = self.reconciler.reconcile()
+                if res.action == ReconcileAction.HALT_REVIEW_UNTRACKED_BALANCE:
+                    self.outbox.enqueue(
+                        "KILL_SWITCH",
+                        format_kill_switch_alert(
+                            self.settings.mode.value,
+                            res.details or res.action.value,
+                        ),
+                        now_ms=now_ms,
+                    )
+                    return
             open_t = self._has_open_live_trade()
             if open_t is None or open_t["status"] != "PROTECTED":
                 return
@@ -267,16 +369,20 @@ class QuantOrchestrator:
                 self.oco_manager.close_on_time_barrier(
                     trade_id=trade_id,
                     symbol=sym,
+                    base_asset=filters.base_asset,
                     oco_order_list_id=int(open_t["oco_order_list_id"]),
-                    filters=filters,
+                    oco_qty=Decimal(str(open_t["oco_qty"] or "0")),
+                    symbol_filters=filters,
                 )
             elif open_t["oco_stop_limit_price"] is not None:
                 self.oco_manager.check_hanging_stop_watchdog(
                     trade_id=trade_id,
                     symbol=sym,
+                    base_asset=filters.base_asset,
                     oco_order_list_id=int(open_t["oco_order_list_id"]),
-                    stop_limit_price=Decimal(str(open_t["oco_stop_limit_price"])),
-                    filters=filters,
+                    oco_stop_price=Decimal(str(open_t["oco_stop_price"] or "0")),
+                    oco_stop_limit_price=Decimal(str(open_t["oco_stop_limit_price"])),
+                    symbol_filters=filters,
                 )
 
     def _execute_chameleon_step(
@@ -311,16 +417,17 @@ class QuantOrchestrator:
             bnb_free_usdt_equiv=bnb_usdt,
             trades_last_24h=self._count_trades_last_24h(now_ms),
         )
-        if defense.emergency_halted or defense.bnb_hard_stop:
+        if defense.emergency_halt:
             self.outbox.enqueue(
                 "KILL_SWITCH",
                 format_kill_switch_alert(self.settings.mode.value, defense.kill_switch_reason.value),
                 now_ms=now_ms,
             )
             return False, None
+        if defense.shadow_mode_active and self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1:
+            return False, None
 
-        btc_regime = regimes.get("BTCUSDT", MarketRegime.TRANSITION)
-        candidates: list[tuple[float, Any, pd.Series]] = []
+        candidates: list[tuple[float, str, Any]] = []
         for sym in self.strategies_cfg.universe.symbols:
             if sym in FORBIDDEN_EXECUTION_SYMBOLS:  # C1-C
                 continue
@@ -329,27 +436,25 @@ class QuantOrchestrator:
                 continue
             row = df_al.iloc[-1]
             reg = regimes.get(sym, MarketRegime.TRANSITION)
-            sig = self.strategy.evaluate_row(
-                sym,
-                row,
-                reg,
-                btc_regime=btc_regime,
-            )
+            sig = self.strategy.evaluate_row(sym, row, reg)
             if sig is not None:
-                candidates.append((float(sig.rs_score), sig, row))
+                candidates.append((float(sig.rs_vol_adjusted_12h), sym, sig))
 
         if not candidates:
             return False, None
 
-        candidates.sort(key=lambda item: item[0], reverse=True)
-        _, best_sig, best_row = candidates[0]
-        sym = best_sig.symbol
+        candidates.sort(key=lambda item: (-item[0], item[1]))
+        _, sym, best_sig = candidates[0]
 
         filters = self.exchange_cache.get(sym)
         bt = self.public_client.get_book_ticker(sym)
         entry_ref = bt.ask
 
-        ml_eval = self.ml_judge.evaluate_signal(best_row, regime=best_sig.regime)
+        ml_eval = self.ml_judge.evaluate_signal(
+            raw_score=float(best_sig.rs_vol_adjusted_12h),
+            stop_distance_pct=float(best_sig.stop_distance_pct),
+            gross_rr_ratio=float(best_sig.gross_rr_ratio),
+        )
         pending_hodl = Decimal(self.db.get_state("pending_hodl_bucket_usdt") or "0")
 
         sizing = self.position_sizer.evaluate_and_size(
@@ -361,8 +466,8 @@ class QuantOrchestrator:
             tactical_equity_usdt=eq_usdt,
             pending_hodl_bucket_usdt=pending_hodl,
             symbol_filters=filters,
-            drawdown_risk_multiplier=defense.drawdown_risk_multiplier,
-            ml_calibrated_prob=ml_eval.p_calibrated,
+            drawdown_risk_multiplier=defense.risk_multiplier,
+            ml_calibrated_prob=ml_eval.calibrated_prob,
             ml_proposed_grade=ml_eval.grade,
         )
         if not sizing.approved:
@@ -387,7 +492,8 @@ class QuantOrchestrator:
         if self.settings.mode == RunMode.SHADOW_CHAMELEON:
             report = self.paper_executor.execute_entry(
                 req,
-                ml_grade_silent=ml_eval.grade.value,
+                virtual_equity_before=eq_usdt,
+                now_ms=now_ms,
             )
         elif self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1 and self.oco_manager is not None:
             report = self.oco_manager.execute_entry(req)
@@ -405,7 +511,7 @@ class QuantOrchestrator:
                     entry_price=str(report.avg_entry_price),
                     stop_price=str(sizing.stop_price),
                     target_price=str(sizing.target_price),
-                    ml_grade=ml_eval.grade.value,
+                    ml_grade=sizing.ml_grade_silent,
                 ),
                 now_ms=now_ms,
             )
@@ -502,26 +608,28 @@ class QuantOrchestrator:
         maintenance_blocked = self._check_maintenance()
         emergency_halted = self.db.get_state("emergency_halt") == "1"
 
-        all_symbols = tuple(
-            dict.fromkeys(
-                list(self.strategies_cfg.universe.symbols)
-                + list(self.analyst_cfg.scanner_universe.symbols)
-                + ["BNBUSDT"]
-            )
-        )
+        all_symbols = self._all_universe_symbols()
         stale_symbols: list[str] = []
         gaps_detected = 0
         if not skip_collect:
             reports = self.collector.run_cycle(all_symbols)
             for rep in reports:
-                gaps_detected += rep.gaps_found
-                if not rep.up_to_date:
-                    stale_symbols.append(rep.symbol)
+                stale_symbols.extend(rep.stale)
+                for sym, sym_gaps in rep.gaps.items():
+                    gaps_detected += len(sym_gaps)
+                    try:
+                        self.collector.repair_gaps(sym, rep.interval, sym_gaps)
+                    except Exception as exc:
+                        logger.warning("Gap repair failed for %s (%s): %s", sym, rep.interval, exc)
+            stale_symbols = list(dict.fromkeys(stale_symbols))
 
         aligned_frames: dict[str, pd.DataFrame] = {}
         regimes: dict[str, MarketRegime] = {}
         cycle_close_ms = (cur_ms // ONE_HOUR_MS) * ONE_HOUR_MS
 
+        donchian_lb = int(
+            self.strategies_cfg.regimes_and_strategies.bull_trend_pullback.donchian_lookback_1h
+        )
         for sym in all_symbols:
             df_1h = load_frame(self.db, sym, "1h", limit=350)
             df_4h = load_frame(self.db, sym, "4h", limit=250)
@@ -531,12 +639,38 @@ class QuantOrchestrator:
             df_1h_f = self.feature_store.compute_timeframe(df_1h, "1h")
             df_4h_f = self.feature_store.compute_timeframe(df_4h, "4h")
             df_al = align_4h_to_1h(df_1h_f, df_4h_f)
+            if "atr_14" in df_al.columns:
+                df_al["rs_vol_adjusted_12h"] = (df_al["close"] - df_al["close"].shift(12)) / df_al[
+                    "atr_14"
+                ].replace(0.0, float("nan"))
+            if donchian_lb > 0 and "high" in df_al.columns:
+                df_al[f"prev_high_{donchian_lb}h"] = (
+                    df_al["high"].shift(1).rolling(donchian_lb, min_periods=donchian_lb).max()
+                )
             aligned_frames[sym] = df_al
             snap = self.regime_detector.detect_from_aligned_frame(df_al)
             regimes[sym] = snap.regime
             last_1h_close = int(df_al["close_time_ms"].iloc[-1])
             if last_1h_close > cycle_close_ms or cycle_close_ms == (cur_ms // ONE_HOUR_MS) * ONE_HOUR_MS:
                 cycle_close_ms = last_1h_close
+
+        # Enrich all non-BTC frames with BTC 12h RS and BTC 4h regime (K9.3 context)
+        btc_df = aligned_frames.get("BTCUSDT")
+        btc_regime_str = regimes.get("BTCUSDT", MarketRegime.TRANSITION).value
+        if btc_df is not None and not btc_df.empty:
+            btc_ctx = pd.DataFrame({"close_time_ms": btc_df["close_time_ms"]})
+            if "rs_vol_adjusted_12h" in btc_df.columns:
+                btc_ctx["rs_12h"] = btc_df["rs_vol_adjusted_12h"]
+            for sym, df_al in list(aligned_frames.items()):
+                if sym == "BTCUSDT":
+                    df_al["btc_rs_12h"] = df_al.get("rs_vol_adjusted_12h", 0.0)
+                    df_al["btc_regime_4h"] = btc_regime_str
+                    continue
+                enriched = align_btc_context(df_al, btc_ctx)
+                if "rs_12h_btc" in enriched.columns:
+                    enriched["btc_rs_12h"] = enriched["rs_12h_btc"]
+                enriched["btc_regime_4h"] = btc_regime_str
+                aligned_frames[sym] = enriched
 
         # C2-9: Chameleon execution path FIRST, Radar L4 SECOND
         chameleon_executed, chameleon_symbol = self._execute_chameleon_step(
@@ -611,7 +745,8 @@ def main() -> None:
     db.connect()
     db.migrate()
 
-    public_client, signed_client, clock, exchange_cache = build_clients(cfg, db)
+    public_client, signed_client, _governor, clock = build_clients(cfg)
+    exchange_cache = ExchangeInfoCache(public_client, db, cfg.market_data_universe)
     transport = HttpTelegramTransport(settings.telegram_bot_token.get_secret_value())
     outbox = TelegramOutbox(db, settings.telegram_chat_id, transport=transport)
 
@@ -642,7 +777,29 @@ def main() -> None:
             orch.collector.wait_for_cycle()
             if stop_requested:
                 break
-            orch.run_once()
+            try:
+                rep = orch.run_once()
+                logger.info(
+                    "Cycle %d complete | mode=%s | maint=%s | halt=%s | cham=%s(%s) | radar=%d/%d",
+                    rep.cycle_close_time_ms,
+                    rep.mode.value,
+                    rep.maintenance_blocked,
+                    rep.emergency_halted,
+                    rep.chameleon_executed,
+                    rep.chameleon_symbol,
+                    rep.radar_signals_emitted,
+                    rep.radar_signals_resolved,
+                )
+            except Exception as exc:
+                logger.exception("Unhandled error during hourly cycle: %s", exc)
+                try:
+                    outbox.enqueue(
+                        "CYCLE_ERROR",
+                        f"⚠️ Erro transitório no ciclo horário ({settings.mode.value}): {exc}",
+                    )
+                    outbox.flush()
+                except Exception:
+                    pass
     finally:
         db.close()
 

@@ -3,7 +3,7 @@ services:
     build: .
     container_name: quant-chameleon-radar
     restart: unless-stopped
-    mem_limit: 100m
+    mem_limit: 512m
     env_file:
       - .env
     volumes:

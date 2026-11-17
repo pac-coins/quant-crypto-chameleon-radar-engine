@@ -10,7 +10,7 @@ EnvironmentFile=/opt/quant-crypto-chameleon/.env
 ExecStart=/opt/quant-crypto-chameleon/.venv/bin/python -m src.main
 Restart=always
 RestartSec=10
-MemoryMax=100M
+MemoryMax=512M
 StandardOutput=journal
 StandardError=journal
 

@@ -111,6 +111,12 @@ esse custo e estourariam o teto de 100 MB. Com um único processo, DataFrames de
 300 a 1.000 linhas por símbolo e símbolos processados **sequencialmente**, o
 consumo esperado fica entre 60 e 80 MB.
 
+> **Atualização (ADR-015):** medição empírica na VM mostrou que `import src.main`
+> (`pandas`, `numpy`, `pydantic`, `cryptography`, `requests`) já consome **93,4 MB**
+> de RSS antes mesmo de carregar os DataFrames de 16 ativos. Por isso o teto foi
+> elevado para **`mem_limit: 512m`** (`MemoryMax=512M` no systemd) para evitar
+> `OOMKilled` (`Exit 137`).
+
 ---
 
 ## 4. Ciclo horário (ordem de execução)

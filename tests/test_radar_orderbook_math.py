@@ -460,3 +460,168 @@ def test_gate6_orchestrator_c29_order_maintenance_and_halt_blocks(tmp_path: Path
         hc = conn.execute("SELECT COUNT(*) FROM cycle_health").fetchone()[0]
     assert hc >= 1
     db.close()
+
+
+def test_gate6_runtime_wiring_build_clients_collection_report_and_shadow_k93_trade(tmp_path: Path) -> None:
+    from src.core.binance_client import build_clients
+    from src.core.config import (
+        AnalystConfig,
+        AppConfig,
+        BinanceEnv,
+        RunMode,
+        RuntimeSettings,
+        StrategiesConfig,
+        load_yaml_strict,
+        sha256_file,
+    )
+    from src.execution.executor_protocol import ExecutionRequest
+    from src.features.ml_judge import MLJudge
+    from src.risk.position_sizer import PositionSizer
+
+    strategies_cfg = StrategiesConfig.model_validate(load_yaml_strict(Path("config/strategies.yaml")))
+    analyst_cfg = AnalystConfig.model_validate(load_yaml_strict(Path("config/analyst.yaml")))
+    runtime_cfg = RuntimeSettings(
+        mode=RunMode.SHADOW_CHAMELEON,
+        binance_env=BinanceEnv.TESTNET,
+        telegram_bot_token="123456:TEST_TOKEN",
+        telegram_chat_id="999999",
+        db_path=tmp_path / "quant.db",
+        backup_dir=tmp_path / "backups",
+    )
+    app_cfg = AppConfig(
+        runtime=runtime_cfg,
+        strategies=strategies_cfg,
+        analyst=analyst_cfg,
+        strategies_sha256=sha256_file(Path("config/strategies.yaml")),
+    )
+    pub_real, signed_real, gov_real, clock_real = build_clients(app_cfg)
+    assert signed_real is None
+    assert gov_real is pub_real.governor
+    assert clock_real is not None
+
+    # Test real CollectionReport + run_once(skip_collect=False) + K9.3 shadow entry & resolution
+    db = Database(tmp_path / "live_wire.db")
+    db.connect()
+    db.migrate()
+
+    t_close = 1_700_510_400_000  # aligned 4h boundary (multiple of 14_400_000)
+    assert t_close % FOUR_HOURS_MS == 0
+
+    # Build 1h and 4h raw kline lists for SOLUSDT (leader) and BTCUSDT (lagging RS)
+    def _klines(sym: str, interval: str, count: int, end_ms: int) -> list[list[Any]]:
+        step = ONE_HOUR_MS if interval == "1h" else FOUR_HOURS_MS
+        out: list[list[Any]] = []
+        for i in range(count):
+            op = end_ms - (count - i) * step
+            cl = op + step - 1
+            if sym == "BTCUSDT":
+                base = 30000.0 + i * 20.0
+                body = 5.0
+                vol = 100.0
+                tbv = 55.0
+            else:
+                # SOLUSDT flat then sharp breakout on last candle
+                is_last = (i == count - 1) and interval == "1h"
+                base = 100.0 + i * 0.4
+                body = 4.5 if is_last else 0.4
+                vol = 5000.0 if is_last else 500.0
+                tbv = 4000.0 if is_last else 260.0
+            out.append(
+                [
+                    op,
+                    f"{base:.2f}",
+                    f"{base + body + 0.5:.2f}",
+                    f"{base - 0.1:.2f}",
+                    f"{base + body:.2f}",
+                    f"{vol:.2f}",
+                    cl,
+                    f"{vol * base:.2f}",
+                    500,
+                    f"{tbv:.2f}",
+                    f"{tbv * base:.2f}",
+                    "0",
+                ]
+            )
+        return out
+
+    class _FullFakePublic(_FakePublicClient):
+        def get_server_time_ms(self) -> int:
+            return t_close + 2000
+
+        def get_klines(
+            self,
+            symbol: str,
+            interval: str,
+            *,
+            start_time_ms: int | None = None,
+            end_time_ms: int | None = None,
+            limit: int = 1000,
+        ) -> list[list[Any]]:
+            cnt = min(limit, 300 if interval == "1h" else 200)
+            return _klines(symbol, interval, cnt, t_close)
+
+    pub = _FullFakePublic([])
+    clock = MonotonicClock()
+    clock.sync(pub.get_server_time_ms)
+    all_syms = list(
+        dict.fromkeys(
+            list(strategies_cfg.universe.symbols) + list(analyst_cfg.scanner_universe.symbols) + ["BNBUSDT"]
+        )
+    )
+    ex_cache = ExchangeInfoCache(pub, db, all_syms)
+    ex_cache.refresh_if_stale(t_close)
+    outbox = TelegramOutbox(db, "999999", transport=None)
+
+    # Seed pre-existing candles for all symbols so boot_reconcile skips unnecessary work except SOLUSDT/BTCUSDT
+    for s in all_syms:
+        _seed_bull_candles(db, s, t_close - ONE_HOUR_MS, n_1h=245, n_4h=145)
+
+    orch = QuantOrchestrator(
+        settings=_make_settings(tmp_path, RunMode.SHADOW_CHAMELEON),
+        strategies_cfg=strategies_cfg,
+        analyst_cfg=analyst_cfg,
+        db=db,
+        public_client=pub,  # type: ignore[arg-type]
+        signed_client=None,
+        clock=clock,
+        exchange_cache=ex_cache,
+        outbox=outbox,
+        orderbook_inspector=OrderbookInspector(analyst_cfg.layer_4_orderbook_live, sleep_fn=lambda _: None),
+        sleep_fn=lambda _: None,
+    )
+    orch.boot_reconcile(enqueue_startup_alert=True)
+    rep = orch.run_once(now_ms=t_close + 3000, skip_collect=False)
+    assert rep.unhandled_errors == 0
+    assert rep.cycle_close_time_ms == t_close
+
+    # Also verify _manage_open_positions passes candles_by_symbol without TypeError
+    filters = ex_cache.get("SOLUSDT")
+    ps = PositionSizer(strategies_cfg.position_sizing, strategies_cfg.portfolio)
+    ml = MLJudge(strategies_cfg.ml_judge_and_validation, strategies_cfg.position_sizing)
+    verdict = ml.evaluate_signal(raw_score=2.0, stop_distance_pct=0.03, gross_rr_ratio=2.0)
+    sizing = ps.evaluate_and_size(
+        symbol="SOLUSDT",
+        entry_price=Decimal("210.00"),
+        stop_price=Decimal("200.00"),
+        target_price=Decimal("230.00"),
+        free_usdt=Decimal("300.00"),
+        tactical_equity_usdt=Decimal("300.00"),
+        symbol_filters=filters,
+        ml_calibrated_prob=verdict.calibrated_prob,
+        ml_proposed_grade=verdict.grade,
+    )
+    assert sizing.approved
+    req = ExecutionRequest(
+        symbol="SOLUSDT",
+        strategy="BullTrendPullback",
+        regime="BULL",
+        signal_close_time_ms=t_close - ONE_HOUR_MS,
+        atr_at_signal=3.0,
+        time_barrier_end_ms=t_close + 71 * ONE_HOUR_MS,
+        sizing=sizing,
+        symbol_filters=filters,
+    )
+    rep_shadow = orch.paper_executor.execute_entry(req, virtual_equity_before=Decimal("300.00"), now_ms=t_close)
+    assert rep_shadow.executed is True
+    orch._manage_open_positions(t_close + 3000)
+    db.close()
