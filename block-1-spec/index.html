@@ -1,0 +1,1469 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Arquitetura unificada, auditoria de integração, contrato de dados e metodologia do QuantCrypto Chameleon & Radar Engine">
+      
+      
+      
+        <link rel="canonical" href="https://pac-coins.github.io/quant-crypto-chameleon-radar-engine/block-1-spec/">
+      
+      
+        <link rel="prev" href="../data-contract/">
+      
+      
+        <link rel="next" href="../block-2-spec/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
+    
+    
+      
+        <title>Especificação do Bloco 1 - QuantCrypto Chameleon & Radar Engine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#especificacao-do-bloco-1-unificado" class="md-skip">
+          Ir para o conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href=".." title="QuantCrypto Chameleon &amp; Radar Engine" class="md-header__button md-logo" aria-label="QuantCrypto Chameleon & Radar Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            QuantCrypto Chameleon & Radar Engine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Especificação do Bloco 1
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Usar modo escuro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Usar modo escuro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Usar modo claro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Usar modo claro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando a pesquisa
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/pac-coins/quant-crypto-chameleon-radar-engine" title="Ir ao repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pac-coins/quant-crypto-chameleon-radar-engine
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="QuantCrypto Chameleon &amp; Radar Engine" class="md-nav__button md-logo" aria-label="QuantCrypto Chameleon & Radar Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    QuantCrypto Chameleon & Radar Engine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/pac-coins/quant-crypto-chameleon-radar-engine" title="Ir ao repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pac-coins/quant-crypto-chameleon-radar-engine
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Início
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../unified-architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura Unificada
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Executor (Chameleon v6)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../radar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Radar & Auditor (v1.1)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integration-audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditoria de Integração
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de Dados (SQLite)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 1
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-srccoreconfigpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. src/core/config.py
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-srccoredatabasepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. src/core/database.py
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-srccorebinance_clientpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. src/core/binance_client.py
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-srcdatacandle_collectorpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. src/data/candle_collector.py
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-gate-1-unificado-criterio-binario" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Gate 1 Unificado (critério binário)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-2-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-3-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-4-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 4
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-5-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 5
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-6-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 6
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisões (ADR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methodology-and-roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metodologia e roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../todo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TODO
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_16" >
+        
+          
+          <label class="md-nav__link" for="__nav_16" id="__nav_16_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Histórico
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_16_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_16">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Histórico
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v5-to-v6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migração v5 → v6
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v5
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-srccoreconfigpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. src/core/config.py
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-srccoredatabasepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. src/core/database.py
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-srccorebinance_clientpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. src/core/binance_client.py
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-srcdatacandle_collectorpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. src/data/candle_collector.py
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-gate-1-unificado-criterio-binario" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Gate 1 Unificado (critério binário)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="especificacao-do-bloco-1-unificado">Especificação do Bloco 1 unificado<a class="headerlink" href="#especificacao-do-bloco-1-unificado" title="Permanent link">&para;</a></h1>
+<p>Esta página congela as <strong>assinaturas (type hints) dos 4 arquivos do Bloco 1</strong>
+(<code>config.py</code>, <code>database.py</code>, <code>binance_client.py</code> e <code>candle_collector.py</code>) e o
+<strong>Gate 1 unificado</strong>. Ela incorpora os itens de Categoria 1 e 2 do <a href="../todo/">TODO</a>
+e as emendas C1-B, C1-C e C1-E da <a href="../integration-audit/">Auditoria de Integração</a>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Regra de avanço</p>
+<p>Nenhuma linha do Bloco 2 é escrita antes de o Gate 1 (seção 5) retornar <code>100% PASS</code>.</p>
+</div>
+<h2 id="1-srccoreconfigpy">1. <code>src/core/config.py</code><a class="headerlink" href="#1-srccoreconfigpy" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">decimal</span><span class="w"> </span><span class="kn">import</span> <span class="n">Decimal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">StrEnum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Final</span><span class="p">,</span> <span class="n">Literal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">SecretStr</span><span class="p">,</span> <span class="n">field_validator</span><span class="p">,</span> <span class="n">model_validator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic_settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseSettings</span><span class="p">,</span> <span class="n">SettingsConfigDict</span>
+
+<span class="n">FORBIDDEN_EXECUTION_SYMBOLS</span><span class="p">:</span> <span class="n">Final</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">"BNBUSDT"</span><span class="p">})</span>
+<span class="n">PHASE_1_LIVE_CONFIRMATION</span><span class="p">:</span> <span class="n">Final</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"PHASE_1_GATES_6A_6B_PASSED"</span>
+<span class="n">Interval</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"1m"</span><span class="p">,</span> <span class="s2">"1h"</span><span class="p">,</span> <span class="s2">"4h"</span><span class="p">]</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ConfigError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span> <span class="o">...</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">RunMode</span><span class="p">(</span><span class="n">StrEnum</span><span class="p">):</span>
+    <span class="n">ANALYST_ONLY</span> <span class="o">=</span> <span class="s2">"ANALYST_ONLY"</span>
+    <span class="n">SHADOW_CHAMELEON</span> <span class="o">=</span> <span class="s2">"SHADOW_CHAMELEON"</span>
+    <span class="n">LIVE_CHAMELEON_PHASE_1</span> <span class="o">=</span> <span class="s2">"LIVE_CHAMELEON_PHASE_1"</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">BinanceEnv</span><span class="p">(</span><span class="n">StrEnum</span><span class="p">):</span>
+    <span class="n">TESTNET</span> <span class="o">=</span> <span class="s2">"TESTNET"</span>
+    <span class="n">PRODUCTION</span> <span class="o">=</span> <span class="s2">"PRODUCTION"</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">RuntimeSettings</span><span class="p">(</span><span class="n">BaseSettings</span><span class="p">):</span>
+    <span class="n">model_config</span> <span class="o">=</span> <span class="n">SettingsConfigDict</span><span class="p">(</span><span class="n">env_file</span><span class="o">=</span><span class="s2">".env"</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="s2">"forbid"</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">mode</span><span class="p">:</span> <span class="n">RunMode</span>
+    <span class="n">binance_env</span><span class="p">:</span> <span class="n">BinanceEnv</span> <span class="o">=</span> <span class="n">BinanceEnv</span><span class="o">.</span><span class="n">TESTNET</span>
+    <span class="n">binance_api_key</span><span class="p">:</span> <span class="n">SecretStr</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">binance_ed25519_private_key_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">live_confirmation</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">approved_strategies_sha256</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">shadow_initial_usdt</span><span class="p">:</span> <span class="n">Decimal</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">"300"</span><span class="p">)</span>
+    <span class="n">telegram_bot_token</span><span class="p">:</span> <span class="n">SecretStr</span>
+    <span class="n">telegram_chat_id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">db_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"data/quant.db"</span><span class="p">)</span>
+    <span class="n">backup_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"data/backups"</span><span class="p">)</span>
+
+<span class="c1"># ---- Espelhos estritos dos YAMLs (extra="forbid": chave desconhecida = erro de boot) ----</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_Strict</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span><span class="n">extra</span><span class="o">=</span><span class="s2">"forbid"</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">PortfolioCfg</span><span class="p">(</span><span class="n">_Strict</span><span class="p">):</span> <span class="o">...</span>            <span class="c1"># campos exatos de strategies.yaml -&gt; portfolio</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ExecutionResilienceCfg</span><span class="p">(</span><span class="n">_Strict</span><span class="p">):</span> <span class="o">...</span>  <span class="c1"># clock_sync_interval_minutes, recv_window_ms, candle_close_fetch_delay_seconds...</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PositionSizingCfg</span><span class="p">(</span><span class="n">_Strict</span><span class="p">):</span> <span class="o">...</span>       <span class="c1"># roundtrip_fee_assumption_pct, stress_slippage_assumption_pct (custo ÚNICO, C2-4)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">UniverseCfg</span><span class="p">(</span><span class="n">_Strict</span><span class="p">):</span>
+    <span class="n">backtest_min_start_date</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">phase_1_tie_breaker</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">phase_2_tie_breaker</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">symbols</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">StrategiesConfig</span><span class="p">(</span><span class="n">_Strict</span><span class="p">):</span>            <span class="c1"># strategies.yaml completo (portfolio, ..., ml_judge_and_validation)</span>
+    <span class="n">version</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">rollout_phase</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"PHASE_1_CORE_VALIDATION"</span><span class="p">]</span>
+    <span class="c1"># ... demais seções tipadas</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">OrderbookLayerCfg</span><span class="p">(</span><span class="n">_Strict</span><span class="p">):</span>
+    <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">affects_execution</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">False</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>          <span class="c1"># TRAVA: Cat.3 do TODO preservada</span>
+    <span class="n">depth_limit_default</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="mi">100</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">1000</span><span class="p">]</span> <span class="o">=</span> <span class="mi">500</span>
+    <span class="n">depth_limit_overrides</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Literal</span><span class="p">[</span><span class="mi">100</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">1000</span><span class="p">]]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="n">max_symbols_per_cycle</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>  <span class="c1"># k_max (ADR-005)</span>
+    <span class="n">anti_spoofing_snapshots</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">snapshot_interval_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">imbalance_band_pct</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.015</span>
+    <span class="n">min_valid_band_pct</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.003</span>                  <span class="c1"># C1-A</span>
+    <span class="n">bullish_obi_threshold</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">bearish_obi_warning_threshold</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">whale_wall_multiplier</span><span class="p">:</span> <span class="nb">float</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AnalystConfig</span><span class="p">(</span><span class="n">_Strict</span><span class="p">):</span> <span class="o">...</span>            <span class="c1"># analyst.yaml completo; layer_4_orderbook_live: OrderbookLayerCfg</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">AppConfig</span><span class="p">(</span><span class="n">_Strict</span><span class="p">):</span>
+    <span class="n">runtime</span><span class="p">:</span> <span class="n">RuntimeSettings</span>
+    <span class="n">strategies</span><span class="p">:</span> <span class="n">StrategiesConfig</span>
+    <span class="n">analyst</span><span class="p">:</span> <span class="n">AnalystConfig</span>
+    <span class="n">strategies_sha256</span><span class="p">:</span> <span class="nb">str</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">execution_universe</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span> <span class="o">...</span>      <span class="c1"># strategies.symbols − FORBIDDEN (C1-C)</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">market_data_universe</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span> <span class="o">...</span>    <span class="c1"># ordenado(∪ radar ∪ execução ∪ {"BTCUSDT"})</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">market_data_base_url</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span> <span class="o">...</span>                <span class="c1"># matriz de modos</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">trading_base_url</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>             <span class="c1"># None fora de LIVE</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_live</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span> <span class="o">...</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">sha256_file</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span> <span class="o">...</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_yaml_strict</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]:</span> <span class="o">...</span>    <span class="c1"># yaml.safe_load + rejeita chaves duplicadas</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_config</span><span class="p">(</span>
+    <span class="n">env_file</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">".env"</span><span class="p">),</span>
+    <span class="n">strategies_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"config/strategies.yaml"</span><span class="p">),</span>
+    <span class="n">analyst_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"config/analyst.yaml"</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AppConfig</span><span class="p">:</span> <span class="o">...</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">validate_mode_invariants</span><span class="p">(</span><span class="n">cfg</span><span class="p">:</span> <span class="n">AppConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Levanta ConfigError se:</span>
+<span class="sd">    - ANALYST_ONLY/SHADOW com qualquer chave Binance presente;</span>
+<span class="sd">    - LIVE sem api_key ou sem arquivo Ed25519 legível;</span>
+<span class="sd">    - LIVE com execution_universe ∩ FORBIDDEN_EXECUTION_SYMBOLS ≠ ∅;</span>
+<span class="sd">    - LIVE com max_concurrent_positions != 1, profit_splitter.enabled, use_ml_filter,</span>
+<span class="sd">      breakeven_enabled, conviction_sizing_enabled, ou estratégia != bull_trend_pullback habilitada;</span>
+<span class="sd">    - LIVE+PRODUCTION sem LIVE_CONFIRMATION correto ou com strategies_sha256 != approved_strategies_sha256.</span>
+<span class="sd">    """</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">required_kline_intervals</span><span class="p">(</span><span class="n">cfg</span><span class="p">:</span> <span class="n">AppConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Interval</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span> <span class="o">...</span>   <span class="c1"># ("1h","4h")</span>
+</code></pre></div>
+<h2 id="2-srccoredatabasepy">2. <code>src/core/database.py</code><a class="headerlink" href="#2-srccoredatabasepy" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sqlite3</span><span class="o">,</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">decimal</span><span class="w"> </span><span class="kn">import</span> <span class="n">Decimal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Final</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.core.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Interval</span>
+
+<span class="n">SCHEMA_VERSION</span><span class="p">:</span> <span class="n">Final</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">PRAGMAS</span><span class="p">:</span> <span class="n">Final</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">"PRAGMA journal_mode=WAL"</span><span class="p">,</span> <span class="s2">"PRAGMA synchronous=FULL"</span><span class="p">,</span> <span class="s2">"PRAGMA foreign_keys=ON"</span><span class="p">,</span>
+    <span class="s2">"PRAGMA busy_timeout=10000"</span><span class="p">,</span> <span class="s2">"PRAGMA wal_autocheckpoint=1000"</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">DatabaseError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span> <span class="o">...</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">WrongThreadError</span><span class="p">(</span><span class="n">DatabaseError</span><span class="p">):</span> <span class="o">...</span>
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CandleRow</span><span class="p">:</span>
+    <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">;</span> <span class="n">interval</span><span class="p">:</span> <span class="n">Interval</span>
+    <span class="n">open_time_ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">;</span> <span class="n">close_time_ms</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="nb">open</span><span class="p">:</span> <span class="nb">float</span><span class="p">;</span> <span class="n">high</span><span class="p">:</span> <span class="nb">float</span><span class="p">;</span> <span class="n">low</span><span class="p">:</span> <span class="nb">float</span><span class="p">;</span> <span class="n">close</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">volume</span><span class="p">:</span> <span class="nb">float</span><span class="p">;</span> <span class="n">quote_volume</span><span class="p">:</span> <span class="nb">float</span><span class="p">;</span> <span class="n">number_of_trades</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">taker_buy_base_volume</span><span class="p">:</span> <span class="nb">float</span><span class="p">;</span> <span class="n">taker_buy_quote_volume</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">ingested_at_ms</span><span class="p">:</span> <span class="nb">int</span>
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">SymbolFilters</span><span class="p">:</span>
+    <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">;</span> <span class="n">status</span><span class="p">:</span> <span class="nb">str</span><span class="p">;</span> <span class="n">base_asset</span><span class="p">:</span> <span class="nb">str</span><span class="p">;</span> <span class="n">quote_asset</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">tick_size</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">;</span> <span class="n">step_size</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">;</span> <span class="n">min_qty</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">;</span> <span class="n">min_notional</span><span class="p">:</span> <span class="n">Decimal</span>
+    <span class="n">oco_allowed</span><span class="p">:</span> <span class="nb">bool</span><span class="p">;</span> <span class="n">fetched_at_ms</span><span class="p">:</span> <span class="nb">int</span>
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CycleHealth</span><span class="p">:</span>
+    <span class="n">cycle_close_time_ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">;</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">;</span> <span class="n">clock_offset_ms</span><span class="p">:</span> <span class="nb">float</span><span class="p">;</span> <span class="n">clock_rtt_ms</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">used_weight_1m_peak</span><span class="p">:</span> <span class="nb">int</span><span class="p">;</span> <span class="n">stale_symbols</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">];</span> <span class="n">gaps_detected</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">duration_ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">;</span> <span class="n">unhandled_errors</span><span class="p">:</span> <span class="nb">int</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Database</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">busy_timeout_ms</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>                 <span class="c1"># isolation_level=None; aplica PRAGMAS; assert journal_mode=='wal'</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>                   <span class="c1"># PRAGMA wal_checkpoint(TRUNCATE) + close</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">migrate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span> <span class="o">...</span>                  <span class="c1"># DDL da Seção 3.3 idempotente; retorna versão</span>
+    <span class="nd">@contextmanager</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_tx</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">sqlite3</span><span class="o">.</span><span class="n">Connection</span><span class="p">]:</span> <span class="o">...</span>  <span class="c1"># BEGIN IMMEDIATE; COMMIT/ROLLBACK; WrongThreadError</span>
+    <span class="nd">@contextmanager</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">sqlite3</span><span class="o">.</span><span class="n">Connection</span><span class="p">]:</span> <span class="o">...</span>
+
+    <span class="c1"># --- candles ---</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">upsert_candles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rows</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">CandleRow</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span> <span class="o">...</span>           <span class="c1"># INSERT ... ON CONFLICT DO UPDATE</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">last_open_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">interval</span><span class="p">:</span> <span class="n">Interval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_candles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">interval</span><span class="p">:</span> <span class="n">Interval</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                     <span class="n">until_close_time_ms</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span> <span class="o">...</span>  <span class="c1"># ordenado asc, float64</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">close_times</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">interval</span><span class="p">:</span> <span class="n">Interval</span><span class="p">,</span> <span class="n">since_ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span> <span class="o">...</span>
+
+    <span class="c1"># --- exchange filters ---</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">upsert_exchange_filters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filters</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">SymbolFilters</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_exchange_filters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SymbolFilters</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+
+    <span class="c1"># --- estado / saúde ---</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Decimal</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">log_cycle_health</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">:</span> <span class="n">CycleHealth</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+
+    <span class="c1"># --- backup (TODO Cat.1) ---</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">backup_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dest_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span> <span class="o">...</span>   <span class="c1"># src.backup(dst, pages=-1) num passo; retorna arquivo</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">verify_backup</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span> <span class="o">...</span>         <span class="c1"># PRAGMA integrity_check == 'ok' + schema_meta.version</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">DAOs</p>
+<p>DAOs de <code>trades</code>, <code>shadow_trades</code>, <code>virtual_signals</code> e <code>orderbook_*</code> entram nos blocos que os consomem. <strong>O schema inteiro, porém, é criado já no Bloco 1</strong>, porque o contrato de dados fica congelado desde o início.</p>
+</div>
+<h2 id="3-srccorebinance_clientpy">3. <code>src/core/binance_client.py</code><a class="headerlink" href="#3-srccorebinance_clientpy" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span><span class="o">,</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">decimal</span><span class="w"> </span><span class="kn">import</span> <span class="n">Decimal</span><span class="p">,</span> <span class="n">ROUND_DOWN</span><span class="p">,</span> <span class="n">ROUND_UP</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">IntEnum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Final</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.core.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">AppConfig</span><span class="p">,</span> <span class="n">Interval</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.core.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">SymbolFilters</span>
+
+<span class="c1"># ---------------- Pesos e governador (C1-B) ----------------</span>
+<span class="n">ENDPOINT_WEIGHTS</span><span class="p">:</span> <span class="n">Final</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"GET /api/v3/time"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"GET /api/v3/klines"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">"GET /api/v3/exchangeInfo"</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+    <span class="s2">"GET /api/v3/ticker/bookTicker"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">"GET /api/v3/account"</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+    <span class="s2">"GET /api/v3/account/commission"</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span> <span class="s2">"GET /api/v3/order"</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="s2">"GET /api/v3/orderList"</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">"GET /api/v3/openOrderList"</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>
+    <span class="s2">"POST /api/v3/order"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"POST /api/v3/orderList/oco"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"DELETE /api/v3/orderList"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">depth_weight</span><span class="p">(</span><span class="n">limit</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span> <span class="o">...</span>          <span class="c1"># 5 / 25 / 50 / 250</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Priority</span><span class="p">(</span><span class="n">IntEnum</span><span class="p">):</span>
+    <span class="n">CRITICAL</span> <span class="o">=</span> <span class="mi">0</span>   <span class="c1"># ordens, OCO, cancelamentos, reconciliação</span>
+    <span class="n">HIGH</span> <span class="o">=</span> <span class="mi">1</span>       <span class="c1"># klines, exchangeInfo, time, bookTicker</span>
+    <span class="n">LOW</span> <span class="o">=</span> <span class="mi">2</span>        <span class="c1"># depth (Radar L4)</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">BinanceAPIError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">http_status</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">code</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RateLimitedError</span><span class="p">(</span><span class="n">BinanceAPIError</span><span class="p">):</span> <span class="o">...</span>      <span class="c1"># 429</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">IPBannedError</span><span class="p">(</span><span class="n">BinanceAPIError</span><span class="p">):</span> <span class="o">...</span>         <span class="c1"># 418</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">WeightBudgetExceeded</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span> <span class="o">...</span>     <span class="c1"># recusa LOCAL (não chegou à Binance)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RequestTimeoutUnknownState</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span> <span class="o">...</span>   <span class="c1"># timeout em POST: estado desconhecido (-1007)</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">WeightGovernor</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">limit_per_min</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6000</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">high_ceiling</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.75</span><span class="p">,</span>
+                 <span class="n">low_ceiling</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.50</span><span class="p">,</span> <span class="n">now</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">acquire</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">priority</span><span class="p">:</span> <span class="n">Priority</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>   <span class="c1"># levanta WeightBudgetExceeded</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_from_headers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">headers</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>  <span class="c1"># X-MBX-USED-WEIGHT-1M</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_rate_limited</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">retry_after_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">banned</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+    <span class="nd">@contextmanager</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">critical_section</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="kc">None</span><span class="p">]:</span> <span class="o">...</span>   <span class="c1"># bloqueia HIGH/LOW entre o fill e a OCO confirmada</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">used_weight_1m</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span> <span class="o">...</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">peak_weight_1m</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset_peak</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span> <span class="o">...</span>
+
+<span class="c1"># ---------------- Relógio monotônico (Cristian RTT/2) ----------------</span>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ClockSample</span><span class="p">:</span>
+    <span class="n">offset_ms</span><span class="p">:</span> <span class="nb">float</span><span class="p">;</span> <span class="n">rtt_ms</span><span class="p">:</span> <span class="nb">float</span><span class="p">;</span> <span class="n">sampled_at_mono</span><span class="p">:</span> <span class="nb">float</span><span class="p">;</span> <span class="n">wall_offset_ms</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">MonotonicClock</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">safety_margin_ms</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">mono</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">,</span>
+                 <span class="n">wall</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sync</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fetch_server_time_ms</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="nb">int</span><span class="p">],</span> <span class="n">samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ClockSample</span><span class="p">:</span> <span class="o">...</span>  <span class="c1"># menor RTT vence</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">server_now_ms</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span> <span class="o">...</span>                 <span class="c1"># estimativa do relógio da Binance</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">signing_timestamp_ms</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span> <span class="o">...</span>          <span class="c1"># floor(server_now - safety_margin)</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">last_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ClockSample</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+
+<span class="c1"># ---------------- Aritmética Decimal (Gate 1b) ----------------</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">to_decimal</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Decimal</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Decimal</span><span class="p">:</span> <span class="o">...</span>          <span class="c1"># proíbe float</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">round_price_to_tick</span><span class="p">(</span><span class="n">price</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">,</span> <span class="n">tick</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">,</span> <span class="n">direction</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"DOWN"</span><span class="p">,</span> <span class="s2">"UP"</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Decimal</span><span class="p">:</span> <span class="o">...</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">floor_qty_to_step</span><span class="p">(</span><span class="n">qty</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Decimal</span><span class="p">:</span> <span class="o">...</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">to_api_str</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span> <span class="o">...</span>                          <span class="c1"># format(x, 'f'), sem notação científica</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">passes_filters</span><span class="p">(</span><span class="n">price</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">,</span> <span class="n">qty</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">,</span> <span class="n">f</span><span class="p">:</span> <span class="n">SymbolFilters</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]:</span> <span class="o">...</span>
+
+<span class="c1"># ---------------- DTOs ----------------</span>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">BookTicker</span><span class="p">:</span>
+    <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">;</span> <span class="n">bid</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">;</span> <span class="n">bid_qty</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">;</span> <span class="n">ask</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">;</span> <span class="n">ask_qty</span><span class="p">:</span> <span class="n">Decimal</span>
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DepthSnapshot</span><span class="p">:</span>
+    <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">;</span> <span class="n">last_update_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">;</span> <span class="n">taken_at_ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">;</span> <span class="n">requested_limit</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">bids</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="o">...</span><span class="p">];</span> <span class="n">asks</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span>   <span class="c1"># análise apenas (float ok)</span>
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">SystemStatus</span><span class="p">:</span>
+    <span class="n">normal</span><span class="p">:</span> <span class="nb">bool</span><span class="p">;</span> <span class="n">msg</span><span class="p">:</span> <span class="nb">str</span><span class="p">;</span> <span class="n">mocked</span><span class="p">:</span> <span class="nb">bool</span>
+
+<span class="c1"># ---------------- Clientes ----------------</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PublicBinanceClient</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">governor</span><span class="p">:</span> <span class="n">WeightGovernor</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+                 <span class="n">session</span><span class="p">:</span> <span class="n">requests</span><span class="o">.</span><span class="n">Session</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">timeout_s</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">3.05</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="o">*</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">priority</span><span class="p">:</span> <span class="n">Priority</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span> <span class="o">...</span>   <span class="c1"># governor + headers + mapeia 429/418/-1021</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_server_time_ms</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_klines</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">interval</span><span class="p">:</span> <span class="n">Interval</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">start_time_ms</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="n">end_time_ms</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_depth</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DepthSnapshot</span><span class="p">:</span> <span class="o">...</span>       <span class="c1"># Priority.LOW, sem retry</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_book_ticker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">priority</span><span class="p">:</span> <span class="n">Priority</span> <span class="o">=</span> <span class="n">Priority</span><span class="o">.</span><span class="n">HIGH</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BookTicker</span><span class="p">:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_exchange_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbols</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">SymbolFilters</span><span class="p">]:</span> <span class="o">...</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ExchangeInfoCache</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client</span><span class="p">:</span> <span class="n">PublicBinanceClient</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="s2">"Database"</span><span class="p">,</span> <span class="n">symbols</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">max_age_s</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3600</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">refresh_if_stale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">now_ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SymbolFilters</span><span class="p">:</span> <span class="o">...</span>   <span class="c1"># KeyError =&gt; símbolo não negociável</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">SignedBinanceClient</span><span class="p">(</span><span class="n">PublicBinanceClient</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">governor</span><span class="p">:</span> <span class="n">WeightGovernor</span><span class="p">,</span> <span class="n">clock</span><span class="p">:</span> <span class="n">MonotonicClock</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+                 <span class="n">api_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ed25519_private_key_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">recv_window_ms</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5000</span><span class="p">,</span>
+                 <span class="n">testnet</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">session</span><span class="p">:</span> <span class="n">requests</span><span class="o">.</span><span class="n">Session</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_sign</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query_string</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span> <span class="o">...</span>                  <span class="c1"># Ed25519 -&gt; base64</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">signed_request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"GET"</span><span class="p">,</span> <span class="s2">"POST"</span><span class="p">,</span> <span class="s2">"DELETE"</span><span class="p">],</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                       <span class="n">params</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                       <span class="n">priority</span><span class="p">:</span> <span class="n">Priority</span> <span class="o">=</span> <span class="n">Priority</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span> <span class="o">...</span>
+        <span class="c1"># timeout em POST =&gt; RequestTimeoutUnknownState (NUNCA reenvia; quem chama consulta origClientOrderId)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_account</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">omit_zero_balances</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">orig_client_order_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_open_order_lists</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_account_commission</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span> <span class="o">...</span>
+    <span class="c1"># /sapi/*: mock automático quando testnet=True (TODO Cat.2)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sapi_system_status</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SystemStatus</span><span class="p">:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sapi_transfer_main_to_funding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asset</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">amount</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span> <span class="o">...</span>
+    <span class="c1"># Wrappers de ordem (assinaturas congeladas agora; corpo implementado no Bloco 5):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">new_market_buy_quote</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">quote_qty</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">,</span> <span class="n">client_order_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">new_market_sell</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">qty</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">,</span> <span class="n">client_order_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">new_oco_sell</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">qty</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">,</span> <span class="n">take_profit</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">,</span> <span class="n">stop_price</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">,</span>
+                     <span class="n">stop_limit_price</span><span class="p">:</span> <span class="n">Decimal</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">list_client_order_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cancel_order_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">order_list_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_order_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order_list_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span> <span class="o">...</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">build_clients</span><span class="p">(</span><span class="n">cfg</span><span class="p">:</span> <span class="n">AppConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PublicBinanceClient</span><span class="p">,</span> <span class="n">SignedBinanceClient</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+                                           <span class="n">WeightGovernor</span><span class="p">,</span> <span class="n">MonotonicClock</span><span class="p">]:</span> <span class="o">...</span>
+    <span class="c1"># Um único WeightGovernor compartilhado. SignedBinanceClient só é construído em LIVE.</span>
+</code></pre></div>
+<h2 id="4-srcdatacandle_collectorpy">4. <code>src/data/candle_collector.py</code><a class="headerlink" href="#4-srcdatacandle_collectorpy" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Final</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.core.binance_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">MonotonicClock</span><span class="p">,</span> <span class="n">PublicBinanceClient</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.core.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Interval</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.core.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">CandleRow</span><span class="p">,</span> <span class="n">Database</span>
+
+<span class="n">INTERVAL_MS</span><span class="p">:</span> <span class="n">Final</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"1m"</span><span class="p">:</span> <span class="mi">60_000</span><span class="p">,</span> <span class="s2">"1h"</span><span class="p">:</span> <span class="mi">3_600_000</span><span class="p">,</span> <span class="s2">"4h"</span><span class="p">:</span> <span class="mi">14_400_000</span><span class="p">}</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">KlineIntegrityError</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span> <span class="o">...</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">normalize_close_time</span><span class="p">(</span><span class="n">raw_close_time_ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">open_time_ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">interval</span><span class="p">:</span> <span class="n">Interval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span> <span class="o">...</span>
+    <span class="c1"># retorna raw+1 e valida == open_time + INTERVAL_MS (TODO Cat.1)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_kline</span><span class="p">(</span><span class="n">raw</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">interval</span><span class="p">:</span> <span class="n">Interval</span><span class="p">,</span> <span class="n">ingested_at_ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CandleRow</span><span class="p">:</span> <span class="o">...</span>
+    <span class="c1"># cols 0..10 (inclui 7 quote_volume, 8 trades, 9 taker_buy_base, 10 taker_buy_quote)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">last_closed_close_time</span><span class="p">(</span><span class="n">server_now_ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">interval</span><span class="p">:</span> <span class="n">Interval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span> <span class="o">...</span>  <span class="c1"># floor(now/Δ)*Δ</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_interval_boundary</span><span class="p">(</span><span class="n">close_time_ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">interval</span><span class="p">:</span> <span class="n">Interval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span> <span class="o">...</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">drop_unclosed</span><span class="p">(</span><span class="n">rows</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">CandleRow</span><span class="p">],</span> <span class="n">server_now_ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">CandleRow</span><span class="p">]:</span> <span class="o">...</span>  <span class="c1"># close_time &lt;= now</span>
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CollectionReport</span><span class="p">:</span>
+    <span class="n">interval</span><span class="p">:</span> <span class="n">Interval</span>
+    <span class="n">expected_close_time_ms</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">ok</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">stale</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>          <span class="c1"># excluídos DESTE ciclo (sem sinal), não derrubam o loop</span>
+    <span class="n">gaps</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="n">retries_used</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">CandleCollector</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client</span><span class="p">:</span> <span class="n">PublicBinanceClient</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">Database</span><span class="p">,</span> <span class="n">clock</span><span class="p">:</span> <span class="n">MonotonicClock</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+                 <span class="n">fetch_delay_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3.0</span><span class="p">,</span> <span class="n">max_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">retry_sleep_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+                 <span class="n">sleep</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wait_for_cycle</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span> <span class="o">...</span>
+        <span class="c1"># dorme até XX:00:03 (relógio da Binance); retorna o close_time esperado (XX:00:00.000)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">backfill</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbols</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">interval</span><span class="p">:</span> <span class="n">Interval</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">lookback_candles</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">collect_closed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbols</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">interval</span><span class="p">:</span> <span class="n">Interval</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+                       <span class="n">expected_close_time_ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CollectionReport</span><span class="p">:</span> <span class="o">...</span>
+        <span class="c1"># busca limit=3, descarta a vela em formação, confere se a última fechada == esperada; retry 1s x5</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">detect_gaps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">interval</span><span class="p">:</span> <span class="n">Interval</span><span class="p">,</span> <span class="n">since_ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">repair_gaps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">interval</span><span class="p">:</span> <span class="n">Interval</span><span class="p">,</span> <span class="n">gaps</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run_cycle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbols</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">CollectionReport</span><span class="p">]:</span> <span class="o">...</span>  <span class="c1"># 1h sempre; 4h na fronteira</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">load_frame</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Database</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">interval</span><span class="p">:</span> <span class="n">Interval</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+               <span class="n">until_close_time_ms</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span> <span class="o">...</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">align_4h_to_1h</span><span class="p">(</span><span class="n">df_1h</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">df_4h</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">suffix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"_4h"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span> <span class="o">...</span>
+    <span class="c1"># pd.merge_asof(df_1h, df_4h, on="close_time_ms", direction="backward", allow_exact_matches=True)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">align_btc_context</span><span class="p">(</span><span class="n">df_asset</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">df_btc</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span> <span class="o">...</span>
+    <span class="c1"># close_time_btc &lt;= close_time_asset (mesmo merge_asof backward)</span>
+</code></pre></div>
+<h2 id="5-gate-1-unificado-criterio-binario">5. Gate 1 Unificado (critério binário)<a class="headerlink" href="#5-gate-1-unificado-criterio-binario" title="Permanent link">&para;</a></h2>
+<p><code>pytest tests/test_block1_causal_and_decimal.py tests/test_block1_db_governor_modes.py</code> precisa passar em <strong>100%</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Teste</th>
+<th>Origem</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a</td>
+<td>Truncamento às 02:00 UTC gera o vetor alinhado idêntico ao da tabela completa (zero vazamento); às 04:00:00.000 enxerga a vela de 4h recém-fechada</td>
+<td>Roadmap</td>
+</tr>
+<tr>
+<td>b</td>
+<td>10.000 preços e lotes aleatórios saem múltiplos exatos de <code>tickSize</code>/<code>stepSize</code> via <code>Decimal</code>; <code>to_api_str</code> nunca emite <code>E-</code></td>
+<td>Roadmap</td>
+</tr>
+<tr>
+<td>c</td>
+<td>Restauração real de um arquivo de <code>backup_to()</code> com <code>integrity_check == ok</code></td>
+<td>Roadmap</td>
+</tr>
+<tr>
+<td>d</td>
+<td><code>WeightGovernor</code>: com 3.100 de peso usado, <code>LOW</code> é recusado, <code>HIGH</code> passa e <code>CRITICAL</code> passa; dentro de <code>critical_section()</code>, <code>HIGH</code> é recusado</td>
+<td><a href="../integration-audit/#c1-b">C1-B</a></td>
+</tr>
+<tr>
+<td>e</td>
+<td><code>validate_mode_invariants</code>: LIVE com <code>BNBUSDT</code> em <code>strategies.symbols</code> levanta <code>ConfigError</code>; ANALYST_ONLY com API key levanta <code>ConfigError</code>; <code>affects_execution: true</code> no YAML levanta erro de validação</td>
+<td><a href="../integration-audit/#c1-c">C1-C</a></td>
+</tr>
+<tr>
+<td>f</td>
+<td>Segunda linha de <code>trades</code> com status aberto viola <code>ux_trades_single_slot</code>; <code>write_tx</code> chamado de outra thread levanta <code>WrongThreadError</code>; um leitor com transação longa não bloqueia <code>write_tx</code></td>
+<td><a href="../integration-audit/#c1-e">C1-E</a> / ADR-002</td>
+</tr>
+<tr>
+<td>g</td>
+<td><code>parse_kline</code> persiste as colunas 7–10; <code>close_time</code> normalizado é igual a <code>open_time + Δ</code>; a vela em formação é descartada</td>
+<td>TODO + C2-5</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition tip">
+<p class="admonition-title">Ordem de codificação</p>
+<p>Ordem de codificação: <code>config.py</code> → <code>database.py</code> (com <code>migrate()</code> criando o schema do <a href="../data-contract/">Contrato de Dados</a>) → <code>binance_client.py</code> (primeiro funções puras de Decimal e o governador, que são 100% testáveis offline; depois o relógio e o HTTP) → <code>candle_collector.py</code>. Os testes <strong>a, b, d, e, f e g rodam sem rede</strong>. Só o smoke test opcional consulta a API pública.</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Voltar ao topo
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "content.code.copy"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "Mais 1 nesta p\u00e1gina", "search.result.more.other": "Mais # nesta p\u00e1gina", "search.result.none": "Nenhum resultado encontrado", "search.result.one": "1 resultado encontrado", "search.result.other": "# resultados encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

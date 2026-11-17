@@ -1,0 +1,1160 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Arquitetura unificada, auditoria de integração, contrato de dados e metodologia do QuantCrypto Chameleon & Radar Engine">
+      
+      
+      
+        <link rel="canonical" href="https://pac-coins.github.io/quant-crypto-chameleon-radar-engine/block-5-spec/">
+      
+      
+        <link rel="prev" href="../block-4-spec/">
+      
+      
+        <link rel="next" href="../block-6-spec/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
+    
+    
+      
+        <title>Especificação do Bloco 5 - QuantCrypto Chameleon & Radar Engine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#especificacao-de-partida-bloco-5-unificado" class="md-skip">
+          Ir para o conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href=".." title="QuantCrypto Chameleon &amp; Radar Engine" class="md-header__button md-logo" aria-label="QuantCrypto Chameleon & Radar Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            QuantCrypto Chameleon & Radar Engine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Especificação do Bloco 5
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Usar modo escuro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Usar modo escuro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Usar modo claro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Usar modo claro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando a pesquisa
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/pac-coins/quant-crypto-chameleon-radar-engine" title="Ir ao repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pac-coins/quant-crypto-chameleon-radar-engine
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="QuantCrypto Chameleon &amp; Radar Engine" class="md-nav__button md-logo" aria-label="QuantCrypto Chameleon & Radar Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    QuantCrypto Chameleon & Radar Engine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/pac-coins/quant-crypto-chameleon-radar-engine" title="Ir ao repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pac-coins/quant-crypto-chameleon-radar-engine
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Início
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../unified-architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura Unificada
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Executor (Chameleon v6)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../radar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Radar & Auditor (v1.1)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integration-audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditoria de Integração
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de Dados (SQLite)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-1-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-2-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-3-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-4-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 4
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 5
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 5
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-resolvedor-compartilhado-de-desfecho-intra-vela-srcauditingoutcome_resolverpy-item-c2-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Resolvedor Compartilhado de Desfecho Intra-Vela (src/auditing/outcome_resolver.py — Item C2-3)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-protocolo-de-execucao-e-paper-executor-srcexecutionexecutor_protocolpy-e-srcexecutionpaper_executorpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Protocolo de Execução e Paper Executor (src/execution/executor_protocol.py e src/execution/paper_executor.py)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-gerenciador-de-ordens-oco-e-resiliencia-srcexecutionoco_order_managerpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Gerenciador de Ordens OCO e Resiliência (src/execution/oco_order_manager.py)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-reconciliador-de-estado-e-cura-no-boot-srccorestate_reconcilerpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Reconciliador de Estado e Cura no Boot (src/core/state_reconciler.py)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-gate-5-unificado-pytest-teststest_block5_reconciler_and_ocopy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Gate 5 Unificado (pytest tests/test_block5_reconciler_and_oco.py)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-6-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 6
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisões (ADR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methodology-and-roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metodologia e roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../todo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TODO
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_16" >
+        
+          
+          <label class="md-nav__link" for="__nav_16" id="__nav_16_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Histórico
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_16_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_16">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Histórico
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v5-to-v6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migração v5 → v6
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v5
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-resolvedor-compartilhado-de-desfecho-intra-vela-srcauditingoutcome_resolverpy-item-c2-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Resolvedor Compartilhado de Desfecho Intra-Vela (src/auditing/outcome_resolver.py — Item C2-3)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-protocolo-de-execucao-e-paper-executor-srcexecutionexecutor_protocolpy-e-srcexecutionpaper_executorpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Protocolo de Execução e Paper Executor (src/execution/executor_protocol.py e src/execution/paper_executor.py)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-gerenciador-de-ordens-oco-e-resiliencia-srcexecutionoco_order_managerpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Gerenciador de Ordens OCO e Resiliência (src/execution/oco_order_manager.py)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-reconciliador-de-estado-e-cura-no-boot-srccorestate_reconcilerpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Reconciliador de Estado e Cura no Boot (src/core/state_reconciler.py)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-gate-5-unificado-pytest-teststest_block5_reconciler_and_ocopy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Gate 5 Unificado (pytest tests/test_block5_reconciler_and_oco.py)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="especificacao-de-partida-bloco-5-unificado">Especificação de partida — Bloco 5 Unificado<a class="headerlink" href="#especificacao-de-partida-bloco-5-unificado" title="Permanent link">&para;</a></h1>
+<p>Este documento congela as assinaturas de classes, métodos (<code>type hints</code> do Python), máquinas de estado de execução, regras de proteção contra falhas de rede/corretora (<code>-1007</code>, <code>-2010</code>, Stop Pendurado, <code>C1-D</code>, <code>C1-E</code>, <code>C2-3</code>) e o <strong>Gate 5 (4 Testes de Tortura)</strong> para a construção do <strong>Bloco 5</strong> (<code>outcome_resolver.py</code>, <code>executor_protocol.py</code>, <code>paper_executor.py</code>, <code>oco_order_manager.py</code> e <code>state_reconciler.py</code>).</p>
+<div class="admonition info">
+<p class="admonition-title">Pré-requisito de Partida</p>
+<p>O Bloco 5 apoia-se nos artefatos validados nos Blocos <a href="../block-1-spec/">1</a>, <a href="../block-2-spec/">2</a>, <a href="../block-3-spec/">3</a> e <a href="../block-4-spec/">4</a>: <code>Database</code> (tabelas <code>trades</code>, <code>shadow_trades</code>, <code>order_events</code>), <code>SignedBinanceClient</code>, <code>WeightGovernor.critical_section()</code>, <code>PositionSizer</code> (<code>SizingDecision</code>) e <code>ShadowManager</code>.</p>
+</div>
+<hr />
+<h2 id="1-resolvedor-compartilhado-de-desfecho-intra-vela-srcauditingoutcome_resolverpy-item-c2-3">1. Resolvedor Compartilhado de Desfecho Intra-Vela (<code>src/auditing/outcome_resolver.py</code> — Item C2-3)<a class="headerlink" href="#1-resolvedor-compartilhado-de-desfecho-intra-vela-srcauditingoutcome_resolverpy-item-c2-3" title="Permanent link">&para;</a></h2>
+<p>Para eliminar qualquer divergência entre o <code>PaperExecutor</code> (modo <code>SHADOW_CHAMELEON</code>) e o <code>VirtualAuditor</code> do Radar (Bloco 6), ambos invocam a função pura <code>resolve_single_target_horizon</code> (e <code>resolve_dual_target_horizon</code> para dois alvos):</p>
+<ol>
+<li><strong>Início estrito em <span class="arithmatex">\(t + 1\)</span> (<code>open_time_ms &gt;= signal_close_time_ms</code>):</strong> Nenhuma vela anterior ou igual ao fechamento do sinal pode resolver a operação.</li>
+<li><strong>Pior Caso Intra-Vela (<em>Worst-Case Intra-Candle</em>):</strong> Se na mesma vela ocorrer simultaneamente <code>low &lt;= stop_price</code> e <code>high &gt;= target_price</code>, o resolvedor atribui obrigatoriamente derrota no stop (<code>SAME_CANDLE_STOP</code>, <code>same_candle_ambiguity = True</code>).</li>
+<li><strong>Horizonte por Tempo (<code>time_barrier_end_ms</code>, Item C2-7):</strong> A barreira de tempo é medida pelo timestamp <code>close_time_ms &gt;= time_barrier_end_ms</code> (e não por contagem cega de linhas), saindo pelo <code>close</code> da vela que atingir o horizonte.</li>
+</ol>
+<hr />
+<h2 id="2-protocolo-de-execucao-e-paper-executor-srcexecutionexecutor_protocolpy-e-srcexecutionpaper_executorpy">2. Protocolo de Execução e Paper Executor (<code>src/execution/executor_protocol.py</code> e <code>src/execution/paper_executor.py</code>)<a class="headerlink" href="#2-protocolo-de-execucao-e-paper-executor-srcexecutionexecutor_protocolpy-e-srcexecutionpaper_executorpy" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">decimal</span><span class="w"> </span><span class="kn">import</span> <span class="n">Decimal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">StrEnum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.core.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">CandleRow</span><span class="p">,</span> <span class="n">SymbolFilters</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.risk.position_sizer</span><span class="w"> </span><span class="kn">import</span> <span class="n">SizingDecision</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">TradeStatus</span><span class="p">(</span><span class="n">StrEnum</span><span class="p">):</span>
+    <span class="n">PENDING_ENTRY</span> <span class="o">=</span> <span class="s2">"PENDING_ENTRY"</span>
+    <span class="n">ENTRY_FILLED</span> <span class="o">=</span> <span class="s2">"ENTRY_FILLED"</span>
+    <span class="n">PROTECTED</span> <span class="o">=</span> <span class="s2">"PROTECTED"</span>
+    <span class="n">CLOSING</span> <span class="o">=</span> <span class="s2">"CLOSING"</span>
+    <span class="n">CLOSED</span> <span class="o">=</span> <span class="s2">"CLOSED"</span>
+    <span class="n">ENTRY_REJECTED</span> <span class="o">=</span> <span class="s2">"ENTRY_REJECTED"</span>
+    <span class="n">HALT_REVIEW</span> <span class="o">=</span> <span class="s2">"HALT_REVIEW"</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ExitReason</span><span class="p">(</span><span class="n">StrEnum</span><span class="p">):</span>
+    <span class="n">TARGET</span> <span class="o">=</span> <span class="s2">"TARGET"</span>
+    <span class="n">STOP</span> <span class="o">=</span> <span class="s2">"STOP"</span>
+    <span class="n">TIME</span> <span class="o">=</span> <span class="s2">"TIME"</span>
+    <span class="n">FALLBACK_MARKET_2010</span> <span class="o">=</span> <span class="s2">"FALLBACK_MARKET_2010"</span>
+    <span class="n">STOP_WATCHDOG</span> <span class="o">=</span> <span class="s2">"STOP_WATCHDOG"</span>
+    <span class="n">RECONCILER</span> <span class="o">=</span> <span class="s2">"RECONCILER"</span>
+
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ExecutionRequest</span><span class="p">:</span>
+    <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">strategy</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">regime</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">signal_close_time_ms</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">atr_at_signal</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">time_barrier_end_ms</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">sizing</span><span class="p">:</span> <span class="n">SizingDecision</span>
+    <span class="n">symbol_filters</span><span class="p">:</span> <span class="n">SymbolFilters</span>
+    <span class="n">radar_signal_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ExecutionReport</span><span class="p">:</span>
+    <span class="n">executed</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">trade_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+    <span class="n">client_order_id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">status</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">filled_qty</span><span class="p">:</span> <span class="n">Decimal</span>
+    <span class="n">avg_entry_price</span><span class="p">:</span> <span class="n">Decimal</span>
+    <span class="n">oco_order_list_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">exit_reason</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">error_msg</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ExecutorProtocol</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">execute_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">:</span> <span class="n">ExecutionRequest</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExecutionReport</span><span class="p">:</span> <span class="o">...</span>
+</code></pre></div>
+<hr />
+<h2 id="3-gerenciador-de-ordens-oco-e-resiliencia-srcexecutionoco_order_managerpy">3. Gerenciador de Ordens OCO e Resiliência (<code>src/execution/oco_order_manager.py</code>)<a class="headerlink" href="#3-gerenciador-de-ordens-oco-e-resiliencia-srcexecutionoco_order_managerpy" title="Permanent link">&para;</a></h2>
+<p>Implementa as 6 blindagens obrigatórias de execução na Binance Spot:</p>
+<ol>
+<li><strong>Idempotência contra Timeout (<code>-1007</code>):</strong></li>
+<li>Grava <code>PENDING_ENTRY</code> no SQLite <strong>antes</strong> do <code>POST /api/v3/order</code> com <code>client_order_id = f"CHM_{symbol}_{epoch_ms}"</code>. Se a gravação falhar, a compra não é enviada.</li>
+<li>Se <code>new_market_buy_quote</code> lançar <code>RequestTimeoutUnknownState</code> (<code>-1007</code> ou queda de conexão), <strong>jamais</strong> reenvia o <code>POST</code>: consulta obrigatoriamente <code>GET /api/v3/order?symbol=...&amp;origClientOrderId=...</code>. Se a ordem executou (<code>executedQty &gt; 0</code>), prossegue direto para a criação da OCO; se não existiu (<code>-2013</code>), marca <code>ENTRY_REJECTED</code>.</li>
+<li><strong>Escritas Pós-Fill <em>Best-Effort</em> (<code>C1-E</code>) e <code>critical_section()</code> (<code>C1-B</code>):</strong></li>
+<li>Entre o envio da compra a mercado e a confirmação da OCO (ou fallback a mercado), o gerenciador mantém <code>governor.critical_section()</code> ativa (bloqueando chamadas <code>HIGH</code> e <code>LOW</code>) e executa atualizações no SQLite em modo <em>best-effort</em>: uma falha de I/O ou lock no banco após o fill <strong>nunca</strong> interrompe o envio imediato da ordem OCO.</li>
+<li><strong>Quantidade Líquida da OCO (Desconto de Comissão no Ativo Base):</strong>
+   $<span class="arithmatex">\(Q_{\text{oco}} = \text{floor\_qty\_to\_step}\left(\min\left(Q_{\text{executed}} - \sum_{k \text{ onde asset}=A} \text{commission}_k, \; \text{FreeBalance}(A)\right), \; \text{stepSize}_A\right)\)</span>$</li>
+<li><strong>Arredondamento Direcional do <code>tickSize</code> na OCO:</strong></li>
+<li><code>abovePrice</code> (Take Profit): <code>round_price_to_tick(target_price, tick_size, "DOWN")</code></li>
+<li><code>belowStopPrice</code> (Gatilho de Stop): <code>round_price_to_tick(stop_price, tick_size, "UP")</code></li>
+<li><code>belowPrice</code> (Limite do Stop): <code>round_price_to_tick(stop_price * (1 - buffer_pct), tick_size, "DOWN")</code>, garantindo <code>belowPrice &lt;= belowStopPrice - tick_size</code>.</li>
+<li><strong>Tratamento Cirúrgico do Erro <code>-2010</code> ("Stop price would trigger immediately"):</strong></li>
+<li>Se antes do envio da OCO o <code>bookTicker.bid</code> já estiver em <span class="arithmatex">\(P_{\text{bid}} \le P_{\text{stop}} \times 1,0005\)</span>, ou se a Binance rejeitar a OCO com código <code>-2010</code> / mensagem <code>"trigger immediately"</code>, dispara imediatamente uma venda total <code>MARKET</code> (<code>exit_reason = "FALLBACK_MARKET_2010"</code>).</li>
+<li><strong>Watchdog de Stop Pendurado e Fechamento Atômico de 4 Passos no Time-Stop:</strong></li>
+<li><strong>Watchdog:</strong> Se a perna de stop da OCO foi acionada mas a ordem limite ficou pendurada porque o preço pulou abaixo de <code>belowPrice</code>, cancela a OCO e vende o saldo residual a <code>MARKET</code> (<code>STOP_WATCHDOG</code>).</li>
+<li><strong>Time-Stop (4 passos):</strong> (1) Cancela a <code>orderList</code> OCO; (2) Lê as quantidades já executadas nas pernas da OCO; (3) Consulta o saldo livre atualizado em <code>/api/v3/account</code>; (4) Vende a <code>MARKET</code> apenas a quantidade residual não executada (<code>TIME</code>).</li>
+</ol>
+<hr />
+<h2 id="4-reconciliador-de-estado-e-cura-no-boot-srccorestate_reconcilerpy">4. Reconciliador de Estado e Cura no Boot (<code>src/core/state_reconciler.py</code>)<a class="headerlink" href="#4-reconciliador-de-estado-e-cura-no-boot-srccorestate_reconcilerpy" title="Permanent link">&para;</a></h2>
+<p>Varre exclusivamente <code>cfg.execution_universe</code> (7 moedas da cesta, nunca tocando em <code>BNBUSDT</code> — <code>C1-C</code>):</p>
+<ol>
+<li><strong>Resolução de <code>PENDING_ENTRY</code>:</strong> Consulta <code>origClientOrderId</code>. Se <code>FILLED</code>, recupera os dados do fill e chama <code>oco_manager.protect_or_fallback_market()</code> (criando a OCO ou vendendo a <code>MARKET</code> se o preço já violou o <code>stopPrice</code>). Se inexistente (<code>-2013</code>), marca <code>ENTRY_REJECTED</code>.</li>
+<li><strong>Cura de Posição Desprotegida (<code>ENTRY_FILLED</code>) ou OCO Parcial (<code>PROTECTED</code>):</strong></li>
+<li>Se a OCO executou parcialmente (ex.: 40% executados e 60% desprotegidos acima de <code>minNotional</code>), recria a proteção OCO exatamente para os 60% restantes (ou vende a <code>MARKET</code> se o preço estiver abaixo do <code>stopPrice</code>).</li>
+<li><strong>Proteção contra Liquidação de Posição Manual (<code>C1-D</code> — <code>HALT_REVIEW</code>):</strong></li>
+<li>Se o saldo <code>free + locked</code> de qualquer moeda da cesta exceder a quantidade rastreada na tabela <code>trades</code> em mais do que <code>minNotional</code> (ex.: compra manual feita pelo operador na mesma conta), o reconciliador <strong>jamais vende o saldo excedente</strong>. Ele transiciona o estado para <code>HALT_REVIEW</code>, aciona o disjuntor no <code>ShadowManager</code> e emite alerta para revisão humana.</li>
+</ol>
+<hr />
+<h2 id="5-gate-5-unificado-pytest-teststest_block5_reconciler_and_ocopy">5. Gate 5 Unificado (<code>pytest tests/test_block5_reconciler_and_oco.py</code>)<a class="headerlink" href="#5-gate-5-unificado-pytest-teststest_block5_reconciler_and_ocopy" title="Permanent link">&para;</a></h2>
+<p>O comando <code>pytest tests/test_block5_reconciler_and_oco.py</code> valida os <strong>4 Testes de Tortura</strong> mais as garantias de integração <code>C1-D</code>, <code>C1-E</code> e <code>C2-3</code>:</p>
+<ol>
+<li><strong>Tortura 1 (Timeout <code>-1007</code> na Compra a Mercado):</strong> Simula queda de conexão / <code>-1007</code> durante <code>new_market_buy_quote</code>. Prova que o robô <strong>não</strong> envia uma segunda compra duplicada, consulta <code>GET /api/v3/order?origClientOrderId=...</code>, descobre que a ordem executou e cria a OCO normalmente.</li>
+<li><strong>Tortura 2 (Compra sem BNB com Comissão Descontada no Ativo Base + Direção do <code>tickSize</code>):</strong> Simula uma compra onde a corretora desconta <code>0,10%</code> de taxa no próprio ativo comprado (ex.: comprou <code>10.00 SOL</code>, recebeu <code>9.99 SOL</code> livres). Prova que <code>OcoOrderManager</code> calcula <code>Q_oco = 9.99</code> via <code>floor_qty_to_step</code> e envia a OCO sem sofrer erro <code>-2010</code> por saldo insuficiente, garantindo <code>belowPrice &lt; belowStopPrice &lt; abovePrice</code>.</li>
+<li><strong>Tortura 3 (Queda de Energia com Preço Abaixo do <code>stopPrice</code> no Boot — Fallback <code>-2010</code>):</strong> Simula o desligamento do bot após a compra, com o preço despencando abaixo do <code>stopPrice</code> (ou a Binance retornando <code>-2010: Stop price would trigger immediately</code>). Prova que no 1º segundo do boot o reconciliador + <code>OcoOrderManager</code> disparam venda <code>MARKET</code> imediata (<code>FALLBACK_MARKET_2010</code>), zerando a posição desprotegida.</li>
+<li><strong>Tortura 4 (Execução Parcial de 40% da OCO, Watchdog de Stop Pendurado e Time-Stop de 4 Passos):</strong> Simula uma OCO onde 40% foram executados e cancelados, provando que o <code>StateReconciler</code> protege exatamente os 60% restantes; testa também o <em>Watchdog</em> de Stop Pendurado (<code>STOP_WATCHDOG</code>) e o fechamento atômico de 4 passos no Time-Stop (<code>TIME</code>).</li>
+<li><strong>Tortura 5 (Blindagens de Integração <code>C1-D</code>, <code>C1-E</code> e <code>C2-3</code>):</strong></li>
+<li><code>C1-D</code>: Saldo manual não rastreado em ativo da cesta aciona <code>HALT_REVIEW</code> sem vender um único centavo da posição manual;</li>
+<li><code>C1-E</code>: Falha simulada de escrita no SQLite (<code>sqlite3.OperationalError</code>) imediatamente após o fill da compra <strong>não</strong> impede a criação da OCO na Binance;</li>
+<li><code>C2-3</code>: <code>PaperExecutor</code> e <code>outcome_resolver.py</code> resolvem ambiguidade intra-vela pelo pior caso (<code>SAME_CANDLE_STOP</code>) e respeitam Single-Slot em <code>shadow_trades</code>.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Voltar ao topo
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "content.code.copy"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "Mais 1 nesta p\u00e1gina", "search.result.more.other": "Mais # nesta p\u00e1gina", "search.result.none": "Nenhum resultado encontrado", "search.result.one": "1 resultado encontrado", "search.result.other": "# resultados encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

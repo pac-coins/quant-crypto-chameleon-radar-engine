@@ -1,0 +1,1440 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Arquitetura unificada, auditoria de integração, contrato de dados e metodologia do QuantCrypto Chameleon & Radar Engine">
+      
+      
+      
+        <link rel="canonical" href="https://pac-coins.github.io/quant-crypto-chameleon-radar-engine/radar/">
+      
+      
+        <link rel="prev" href="../architecture/">
+      
+      
+        <link rel="next" href="../integration-audit/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
+    
+    
+      
+        <title>Radar & Auditor (v1.1) - QuantCrypto Chameleon & Radar Engine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#radar-auditor-virtual-v11-integrado" class="md-skip">
+          Ir para o conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href=".." title="QuantCrypto Chameleon &amp; Radar Engine" class="md-header__button md-logo" aria-label="QuantCrypto Chameleon & Radar Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            QuantCrypto Chameleon & Radar Engine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Radar & Auditor (v1.1)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Usar modo escuro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Usar modo escuro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Usar modo claro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Usar modo claro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando a pesquisa
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/pac-coins/quant-crypto-chameleon-radar-engine" title="Ir ao repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pac-coins/quant-crypto-chameleon-radar-engine
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="QuantCrypto Chameleon &amp; Radar Engine" class="md-nav__button md-logo" aria-label="QuantCrypto Chameleon & Radar Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    QuantCrypto Chameleon & Radar Engine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/pac-coins/quant-crypto-chameleon-radar-engine" title="Ir ao repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pac-coins/quant-crypto-chameleon-radar-engine
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Início
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../unified-architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura Unificada
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Executor (Chameleon v6)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Radar & Auditor (v1.1)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Radar & Auditor (v1.1)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-o-funil-de-5-camadas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. O funil de 5 camadas
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-especificacao-matematica" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Especificação matemática
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Especificação matemática">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#camada-1-estrutura-de-medias-e-clima" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Camada 1 — Estrutura de médias e clima
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#camada-2-price-action" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Camada 2 — Price Action
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#camada-3-volume-relativo-e-order-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Camada 3 — Volume relativo e Order Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#camada-4-livro-de-ofertas-com-banda-efetiva-e-anti-spoofing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Camada 4 — Livro de ofertas com banda efetiva e anti-spoofing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#camada-5-score-nota-e-plano-de-voo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Camada 5 — Score, nota e plano de voo
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-auditor-virtual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Auditor Virtual
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-configuracao-configanalystyaml-v11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Configuração config/analyst.yaml (v1.1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-validacao-do-radar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Validação do Radar
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integration-audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditoria de Integração
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de Dados (SQLite)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-1-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-2-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-3-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-4-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 4
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-5-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 5
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-6-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 6
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisões (ADR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methodology-and-roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metodologia e roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../todo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TODO
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_16" >
+        
+          
+          <label class="md-nav__link" for="__nav_16" id="__nav_16_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Histórico
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_16_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_16">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Histórico
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v5-to-v6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migração v5 → v6
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v5
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-o-funil-de-5-camadas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. O funil de 5 camadas
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-especificacao-matematica" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Especificação matemática
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Especificação matemática">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#camada-1-estrutura-de-medias-e-clima" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Camada 1 — Estrutura de médias e clima
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#camada-2-price-action" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Camada 2 — Price Action
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#camada-3-volume-relativo-e-order-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Camada 3 — Volume relativo e Order Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#camada-4-livro-de-ofertas-com-banda-efetiva-e-anti-spoofing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Camada 4 — Livro de ofertas com banda efetiva e anti-spoofing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#camada-5-score-nota-e-plano-de-voo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Camada 5 — Score, nota e plano de voo
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-auditor-virtual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Auditor Virtual
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-configuracao-configanalystyaml-v11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Configuração config/analyst.yaml (v1.1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-validacao-do-radar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Validação do Radar
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="radar-auditor-virtual-v11-integrado">Radar &amp; Auditor Virtual (v1.1 integrado)<a class="headerlink" href="#radar-auditor-virtual-v11-integrado" title="Permanent link">&para;</a></h1>
+<p>O <strong>QuantCrypto Radar &amp; Analyst Engine</strong> é o cérebro analítico do sistema
+unificado. Ele varre de 15 a 20 moedas a cada fechamento de vela de 1h, combina
+<strong>estrutura de médias (EMA 9/50/200)</strong>, <strong>Price Action</strong>, <strong>Order Flow</strong>
+(agressão compradora) e <strong>leitura ao vivo do livro de ofertas</strong>, envia um plano
+de trade no Telegram e <strong>audita automaticamente</strong> cada alerta no SQLite.</p>
+<p>Esta página é a especificação <strong>v1.1</strong>: o Radar v1.0 original
+(<a href="https://github.com/pac-coins/quant-crypto-radar-engine">repositório <code>quant-crypto-radar-engine</code></a>)
+com as emendas da <a href="../integration-audit/">Auditoria de Integração</a> já aplicadas.</p>
+<div class="admonition danger">
+<p class="admonition-title">Fronteira inegociável</p>
+<p>O Radar <strong>nunca envia ordens</strong>. Na Fase 1, a nota dele é apenas uma
+<strong>anotação silenciosa</strong> ligada ao trade do Chameleon (<code>trades.radar_signal_id</code>).
+Ver ADR-003 e ADR-004 em <a href="../decisions/">Decisões</a>.</p>
+</div>
+<hr />
+<h2 id="1-o-funil-de-5-camadas">1. O funil de 5 camadas<a class="headerlink" href="#1-o-funil-de-5-camadas" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart TD
+    A["Vela 1h fechada (15-20 moedas)"] --&gt; L1["Camada 1: Estrutura EMA 9/50/200 + regime MECE (fonte única)"]
+    L1 --&gt; L2["Camada 2: Price Action (Pinbar, Engolfo, Liquidity Sweep)"]
+    L2 --&gt; L3["Camada 3: RVOL + Order Flow (Taker Buy)"]
+    L3 --&gt; SEL{"Top k_max=5 por pontos L1+L2+L3"}
+    SEL --&gt; L4["Camada 4: 3 fotos intercaladas do /api/v3/depth (banda efetiva simétrica)"]
+    L4 --&gt; L5["Camada 5: Score 0-100, Nota B/A/A+ e plano de voo"]
+    L5 --&gt; TG["Telegram (telegram_outbox)"]
+    L5 --&gt; AU["Auditor Virtual (virtual_signals)"]</code></pre>
+<table>
+<thead>
+<tr>
+<th>Camada</th>
+<th>Módulo</th>
+<th>Pontos máximos</th>
+<th>Fonte dos dados</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. Estrutura</td>
+<td><code>radar/structure_ema.py</code></td>
+<td>25</td>
+<td><code>FeatureStore</code> + <code>regime_detector</code></td>
+</tr>
+<tr>
+<td>2. Price Action</td>
+<td><code>features/price_action.py</code></td>
+<td>25</td>
+<td>Velas fechadas</td>
+</tr>
+<tr>
+<td>3. Volume e Order Flow</td>
+<td><code>features/order_flow.py</code></td>
+<td>25</td>
+<td>Colunas 5, 7, 9 e 10 do kline</td>
+</tr>
+<tr>
+<td>4. Livro de ofertas</td>
+<td><code>radar/orderbook_inspector.py</code></td>
+<td>25</td>
+<td><code>GET /api/v3/depth</code> ao vivo</td>
+</tr>
+<tr>
+<td>5. Score e plano</td>
+<td><code>radar/confluence_scorer.py</code></td>
+<td>—</td>
+<td>Soma das camadas</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-especificacao-matematica">2. Especificação matemática<a class="headerlink" href="#2-especificacao-matematica" title="Permanent link">&para;</a></h2>
+<h3 id="camada-1-estrutura-de-medias-e-clima">Camada 1 — Estrutura de médias e clima<a class="headerlink" href="#camada-1-estrutura-de-medias-e-clima" title="Permanent link">&para;</a></h3>
+<p>O clima <strong>não</strong> é recalculado pelo Radar: a Camada 1 lê o <code>regime</code> do
+<code>regime_detector.py</code> (<code>BEAR</code> → <code>BULL</code> → <code>SIDEWAYS</code> → <code>TRANSITION</code>, ver
+<a href="../architecture/">Arquitetura do Executor §2.3</a>). A Camada 1 só pontua a
+geometria de 1h:</p>
+<ol>
+<li><strong>Alinhamento limpo (<em>Bullish Fanning</em>):</strong>
+   <span class="arithmatex">\(\text{Close}_t &gt; \text{EMA}_{9,t} &gt; \text{EMA}_{50,t} &gt; \text{EMA}_{200,t}\)</span> e <span class="arithmatex">\(\Delta\text{EMA}_{50,t} &gt; 0\)</span>.</li>
+<li><strong>Zona de valor (<em>Pullback Zone</em>):</strong> <span class="arithmatex">\(\text{EMA}_{50,t} &gt; \text{EMA}_{200,t}\)</span>,
+   <span class="arithmatex">\(\lvert \text{Low}_t - \text{EMA}_{k,t} \rvert \le \text{tol} \cdot \text{ATR}_{14,t}\)</span> para <span class="arithmatex">\(k \in \{50, 200\}\)</span>,
+   e fechamento acima da média tocada.</li>
+<li><strong>Compressão (<em>Squeeze</em>):</strong> <span class="arithmatex">\(\dfrac{\max(\text{EMA}) - \min(\text{EMA})}{\text{ATR}_{14,t}} &lt; 1{,}2\)</span>.</li>
+</ol>
+<p>O parâmetro <code>max_chop_for_trend</code> vale apenas como critério de pontuação, nunca
+como rótulo de clima (ADR-008).</p>
+<h3 id="camada-2-price-action">Camada 2 — Price Action<a class="headerlink" href="#camada-2-price-action" title="Permanent link">&para;</a></h3>
+<p>Com <span class="arithmatex">\(R = H_t - L_t + \epsilon\)</span> (tamanho da vela) e <span class="arithmatex">\(B = \lvert C_t - O_t \rvert\)</span> (corpo):</p>
+<ol>
+<li><strong>Pinbar de rejeição:</strong> <span class="arithmatex">\(\dfrac{\min(O_t, C_t) - L_t}{R} \ge 0{,}55\)</span>,
+   <span class="arithmatex">\(\dfrac{H_t - \max(O_t, C_t)}{R} \le 0{,}18\)</span> e <span class="arithmatex">\(R \ge 0{,}75 \cdot \text{ATR}_{14,t}\)</span>.</li>
+<li><strong>Engolfo de alta:</strong> <span class="arithmatex">\(C_{t-1} &lt; O_{t-1}\)</span>, <span class="arithmatex">\(C_t &gt; O_t\)</span>, <span class="arithmatex">\(C_t &gt; O_{t-1}\)</span>,
+   <span class="arithmatex">\(O_t \le C_{t-1}\)</span>, <span class="arithmatex">\(C_t &gt; H_{t-1}\)</span>, <span class="arithmatex">\(C_t &gt; \text{EMA}_{9,t}\)</span> e corpo <span class="arithmatex">\(\ge 1{,}1 \cdot \text{ATR}_{14,t}\)</span>.</li>
+<li><strong>Liquidity Sweep:</strong> <span class="arithmatex">\(L_t &lt; \min_{j \in [t-20, t-1]} L_j\)</span> e <span class="arithmatex">\(C_t &gt; \min_{j \in [t-20, t-1]} L_j\)</span>.
+   É a <strong>mesma função</strong> <code>liquidity_sweep_bull</code> usada pelo Chameleon.</li>
+</ol>
+<h3 id="camada-3-volume-relativo-e-order-flow">Camada 3 — Volume relativo e Order Flow<a class="headerlink" href="#camada-3-volume-relativo-e-order-flow" title="Permanent link">&para;</a></h3>
+<div class="arithmatex">\[\text{RVOL}_{20,t} = \frac{V_t}{\text{Mediana}(V_{t-19 \dots t})}, \qquad \text{TBR}_t = \frac{V_{\text{buy},t}}{V_t}, \qquad \Delta^{\text{USDT}}_t = 2\,Q_{\text{buy},t} - Q_t\]</div>
+<p>onde <span class="arithmatex">\(Q_t\)</span> é o <code>quote_volume</code> (coluna 7) e <span class="arithmatex">\(Q_{\text{buy},t}\)</span> é o
+<code>taker_buy_quote_volume</code> (coluna 10). Guardas de zero (C2-6): com <span class="arithmatex">\(V_t = 0\)</span>,
+<span class="arithmatex">\(\text{TBR}_t = \text{NaN}\)</span>; com mediana igual a 0, <span class="arithmatex">\(\text{RVOL} = \text{NaN}\)</span>
+(nunca <span class="arithmatex">\(\infty\)</span>).</p>
+<h3 id="camada-4-livro-de-ofertas-com-banda-efetiva-e-anti-spoofing">Camada 4 — Livro de ofertas com banda efetiva e anti-spoofing<a class="headerlink" href="#camada-4-livro-de-ofertas-com-banda-efetiva-e-anti-spoofing" title="Permanent link">&para;</a></h3>
+<p>Acionada <strong>somente</strong> para as até <code>k_max = 5</code> moedas com maior soma L1+L2+L3. São
+3 fotos de <code>GET /api/v3/depth</code>, <strong>intercaladas entre símbolos</strong> (t₀, t₀+5 s,
+t₀+10 s), com prioridade <code>LOW</code> no <code>WeightGovernor</code> e <strong>sem retry</strong>.</p>
+<p><strong>Cobertura e banda efetiva (C1-A):</strong></p>
+<div class="arithmatex">\[\text{band}_{\text{eff}} = \min\left(1{,}5\%,\; \frac{P_{\text{best bid}} - P_{\min\text{ bid}}}{\text{mid}},\; \frac{P_{\max\text{ ask}} - P_{\text{best ask}}}{\text{mid}}\right)\]</div>
+<p><strong>Desequilíbrio do livro:</strong></p>
+<div class="arithmatex">\[\text{OBI} = \frac{\sum_{\text{bids} \in \text{band}_{\text{eff}}} P Q - \sum_{\text{asks} \in \text{band}_{\text{eff}}} P Q}{\sum_{\text{bids} \in \text{band}_{\text{eff}}} P Q + \sum_{\text{asks} \in \text{band}_{\text{eff}}} P Q} \in [-1, +1]\]</div>
+<ul>
+<li><code>obi_valid = band_eff ≥ 0,30%</code>. Se for inválido, a Camada 4 vale 0 pontos,
+  não penaliza, e a nota máxima possível passa a ser <strong>A</strong>.</li>
+<li>O OBI final é a média das 3 fotos.</li>
+</ul>
+<p><strong>Whale Walls:</strong></p>
+<ol>
+<li>Faixas de 0,1% <strong>ancoradas na grade absoluta da foto 0</strong>: <code>bucket = floor(price / (mid₀ · 0,001))</code> (C2-1).</li>
+<li>A faixa de borda parcialmente coberta é descartada.</li>
+<li>Parede é a faixa com notional <span class="arithmatex">\(\ge 4 \times\)</span> a mediana das faixas, presente nas 3 fotos.</li>
+<li>Uma <em>Ask Wall</em> antes de +2,5R rebaixa a nota e gera aviso no card.</li>
+</ol>
+<p><strong>Custo de impacto:</strong> spread efetivo e impacto (em bps) de uma ordem de referência.</p>
+<p><strong>Persistência:</strong> apenas os agregados e as faixas comprimidas (cerca de 1 KB
+por foto) vão para <code>orderbook_snapshots</code>/<code>orderbook_walls</code>. O JSON bruto não é
+gravado (C2-8).</p>
+<h3 id="camada-5-score-nota-e-plano-de-voo">Camada 5 — Score, nota e plano de voo<a class="headerlink" href="#camada-5-score-nota-e-plano-de-voo" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Score</th>
+<th>Nota</th>
+<th>Ação</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt; 65</td>
+<td>—</td>
+<td>Descartado silenciosamente</td>
+</tr>
+<tr>
+<td>65 a 74</td>
+<td><strong>B</strong></td>
+<td>Card de monitoramento</td>
+</tr>
+<tr>
+<td>75 a 89</td>
+<td><strong>A</strong></td>
+<td>Card de alta probabilidade</td>
+</tr>
+<tr>
+<td>90 a 100</td>
+<td><strong>A+</strong></td>
+<td>Exige Camada 4 válida e sem <em>Ask Wall</em> até o alvo</td>
+</tr>
+</tbody>
+</table>
+<p>Plano sugerido: stop em 0,25·ATR abaixo do pavio ou da <em>Bid Wall</em> (distância
+mínima de 1,2·ATR), alvos de +1,5R e +2,5R, horizonte de 24 h. Em modo LIVE,
+cards sobre ativos da cesta do executor trazem o rodapé <em>"⚠️ Ativo gerido pelo
+executor — não opere nesta conta"</em> (C1-D).</p>
+<hr />
+<h2 id="3-auditor-virtual">3. Auditor Virtual<a class="headerlink" href="#3-auditor-virtual" title="Permanent link">&para;</a></h2>
+<p>O Auditor constrói o histórico proprietário de microestrutura que a Binance não
+oferece de graça. Regras:</p>
+<ol>
+<li><strong>Zero chamadas de API:</strong> ele lê apenas as velas já coletadas no SQLite.</li>
+<li><strong>Começa na vela t+1</strong> (<code>open_time ≥ signal_close_time</code>). A entrada de
+   referência é o <strong>ask da foto 0</strong>, não o <code>close</code> (C2-2).</li>
+<li><strong>Pior caso intra-vela:</strong> se stop e alvo caem na mesma vela, vale o stop
+   (<code>same_candle_ambiguity = 1</code>).</li>
+<li><strong>Horizonte por tempo</strong> (<code>horizon_end_ms</code>), não por contagem de linhas.
+   Lacunas de dados resultam em <code>INVALID_GAP</code> (C2-7).</li>
+<li><strong>Custo único:</strong> o <code>outcome_r_net</code> desconta o mesmo custo do Chameleon (ADR-009).</li>
+<li><strong>Resolutor compartilhado:</strong> <code>auditing/outcome_resolver.py</code> é o mesmo usado
+   pelo <code>paper_executor</code> do modo Shadow (C2-3).</li>
+<li>A resposta de resultado sai como <em>reply</em> do card original
+   (<code>telegram_message_id</code>), e um placar semanal por setup e por nota é enviado
+   aos domingos.</li>
+</ol>
+<hr />
+<h2 id="4-configuracao-configanalystyaml-v11">4. Configuração <code>config/analyst.yaml</code> (v1.1)<a class="headerlink" href="#4-configuracao-configanalystyaml-v11" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">"1.1.0"</span>
+
+<span class="nt">scanner_universe</span><span class="p">:</span><span class="w">                           </span><span class="c1"># Universo de ANÁLISE (pode conter BNBUSDT; nunca executado)</span>
+<span class="w">  </span><span class="nt">macro_timeframe</span><span class="p">:</span><span class="w"> </span><span class="s">"4h"</span>
+<span class="w">  </span><span class="nt">trigger_timeframe</span><span class="p">:</span><span class="w"> </span><span class="s">"1h"</span>
+<span class="w">  </span><span class="nt">scan_delay_after_hour_seconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="w">  </span><span class="nt">symbols</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"BTCUSDT"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"ETHUSDT"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"SOLUSDT"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"BNBUSDT"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"XRPUSDT"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"ADAUSDT"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"LINKUSDT"</span><span class="p p-Indicator">,</span>
+<span class="w">            </span><span class="s">"AVAXUSDT"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"DOGEUSDT"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"DOTUSDT"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"SUIUSDT"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"NEARUSDT"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"APTUSDT"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"ARBUSDT"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"OPUSDT"</span><span class="p p-Indicator">]</span>
+
+<span class="nt">layer_1_structure_ema</span><span class="p">:</span><span class="w">                      </span><span class="c1"># Máx. 25 pontos; clima vem do regime_detector (ADR-008)</span>
+<span class="w">  </span><span class="nt">ema_fast</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">9</span>
+<span class="w">  </span><span class="nt">ema_mid</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span>
+<span class="w">  </span><span class="nt">ema_slow</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">200</span>
+<span class="w">  </span><span class="nt">chop_period</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">14</span>
+<span class="w">  </span><span class="nt">max_chop_for_trend</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">52.0</span><span class="w">                  </span><span class="c1"># Apenas pontuação</span>
+<span class="w">  </span><span class="nt">pullback_touch_tolerance_atr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.45</span>
+
+<span class="nt">layer_2_price_action</span><span class="p">:</span><span class="w">                       </span><span class="c1"># Máx. 25 pontos</span>
+<span class="w">  </span><span class="nt">min_candle_range_atr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.75</span>
+<span class="w">  </span><span class="nt">pinbar_min_lower_wick_ratio</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.55</span>
+<span class="w">  </span><span class="nt">pinbar_max_upper_wick_ratio</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.18</span>
+<span class="w">  </span><span class="nt">engulfing_min_atr_mult</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.10</span>
+<span class="w">  </span><span class="nt">liquidity_sweep_lookback_candles</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span>
+
+<span class="nt">layer_3_volume_and_order_flow</span><span class="p">:</span><span class="w">              </span><span class="c1"># Máx. 25 pontos</span>
+<span class="w">  </span><span class="nt">rvol_lookback</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span>
+<span class="w">  </span><span class="nt">min_rvol_for_signal</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.25</span>
+<span class="w">  </span><span class="nt">high_conviction_rvol</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.80</span>
+<span class="w">  </span><span class="nt">min_taker_buy_ratio</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.53</span>
+<span class="w">  </span><span class="nt">strong_taker_buy_ratio</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.57</span>
+
+<span class="nt">layer_4_orderbook_live</span><span class="p">:</span><span class="w">                     </span><span class="c1"># Máx. 25 pontos</span>
+<span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">affects_execution</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">                  </span><span class="c1"># TRAVA: Literal[False] no schema (ADR-004)</span>
+<span class="w">  </span><span class="nt">depth_limit_default</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">500</span>
+<span class="w">  </span><span class="nt">depth_limit_overrides</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">BTCUSDT</span><span class="p">:</span><span class="w"> </span><span class="nv">1000</span><span class="p p-Indicator">,</span><span class="nt"> ETHUSDT</span><span class="p">:</span><span class="w"> </span><span class="nv">1000</span><span class="p p-Indicator">}</span>
+<span class="w">  </span><span class="nt">max_symbols_per_cycle</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span><span class="w">                  </span><span class="c1"># k_max (ADR-005)</span>
+<span class="w">  </span><span class="nt">anti_spoofing_snapshots</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="w">  </span><span class="nt">snapshot_interval_seconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span><span class="w">              </span><span class="c1"># Fotos intercaladas entre símbolos</span>
+<span class="w">  </span><span class="nt">imbalance_band_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.015</span><span class="w">                 </span><span class="c1"># Teto; a banda real é band_eff (C1-A)</span>
+<span class="w">  </span><span class="nt">min_valid_band_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.003</span><span class="w">                 </span><span class="c1"># band_eff &lt; 0.30% =&gt; Camada 4 inválida</span>
+<span class="w">  </span><span class="nt">bullish_obi_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.18</span>
+<span class="w">  </span><span class="nt">bearish_obi_warning_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-0.20</span>
+<span class="w">  </span><span class="nt">whale_wall_multiplier</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4.0</span>
+<span class="w">  </span><span class="nt">wall_bucket_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.001</span><span class="w">                    </span><span class="c1"># Grade ancorada na foto 0 (C2-1)</span>
+
+<span class="nt">layer_5_scoring_and_targets</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">min_score_to_alert_telegram</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">65</span>
+<span class="w">  </span><span class="nt">grade_b_min_score</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">65</span>
+<span class="w">  </span><span class="nt">grade_a_min_score</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">75</span>
+<span class="w">  </span><span class="nt">grade_a_plus_min_score</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">90</span>
+<span class="w">  </span><span class="nt">stop_buffer_below_wick_atr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.25</span>
+<span class="w">  </span><span class="nt">min_stop_distance_atr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.2</span>
+<span class="w">  </span><span class="nt">target_1_rr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.5</span>
+<span class="w">  </span><span class="nt">target_2_rr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2.5</span>
+<span class="w">  </span><span class="nt">adjust_target_before_ask_wall</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">time_horizon_hours</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">24</span><span class="w">                    </span><span class="c1"># Por tempo (C2-7)</span>
+
+<span class="nt">virtual_auditor</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">track_all_alerts</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">cost_model</span><span class="p">:</span><span class="w"> </span><span class="s">"strategies.position_sizing"</span><span class="w">  </span><span class="c1"># Custo único (ADR-009); substitui o fixo de 0.20%</span>
+<span class="w">  </span><span class="nt">send_weekly_scorecard_telegram</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</code></pre></div>
+<hr />
+<h2 id="5-validacao-do-radar">5. Validação do Radar<a class="headerlink" href="#5-validacao-do-radar" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Camadas</th>
+<th>Como validar</th>
+<th>Onde</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1, 2 e 3</td>
+<td>Backtest causal com velas históricas (incluindo as colunas 9 e 10) desde 2022-01-01, com o mesmo protocolo anti-ilusão do Bloco 3 (partição 60/25/15, <code>trials_registry.csv</code>)</td>
+<td><code>notebooks/04_radar_layers_123_backtest.ipynb</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Não há backtest possível</strong> (sem histórico gratuito de depth). Só existe o Auditor Virtual ao vivo, comparando o <span class="arithmatex">\(\bar{R}\)</span> de sinais com <code>obi_valid = 1</code> contra <code>obi_valid = 0</code></td>
+<td><code>virtual_signals</code></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Ligar o Radar ao executor no futuro</p>
+<p>Exigirá um gate próprio, ainda não especificado. No mínimo, deverá
+incluir amostra ao vivo suficiente no Auditor, ablação com e sem Camada 4,
+custo do Chameleon e compatibilidade com a OCO única do Single-Slot. Até
+lá vale o ADR-003.</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Voltar ao topo
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "content.code.copy"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "Mais 1 nesta p\u00e1gina", "search.result.more.other": "Mais # nesta p\u00e1gina", "search.result.none": "Nenhum resultado encontrado", "search.result.one": "1 resultado encontrado", "search.result.other": "# resultados encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

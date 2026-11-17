@@ -1,0 +1,1721 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Arquitetura unificada, auditoria de integração, contrato de dados e metodologia do QuantCrypto Chameleon & Radar Engine">
+      
+      
+      
+        <link rel="canonical" href="https://pac-coins.github.io/quant-crypto-chameleon-radar-engine/unified-architecture/">
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../architecture/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
+    
+    
+      
+        <title>Arquitetura Unificada - QuantCrypto Chameleon & Radar Engine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#arquitetura-unificada-chameleon-radar" class="md-skip">
+          Ir para o conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href=".." title="QuantCrypto Chameleon &amp; Radar Engine" class="md-header__button md-logo" aria-label="QuantCrypto Chameleon & Radar Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            QuantCrypto Chameleon & Radar Engine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Arquitetura Unificada
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Usar modo escuro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Usar modo escuro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Usar modo claro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Usar modo claro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando a pesquisa
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/pac-coins/quant-crypto-chameleon-radar-engine" title="Ir ao repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pac-coins/quant-crypto-chameleon-radar-engine
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="QuantCrypto Chameleon &amp; Radar Engine" class="md-nav__button md-logo" aria-label="QuantCrypto Chameleon & Radar Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    QuantCrypto Chameleon & Radar Engine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/pac-coins/quant-crypto-chameleon-radar-engine" title="Ir ao repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pac-coins/quant-crypto-chameleon-radar-engine
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Início
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura Unificada
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura Unificada
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-papeis-e-fronteiras" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Papéis e fronteiras
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-os-tres-modos-de-operacao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Os três modos de operação
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-processo-unico-e-orcamento-de-hardware" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Processo único e orçamento de hardware
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-ciclo-horario-ordem-de-execucao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Ciclo horário (ordem de execução)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-contrato-de-concorrencia-do-sqlite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Contrato de concorrência do SQLite
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-orcamento-de-rate-limit-request_weight-6000min-por-ip" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Orçamento de Rate Limit (REQUEST_WEIGHT = 6.000/min por IP)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-harmonizacao-de-indicadores-ema-20100-ema-950200" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Harmonização de indicadores (EMA 20/100 × EMA 9/50/200)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-arvore-de-diretorios-unificada" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Árvore de diretórios unificada
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Executor (Chameleon v6)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../radar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Radar & Auditor (v1.1)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integration-audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditoria de Integração
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de Dados (SQLite)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-1-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-2-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-3-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-4-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 4
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-5-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 5
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-6-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 6
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisões (ADR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methodology-and-roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metodologia e roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../todo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TODO
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_16" >
+        
+          
+          <label class="md-nav__link" for="__nav_16" id="__nav_16_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Histórico
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_16_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_16">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Histórico
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v5-to-v6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migração v5 → v6
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v5
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-papeis-e-fronteiras" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Papéis e fronteiras
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-os-tres-modos-de-operacao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Os três modos de operação
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-processo-unico-e-orcamento-de-hardware" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Processo único e orçamento de hardware
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-ciclo-horario-ordem-de-execucao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Ciclo horário (ordem de execução)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-contrato-de-concorrencia-do-sqlite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Contrato de concorrência do SQLite
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-orcamento-de-rate-limit-request_weight-6000min-por-ip" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Orçamento de Rate Limit (REQUEST_WEIGHT = 6.000/min por IP)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-harmonizacao-de-indicadores-ema-20100-ema-950200" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Harmonização de indicadores (EMA 20/100 × EMA 9/50/200)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-arvore-de-diretorios-unificada" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Árvore de diretórios unificada
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="arquitetura-unificada-chameleon-radar">Arquitetura unificada: Chameleon + Radar<a class="headerlink" href="#arquitetura-unificada-chameleon-radar" title="Permanent link">&para;</a></h1>
+<p>Esta página consolida a decisão de unir, em <strong>um único repositório e um único
+processo</strong>, os dois sistemas do ecossistema:</p>
+<ul>
+<li><strong>QuantCrypto Chameleon Engine (v6.0)</strong> — o <strong>Braço Executor</strong>: motor Spot
+  blindado (Single-Slot, OCO, Reconciliador de Boot, Teto Duplo de Risco e
+  segregação via carteira <code>FUNDING</code>). Especificação em <a href="../architecture/">Arquitetura do Executor</a>.</li>
+<li><strong>QuantCrypto Radar &amp; Analyst Engine (v1.0)</strong> — o <strong>Cérebro Analítico</strong>:
+  scanner multi-ativo (15 a 20 moedas) com funil de 5 camadas e Auditor
+  Virtual no SQLite. Especificação em <a href="../radar/">Radar &amp; Auditor</a>.</li>
+</ul>
+<p>O repositório passará a se chamar <strong><code>quant-crypto-chameleon-radar-engine</code></strong>.</p>
+<div class="admonition info">
+<p class="admonition-title">Convenção de rótulos usada nesta documentação</p>
+<ul>
+<li><strong>[FATO]</strong> — fato da API Binance, do SQLite ou da matemática (verificável).</li>
+<li><strong>[RISCO]</strong> — risco de integração que só existe porque os dois sistemas foram unificados.</li>
+<li><strong>[DECISÃO]</strong> — decisão de arquitetura vinculante para a codificação (registrada em <a href="../decisions/">Decisões (ADR)</a>).</li>
+</ul>
+</div>
+<hr />
+<h2 id="1-papeis-e-fronteiras">1. Papéis e fronteiras<a class="headerlink" href="#1-papeis-e-fronteiras" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Componente</th>
+<th>Papel</th>
+<th>Pode enviar ordens?</th>
+<th>Depende de backtest aprovado?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Coletor + <code>FeatureStore</code> + <code>regime_detector</code></td>
+<td>Infraestrutura compartilhada</td>
+<td>Não</td>
+<td>Gate 1 e Gate 2</td>
+</tr>
+<tr>
+<td>Radar (Camadas 1 a 5)</td>
+<td>Analista e copiloto no Telegram</td>
+<td><strong>Nunca</strong></td>
+<td>Camadas 1 a 3 têm notebook próprio; a Camada 4 só tem auditoria ao vivo</td>
+</tr>
+<tr>
+<td>Auditor Virtual</td>
+<td>Juiz de placar dos alertas</td>
+<td>Nunca</td>
+<td>Não (só mede)</td>
+</tr>
+<tr>
+<td><code>bull_trend_pullback</code></td>
+<td>Único emissor de sinal <strong>executável</strong> na Fase 1</td>
+<td>Via executor</td>
+<td><strong>Gate 3</strong></td>
+</tr>
+<tr>
+<td><code>paper_executor</code></td>
+<td>Executor simulado (modo Shadow)</td>
+<td>Não (simula)</td>
+<td>Gate 3</td>
+</tr>
+<tr>
+<td><code>oco_order_manager</code> + <code>state_reconciler</code></td>
+<td>Braço executor real</td>
+<td><strong>Sim</strong></td>
+<td>Gates 3, 4, 5 e 6</td>
+</tr>
+</tbody>
+</table>
+<p><strong>[DECISÃO] Fronteira Radar → Executor (ADR-003):</strong> na Fase 1 o executor
+consome <strong>somente</strong> <code>StrategySignal</code> emitido por <code>bull_trend_pullback</code>. O score
+do Radar entra como <strong>anotação silenciosa</strong> (<code>trades.radar_signal_id</code>), no mesmo
+espírito do Juiz de IA em modo observador. A proposta original do Radar de
+"conectar o <code>oco_order_manager.py</code> na saída do <code>confluence_scorer.py</code>" fica
+<strong>proibida</strong> até que exista um gate próprio para isso, fora do escopo atual. Motivos:</p>
+<ol>
+<li>o plano de voo do Radar (stop no pavio − 0,25·ATR, alvos parciais de +1,5R/+2,5R) não passou pelo Gate 3;</li>
+<li>alvos parciais exigem duas OCOs, cada uma acima de 1,05 × <code>minNotional</code>, o que o reconciliador Single-Slot não modela;</li>
+<li>o universo do Radar contém <code>BNBUSDT</code> e moedas fora do escopo do reconciliador (ver <a href="../integration-audit/#c1-c">C1-C</a>).</li>
+</ol>
+<p><strong>[DECISÃO] Livro de ofertas (ADR-004):</strong> o item <em>"Ler Order Book Level 2 ao
+vivo"</em> continua <strong>descartado como gatilho de execução</strong> (Categoria 3 do
+<a href="../todo/">TODO</a>). No sistema unificado, o livro existe <strong>apenas</strong> no caminho
+analítico/auditor do Radar, com <code>affects_execution: Literal[False]</code> fixado no
+schema Pydantic. Não é possível ligá-lo por YAML.</p>
+<hr />
+<h2 id="2-os-tres-modos-de-operacao">2. Os três modos de operação<a class="headerlink" href="#2-os-tres-modos-de-operacao" title="Permanent link">&para;</a></h2>
+<p>O modo é escolhido pela variável <code>MODE</code> no <code>.env</code> e validado no boot por
+<code>validate_mode_invariants()</code> (ver <a href="../block-1-spec/">Especificação do Bloco 1</a>).</p>
+<table>
+<thead>
+<tr>
+<th>Componente</th>
+<th><code>ANALYST_ONLY</code></th>
+<th><code>SHADOW_CHAMELEON</code></th>
+<th><code>LIVE_CHAMELEON_PHASE_1</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Chaves Binance</td>
+<td><strong>Proibidas</strong> (o boot falha se presentes)</td>
+<td><strong>Proibidas</strong></td>
+<td><strong>Obrigatórias</strong> (Ed25519)</td>
+</tr>
+<tr>
+<td>Host de market data</td>
+<td><code>data-api.binance.vision</code></td>
+<td><code>data-api.binance.vision</code></td>
+<td><code>api.binance.com</code> ou <code>testnet.binance.vision</code> (tudo do mesmo ambiente)</td>
+</tr>
+<tr>
+<td>Coletor + FeatureStore + Regime</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Radar L1–L5 + Auditor + Telegram</td>
+<td>✅</td>
+<td>✅ (anotação)</td>
+<td>✅ (anotação silenciosa)</td>
+</tr>
+<tr>
+<td><code>bull_trend_pullback</code> → sinais</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>position_sizer</code> / <code>shadow_manager</code></td>
+<td>❌</td>
+<td>✅ (carteira virtual <code>SHADOW_INITIAL_USDT</code>)</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>paper_executor</code> → <code>shadow_trades</code></td>
+<td>❌</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><code>oco_order_manager</code> + <code>state_reconciler</code> → <code>trades</code></td>
+<td>❌ (nem importados)</td>
+<td>❌ (nem importados)</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Trava de produção</td>
+<td>—</td>
+<td>—</td>
+<td><code>LIVE_CONFIRMATION=PHASE_1_GATES_6A_6B_PASSED</code> + SHA-256 do <code>strategies.yaml</code> aprovado</td>
+</tr>
+</tbody>
+</table>
+<p>Relação com o <a href="../methodology-and-roadmap/">roadmap</a>:</p>
+<ul>
+<li><code>ANALYST_ONLY</code> pode entrar em produção assim que os Blocos 1 e 2 e os módulos
+  do Radar passarem nos testes. Não arrisca capital.</li>
+<li><code>SHADOW_CHAMELEON</code> é o veículo do <strong>Gate 6B</strong> (Shadow Live com dados reais).</li>
+<li><code>LIVE_CHAMELEON_PHASE_1</code> com <code>BINANCE_ENV=TESTNET</code> é o veículo dos <strong>Gates 5 e 6A</strong>.
+  Com <code>BINANCE_ENV=PRODUCTION</code>, é a <strong>Fase 1</strong>.</li>
+</ul>
+<p><code>.env.example</code> de referência:</p>
+<div class="highlight"><pre><span></span><code>MODE=ANALYST_ONLY                 # ANALYST_ONLY | SHADOW_CHAMELEON | LIVE_CHAMELEON_PHASE_1
+BINANCE_ENV=TESTNET               # TESTNET | PRODUCTION (só lido em LIVE)
+BINANCE_API_KEY=
+BINANCE_ED25519_PRIVATE_KEY_PATH=
+LIVE_CONFIRMATION=
+APPROVED_STRATEGIES_SHA256=
+SHADOW_INITIAL_USDT=300.00
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+DB_PATH=/app/data/quant.db
+BACKUP_DIR=/app/data/backups
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Permissões da API Key (apenas <code>LIVE_CHAMELEON_PHASE_1</code>)</p>
+<ul>
+<li><strong>Habilitar:</strong> <em>Enable Reading</em>, <em>Enable Spot &amp; Margin Trading</em> e
+  <em>Permits Universal Transfer</em> (exigida na Fase 2 para
+  <code>POST /sapi/v1/asset/transfer</code> <code>MAIN_FUNDING</code>; na Testnet é mockada).</li>
+<li><strong>Proibir:</strong> <em>Enable Withdrawals</em> (saque externo sempre desligado).</li>
+<li><strong>Restringir:</strong> chave <strong>Ed25519</strong> vinculada ao IP da VPS.</li>
+</ul>
+</div>
+<hr />
+<h2 id="3-processo-unico-e-orcamento-de-hardware">3. Processo único e orçamento de hardware<a class="headerlink" href="#3-processo-unico-e-orcamento-de-hardware" title="Permanent link">&para;</a></h2>
+<p><strong>[DECISÃO] (ADR-001):</strong> Radar e Chameleon rodam <strong>no mesmo processo Python</strong>,
+com <strong>uma thread de orquestração</strong> e <strong>uma conexão escritora</strong> no SQLite. Isso
+fica dentro de um container com <code>mem_limit: 100m</code>.</p>
+<p><strong>[FATO] RAM:</strong> só os imports de <code>pandas</code> + <code>numpy</code> ocupam cerca de 40 a 60 MB
+de RSS (estimativa típica em CPython 3.11/3.12). Dois containers duplicariam
+esse custo e estourariam o teto de 100 MB. Com um único processo, DataFrames de
+300 a 1.000 linhas por símbolo e símbolos processados <strong>sequencialmente</strong>, o
+consumo esperado fica entre 60 e 80 MB.</p>
+<blockquote>
+<p><strong>Atualização (ADR-015):</strong> medição empírica na VM mostrou que <code>import src.main</code>
+(<code>pandas</code>, <code>numpy</code>, <code>pydantic</code>, <code>cryptography</code>, <code>requests</code>) já consome <strong>93,4 MB</strong>
+de RSS antes mesmo de carregar os DataFrames de 16 ativos. Por isso o teto foi
+elevado para <strong><code>mem_limit: 512m</code></strong> (<code>MemoryMax=512M</code> no systemd) para evitar
+<code>OOMKilled</code> (<code>Exit 137</code>).</p>
+</blockquote>
+<hr />
+<h2 id="4-ciclo-horario-ordem-de-execucao">4. Ciclo horário (ordem de execução)<a class="headerlink" href="#4-ciclo-horario-ordem-de-execucao" title="Permanent link">&para;</a></h2>
+<p><strong>[DECISÃO] (ADR-006):</strong> a execução do Chameleon é o <strong>caminho crítico</strong> e roda
+<strong>antes</strong> da Camada 4 do Radar. As 3 fotos do livro de ofertas de todos os
+símbolos selecionados são <strong>intercaladas</strong>: t₀ para todos, t₀+5 s para todos e
+t₀+10 s para todos. Assim, a janela total fica em cerca de 10 s, seja qual for
+a quantidade de moedas.</p>
+<pre class="mermaid"><code>sequenceDiagram
+    autonumber
+    participant M as main.py
+    participant C as candle_collector
+    participant F as FeatureStore + regime_detector
+    participant X as Chameleon (strategy + sizer + executor)
+    participant R as Radar (L1-L5)
+    participant A as virtual_auditor
+    participant T as telegram_outbox
+    M-&gt;&gt;C: XX:00:03 UTC — coleta velas 1h (e 4h na fronteira)
+    C--&gt;&gt;M: CollectionReport (ok / stale / gaps)
+    M-&gt;&gt;F: features + regime (cálculo único por símbolo)
+    M-&gt;&gt;X: [SHADOW/LIVE] sinal bull_trend_pullback?
+    X-&gt;&gt;X: critical_section(): compra -&gt; OCO confirmada
+    M-&gt;&gt;R: L1-L3 para o universo do Radar
+    R-&gt;&gt;R: L4: até k_max=5 moedas, 3 fotos intercaladas
+    R-&gt;&gt;T: cards Nota B/A/A+
+    M-&gt;&gt;A: resolve virtual_signals abertos com a vela recém-fechada
+    A-&gt;&gt;T: respostas de resultado
+    M-&gt;&gt;M: cycle_health (offset do relógio, pico de peso, duração)</code></pre>
+<p>Moedas marcadas como <code>stale</code> (vela não virou após 5 tentativas de 1 s) são
+<strong>excluídas daquele ciclo</strong>: não geram sinal e não derrubam o loop.</p>
+<hr />
+<h2 id="5-contrato-de-concorrencia-do-sqlite">5. Contrato de concorrência do SQLite<a class="headerlink" href="#5-contrato-de-concorrencia-do-sqlite" title="Permanent link">&para;</a></h2>
+<p><strong>Veredito:</strong> as tabelas <code>candles</code>, <code>trades</code>, <code>shadow_trades</code>,
+<code>virtual_signals</code> e <code>orderbook_snapshots</code> coexistem no mesmo banco em WAL sem
+<code>database is locked</code>, desde que se cumpram as regras abaixo.</p>
+<p><strong>[FATO] Semântica do WAL:</strong> leitores não bloqueiam o escritor, e o escritor
+não bloqueia leitores. Existe <strong>um único escritor por vez</strong>: um segundo escritor
+espera até <code>busy_timeout</code> e depois recebe <code>SQLITE_BUSY</code>.</p>
+<p><strong>[FATO] Armadilha específica do WAL:</strong> se uma transação <em>deferred</em> começa
+lendo e depois tenta escrever, e outro escritor fez commit nesse intervalo, o
+SQLite devolve <code>SQLITE_BUSY_SNAPSHOT</code> <strong>na hora, ignorando o <code>busy_timeout</code></strong>.
+A cura é abrir toda transação de escrita com <code>BEGIN IMMEDIATE</code>.</p>
+<p><strong>[FATO] Carga estimada por ciclo horário (pior caso):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Escrita</th>
+<th>Linhas</th>
+<th>Transações</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Upsert de velas 1h + 4h (20 moedas)</td>
+<td>≤ 40</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Snapshots do livro (3 por sinal, teto k = 5)</td>
+<td>≤ 15 + agregados</td>
+<td>≤ 5</td>
+</tr>
+<tr>
+<td><code>virtual_signals</code> (novos + resoluções)</td>
+<td>≤ 30</td>
+<td>2</td>
+</tr>
+<tr>
+<td><code>trades</code> / <code>shadow_trades</code> / <code>order_events</code></td>
+<td>≤ 15</td>
+<td>≤ 8</td>
+</tr>
+<tr>
+<td><code>cycle_health</code> + <code>system_state</code></td>
+<td>≤ 5</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<p>São cerca de 17 transações por hora. Com <code>synchronous=FULL</code>, cada commit custa
+um <code>fsync</code> (de 2 a 20 ms em disco de VPS). Somando tudo, o lock de escrita fica
+ocupado <strong>menos de 1 segundo por hora</strong>.</p>
+<p><strong>[RISCO] As 4 causas reais de <code>database is locked</code> neste projeto:</strong></p>
+<ol>
+<li>dois processos ou containers escrevendo no mesmo <code>.db</code>;</li>
+<li>transação aberta durante I/O de rede (o modo legado do <code>sqlite3</code> do Python abre transação implícita no primeiro DML);</li>
+<li>leitura que vira escrita sem <code>BEGIN IMMEDIATE</code>;</li>
+<li>banco em sistema de arquivos sem memória compartilhada coerente (NFS, bind mounts do Docker Desktop no Windows/macOS).</li>
+</ol>
+<p><strong>[DECISÃO] Regras do <code>database.py</code> (ADR-002):</strong></p>
+<ul>
+<li><code>isolation_level=None</code>; escrita só via <code>with db.write_tx():</code>, que emite <code>BEGIN IMMEDIATE</code>;</li>
+<li><code>PRAGMA journal_mode=WAL</code> (validar o retorno igual a <code>'wal'</code>), <code>synchronous=FULL</code>, <code>foreign_keys=ON</code>, <code>busy_timeout=10000</code>, <code>wal_autocheckpoint=1000</code>;</li>
+<li><strong>proibido I/O de rede dentro de <code>write_tx</code></strong>; o <code>write_tx</code> registra a thread dona e lança <code>WrongThreadError</code> se for chamado de outra thread;</li>
+<li>a escrita de <code>PENDING_ENTRY</code> <strong>antes</strong> do POST é obrigatória (se falhar, não compra). As escritas <strong>depois</strong> do fill são <em>best-effort</em> com retry e <strong>nunca interrompem</strong> a sequência compra → OCO (ver <a href="../integration-audit/#c1-e">C1-E</a>);</li>
+<li>backup via <code>sqlite3.backup()</code> com <code>pages=-1</code> (passo único). O arquivo gerado é <strong>autocontido</strong>: não precisa do <code>-wal</code>.</li>
+</ul>
+<hr />
+<h2 id="6-orcamento-de-rate-limit-request_weight-6000min-por-ip">6. Orçamento de Rate Limit (<code>REQUEST_WEIGHT</code> = 6.000/min por IP)<a class="headerlink" href="#6-orcamento-de-rate-limit-request_weight-6000min-por-ip" title="Permanent link">&para;</a></h2>
+<p><strong>[FATO] Pesos oficiais vigentes (Spot REST):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Peso</th>
+<th>Observação</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /api/v3/klines</code></td>
+<td><strong>2</strong></td>
+<td>Independe de <code>limit</code> (1–1000)</td>
+</tr>
+<tr>
+<td><code>GET /api/v3/depth</code></td>
+<td><strong>5 / 25 / 50 / 250</strong></td>
+<td><code>limit</code> 1–100 / 101–500 / 501–1000 / 1001–5000</td>
+</tr>
+<tr>
+<td><code>GET /api/v3/exchangeInfo</code></td>
+<td>20</td>
+<td></td>
+</tr>
+<tr>
+<td><code>GET /api/v3/time</code></td>
+<td>1</td>
+<td></td>
+</tr>
+<tr>
+<td><code>GET /api/v3/ticker/bookTicker</code> (1 símbolo)</td>
+<td>2</td>
+<td></td>
+</tr>
+<tr>
+<td><code>GET /api/v3/account</code></td>
+<td>20</td>
+<td></td>
+</tr>
+<tr>
+<td><code>GET /api/v3/account/commission</code></td>
+<td>20</td>
+<td></td>
+</tr>
+<tr>
+<td><code>GET /api/v3/order</code></td>
+<td>4</td>
+<td>Consulta por <code>origClientOrderId</code></td>
+</tr>
+<tr>
+<td><code>GET /api/v3/orderList</code></td>
+<td>4</td>
+<td></td>
+</tr>
+<tr>
+<td><code>GET /api/v3/openOrderList</code></td>
+<td>6</td>
+<td></td>
+</tr>
+<tr>
+<td><code>POST /api/v3/order</code> · <code>POST /api/v3/orderList/oco</code> · <code>DELETE /api/v3/orderList</code></td>
+<td>1 cada</td>
+<td>Também contam no limite <code>ORDERS</code> da conta</td>
+</tr>
+<tr>
+<td><code>/sapi/v1/system/status</code></td>
+<td>1</td>
+<td>Pool SAPI separado, não soma nos 6.000</td>
+</tr>
+</tbody>
+</table>
+<p>O limite é <strong>por IP</strong> e é compartilhado por todas as chamadas públicas e
+assinadas. Acima dele a API responde HTTP 429 com <code>Retry-After</code>. Insistir depois
+do 429 leva ao <strong>HTTP 418</strong> (ban de IP de 2 minutos a 3 dias).</p>
+<p><strong>Cálculo no fechamento <code>XX:00:03 UTC</code></strong> (universo de 20 moedas, que já contém
+as 7 do Chameleon e o BTC):</p>
+<table>
+<thead>
+<tr>
+<th>Bloco de chamadas</th>
+<th>Realista (hora comum, 2 sinais, 1 entrada)</th>
+<th>Virada de 4h (realista)</th>
+<th>Pior caso patológico</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>time</code></td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Klines 1h: 20 × 2</td>
+<td>40</td>
+<td>40</td>
+<td>40</td>
+</tr>
+<tr>
+<td>Klines 4h: 20 × 2</td>
+<td>0</td>
+<td>40</td>
+<td>40</td>
+</tr>
+<tr>
+<td>Retentativas de vela atrasada (5 × 20 × 2 × 2)</td>
+<td>0</td>
+<td>0</td>
+<td>400</td>
+</tr>
+<tr>
+<td><code>exchangeInfo</code> (refresh horário)</td>
+<td>20</td>
+<td>20</td>
+<td>20</td>
+</tr>
+<tr>
+<td>Depth <code>limit=500</code>: k × 3 × 25</td>
+<td>150</td>
+<td>150</td>
+<td>1.500 (k = 20)</td>
+</tr>
+<tr>
+<td>Chameleon, caminho de entrada</td>
+<td>75</td>
+<td>75</td>
+<td>75</td>
+</tr>
+<tr>
+<td>Chameleon, Time-Stop no mesmo ciclo</td>
+<td>0</td>
+<td>0</td>
+<td>26</td>
+</tr>
+<tr>
+<td>Watchdog do stop</td>
+<td>0</td>
+<td>0</td>
+<td>4</td>
+</tr>
+<tr>
+<td>Backfill de boot coincidente</td>
+<td>0</td>
+<td>0</td>
+<td>80</td>
+</tr>
+<tr>
+<td>Auditor Virtual (lê do SQLite)</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>286 (4,8%)</strong></td>
+<td><strong>326 (5,4%)</strong></td>
+<td><strong>2.186 (36,4%)</strong></td>
+</tr>
+</tbody>
+</table>
+<p>O caminho de entrada soma 75: <code>account</code> 20 + <code>openOrderList</code> 6 + <code>bookTicker</code> 2
++ <code>POST order</code> 1 + <code>GET order</code> 4 + <code>account</code> 20 + <code>POST OCO</code> 1 + <code>commission</code> 20
++ fallback <code>MARKET</code> 1. O Time-Stop soma 26: <code>DELETE orderList</code> 1 + <code>GET orderList</code> 4
++ <code>account</code> 20 + <code>MARKET</code> 1.</p>
+<p><strong>[DECISÃO] (ADR-005):</strong></p>
+<ol>
+<li><strong>Teto de inspeção de livro:</strong> no máximo <code>k_max = 5</code> moedas por ciclo,
+   escolhidas pela maior soma de pontos L1+L2+L3. Com <code>limit=1000</code>, o pior caso
+   do depth fica em 5 × 3 × 50 = 750.</li>
+<li><code>depth_limit</code> configurável por símbolo (padrão 500; BTC e ETH em 1000).</li>
+<li>A fonte de verdade é o header <code>X-MBX-USED-WEIGHT-1M</code>, não a estimativa
+   interna. Em VPS gratuita, o IP de saída pode ser compartilhado.</li>
+<li><code>WeightGovernor</code> com prioridades <code>CRITICAL &gt; HIGH &gt; LOW</code> e
+   <code>critical_section()</code> entre o fill e a OCO confirmada (ver <a href="../integration-audit/#c1-b">C1-B</a>).</li>
+</ol>
+<hr />
+<h2 id="7-harmonizacao-de-indicadores-ema-20100-ema-950200">7. Harmonização de indicadores (<code>EMA 20/100</code> × <code>EMA 9/50/200</code>)<a class="headerlink" href="#7-harmonizacao-de-indicadores-ema-20100-ema-950200" title="Permanent link">&para;</a></h2>
+<p><strong>[DECISÃO] (ADR-007):</strong> existe um único motor de cálculo, parametrizado por
+período. Cada consumidor <strong>declara</strong> os indicadores de que precisa, e o
+<code>FeatureStore</code> calcula a <strong>união</strong> uma única vez por
+<code>(símbolo, timeframe, close_time)</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># src/features/feature_store.py</span>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">FeatureRequest</span><span class="p">:</span>
+    <span class="n">kind</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"ema"</span><span class="p">,</span> <span class="s2">"atr"</span><span class="p">,</span> <span class="s2">"adx"</span><span class="p">,</span> <span class="s2">"rsi"</span><span class="p">,</span> <span class="s2">"chop"</span><span class="p">,</span> <span class="s2">"bb"</span><span class="p">,</span> <span class="s2">"rvol"</span><span class="p">,</span> <span class="s2">"tbr"</span><span class="p">,</span> <span class="s2">"of_delta"</span><span class="p">,</span> <span class="s2">"sweep"</span><span class="p">]</span>
+    <span class="n">period</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">timeframe</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"1h"</span><span class="p">,</span> <span class="s2">"4h"</span><span class="p">]</span>
+    <span class="n">extra</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">column</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span> <span class="o">...</span>   <span class="c1"># "ema_20", "ema_100_4h", "chop_14_4h"</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">FeatureConsumer</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">required_features</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">frozenset</span><span class="p">[</span><span class="n">FeatureRequest</span><span class="p">]:</span> <span class="o">...</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">FeatureStore</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">consumers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">FeatureConsumer</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df_1h</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">df_4h</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span> <span class="o">...</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Consumidor</th>
+<th>Declara</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RegimeDetector</code></td>
+<td><code>ema_100_4h</code>, <code>chop_14_4h</code>, <code>adx_14_4h</code></td>
+</tr>
+<tr>
+<td><code>BullTrendPullback</code></td>
+<td><code>ema_20</code>, <code>ema_100</code>, <code>atr_14</code></td>
+</tr>
+<tr>
+<td><code>StructureEMA</code> (Radar L1)</td>
+<td><code>ema_9</code>, <code>ema_50</code>, <code>ema_200</code>, <code>atr_14</code></td>
+</tr>
+<tr>
+<td><code>PriceAction</code> (Radar L2)</td>
+<td><code>atr_14</code>, <code>sweep_20</code></td>
+</tr>
+<tr>
+<td><code>OrderFlow</code> (Radar L3)</td>
+<td><code>rvol_20</code>, <code>tbr</code>, <code>of_delta</code></td>
+</tr>
+</tbody>
+</table>
+<p>Os módulos ficam em <code>indicators.py</code> (EMA/ATR/ADX/RSI/CHOP/BB/RVOL),
+<code>order_flow.py</code> e <code>price_action.py</code>, todos com funções puras. O
+<code>liquidity_sweep_bull</code> do TODO e o <em>Liquidity Sweep</em> do Radar são <strong>a mesma
+função</strong>.</p>
+<p><strong>[DECISÃO] Clima é fonte única (ADR-008):</strong> a Camada 1 do Radar <strong>não calcula
+clima próprio</strong>. Ela lê o <code>regime</code> do <code>regime_detector.py</code> (MECE, com
+<code>CHOP &lt; 50</code> para <code>BULL</code>). O limiar <code>max_chop_for_trend</code> do Radar vale só como
+critério de <strong>pontuação</strong>.</p>
+<p><strong>[DECISÃO] Dois YAMLs, um motor (ADR-009):</strong> <code>config/strategies.yaml</code> fica
+congelado pelo Gate 3, e o SHA-256 dele é verificado em LIVE/PRODUCTION.
+<code>config/analyst.yaml</code> evolui livremente sem alterar esse hash. Os dois leem o
+<strong>mesmo modelo de custo</strong> (<code>position_sizing.roundtrip_fee_assumption_pct</code> +
+<code>stress_slippage_assumption_pct</code>).</p>
+<hr />
+<h2 id="8-arvore-de-diretorios-unificada">8. Árvore de diretórios unificada<a class="headerlink" href="#8-arvore-de-diretorios-unificada" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>quant-crypto-chameleon-radar-engine/
+├── config/
+│   ├── strategies.yaml                 # Chameleon v6.0 (CONGELADO pelo Gate 3; SHA-256 verificado em LIVE/PRODUCTION)
+│   └── analyst.yaml                    # Radar v1.1 (universo 15–20, pesos, L4 com affects_execution: false)
+├── notebooks/
+│   ├── 01_download_causal_1h_4h_1m.ipynb
+│   ├── 02_ablation_and_dsr_sim.ipynb
+│   ├── 03_tail_stress_cppi_cusum.ipynb
+│   └── 04_radar_layers_123_backtest.ipynb   # L1–L3 do Radar (L4 não tem histórico: só auditoria ao vivo)
+├── logs/backtest_trials_registry.csv
+├── models/                             # (Fase 2) modelo calibrado (Platt Scaling)
+├── src/
+│   ├── core/
+│   │   ├── config.py                   # [B1] Pydantic: .env + 2 YAMLs, RunMode, invariantes por modo
+│   │   ├── database.py                 # [B1] SQLite WAL single-writer, migrações, backup nativo
+│   │   ├── binance_client.py           # [B1] Público/Assinado, WeightGovernor, relógio, Decimal, exchangeInfo, mock /sapi
+│   │   └── state_reconciler.py         # [B5] Cura no boot (universo = execution_universe)
+│   ├── data/
+│   │   └── candle_collector.py         # [B1] XX:00:03, close_time+1ms, gaps, merge_asof backward
+│   ├── features/
+│   │   ├── indicators.py               # [B2] EMA/ATR/ADX/RSI/CHOP/BB/RVOL (funções puras)
+│   │   ├── order_flow.py               # [B2] TBR, Delta (quote), absorção
+│   │   ├── price_action.py             # [B2] Pinbar, Engolfo, Liquidity Sweep (compartilhado)
+│   │   ├── feature_store.py            # [B2] União de FeatureRequest, cálculo único por ciclo
+│   │   └── ml_judge.py                 # [B6] Observador silencioso (Fase 1)
+│   ├── regimes/
+│   │   └── regime_detector.py          # [B2] MECE: BEAR→BULL→SIDEWAYS→TRANSITION (fonte única de clima)
+│   ├── strategies/
+│   │   ├── base_strategy.py
+│   │   ├── bull_trend_pullback.py      # Único emissor de StrategySignal executável na Fase 1
+│   │   ├── sideways_pingpong.py
+│   │   └── bear_capitulation_snap.py
+│   ├── radar/
+│   │   ├── structure_ema.py            # L1 (pontua; lê o regime do regime_detector)
+│   │   ├── orderbook_inspector.py      # L4 (banda efetiva simétrica, grade ancorada, k_max)
+│   │   └── confluence_scorer.py        # L5 (score 0–100, plano de voo)
+│   ├── auditing/
+│   │   ├── outcome_resolver.py         # Pior caso intra-vela + Time-Stop (compartilhado)
+│   │   └── virtual_auditor.py          # Resolve virtual_signals a cada vela fechada
+│   ├── risk/
+│   │   ├── position_sizer.py
+│   │   ├── shadow_manager.py           # Drawdown Scaling / Downgrade / Kill-switch
+│   │   └── profit_splitter.py
+│   ├── execution/
+│   │   ├── executor_protocol.py        # Protocol Executor: submit(signal) -&gt; TradeRef
+│   │   ├── paper_executor.py           # SHADOW_CHAMELEON (sem chaves; usa bookTicker real)
+│   │   └── oco_order_manager.py        # LIVE (entrada, OCO, -2010, watchdog, Time-Stop 4 passos)
+│   ├── notifications/
+│   │   └── telegram.py                 # Cards do Radar + relatórios do Chameleon via outbox
+│   └── main.py                         # Orquestrador: monta os módulos conforme RunMode
+├── tests/
+│   ├── test_block1_causal_and_decimal.py
+│   ├── test_block1_db_governor_modes.py
+│   ├── test_block2_talib_and_mece.py
+│   ├── test_block4_dual_cap_and_cppi.py
+│   ├── test_block5_reconciler_and_oco.py
+│   └── test_radar_orderbook_math.py
+├── docs/                               # Esta documentação (MkDocs)
+├── .env.example
+├── Dockerfile                          # 1 processo, python:3.12-slim
+├── docker-compose.yml                  # 1 serviço, mem_limit 100m, volume local para data/
+├── requirements.txt
+└── README.md
+</code></pre></div>
+<p>O contrato de dados completo (schema SQL) está em <a href="../data-contract/">Contrato de Dados</a>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Voltar ao topo
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "content.code.copy"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "Mais 1 nesta p\u00e1gina", "search.result.more.other": "Mais # nesta p\u00e1gina", "search.result.none": "Nenhum resultado encontrado", "search.result.one": "1 resultado encontrado", "search.result.other": "# resultados encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,1932 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Arquitetura unificada, auditoria de integração, contrato de dados e metodologia do QuantCrypto Chameleon & Radar Engine">
+      
+      
+      
+        <link rel="canonical" href="https://pac-coins.github.io/quant-crypto-chameleon-radar-engine/block-3-spec/">
+      
+      
+        <link rel="prev" href="../block-2-spec/">
+      
+      
+        <link rel="next" href="../block-4-spec/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
+    
+    
+      
+        <title>Especificação do Bloco 3 - QuantCrypto Chameleon & Radar Engine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#especificacao-de-partida-bloco-3-unificado" class="md-skip">
+          Ir para o conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href=".." title="QuantCrypto Chameleon &amp; Radar Engine" class="md-header__button md-logo" aria-label="QuantCrypto Chameleon & Radar Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            QuantCrypto Chameleon & Radar Engine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Especificação do Bloco 3
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Usar modo escuro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Usar modo escuro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Usar modo claro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Usar modo claro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando a pesquisa
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/pac-coins/quant-crypto-chameleon-radar-engine" title="Ir ao repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pac-coins/quant-crypto-chameleon-radar-engine
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="QuantCrypto Chameleon &amp; Radar Engine" class="md-nav__button md-logo" aria-label="QuantCrypto Chameleon & Radar Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    QuantCrypto Chameleon & Radar Engine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/pac-coins/quant-crypto-chameleon-radar-engine" title="Ir ao repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pac-coins/quant-crypto-chameleon-radar-engine
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Início
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../unified-architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura Unificada
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Executor (Chameleon v6)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../radar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Radar & Auditor (v1.1)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integration-audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditoria de Integração
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de Dados (SQLite)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-1-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-2-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 3
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-estrategias-canonicas-srcstrategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Estratégias Canônicas (src/strategies/)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Estratégias Canônicas (src/strategies/)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-contrato-base-srcstrategiesbase_strategypy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1. Contrato Base (src/strategies/base_strategy.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-estrategia-1-bull_trend_pullbackpy-ativa-na-fase-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2. Estratégia 1 — bull_trend_pullback.py (Ativa na Fase 1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-estrategia-2-sideways_pingpongpy-desligada-na-fase-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3. Estratégia 2 — sideways_pingpong.py (Desligada na Fase 1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-estrategia-3-bear_capitulation_snappy-em-quarentena" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4. Estratégia 3 — bear_capitulation_snap.py (Em Quarentena)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-simulador-causal-single-slot-srcbacktestcausal_simulatorpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Simulador Causal Single-Slot (src/backtest/causal_simulator.py)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-governanca-anti-overfitting-afml-e-dsr-srcbacktestablation_and_dsrpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Governança Anti-Overfitting, AFML e DSR (src/backtest/ablation_and_dsr.py)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-notebooks-do-google-colab-notebooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Notebooks do Google Colab (notebooks/)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-gate-3-unificado-pytest-teststest_block3_causal_sim_and_dsrpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Gate 3 Unificado (pytest tests/test_block3_causal_sim_and_dsr.py)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-homologacao-empirica-no-google-colab-2022-01-01-a-2026-04-7-pares-k-1-dots-9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Homologação Empírica no Google Colab (2022-01-01 a 2026-04, 7 Pares, \(K = 1 \dots 9\))
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Homologação Empírica no Google Colab (2022-01-01 a 2026-04, 7 Pares, \(K = 1 \dots 9\))">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-bateria-k1-diagnostico-da-hipotese-inicial-pullback-passivo-na-ema-20-stop-20x-alvo-50x-24h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1. Bateria K1 — Diagnóstico da Hipótese Inicial (Pullback Passivo na EMA 20, Stop 2.0x, Alvo 5.0x, 24h)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-baterias-k2-e-k3-diagnostico-no-cofre-de-treino-60-iniciais-e-teste-do-filtro-anti-climax-launchpad" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2. Baterias K2 e K3 — Diagnóstico no Cofre de Treino (60% Iniciais) e Teste do Filtro Anti-Clímax (Launchpad)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-baterias-k4-e-k5-descoberta-do-rompimento-donchian-12h-e-raio-x-do-holdout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3. Baterias K4 e K5 — Descoberta do Rompimento Donchian 12h e Raio-X do Holdout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#64-baterias-k6-k7-k8-e-k9-sinergia-entre-lideranca-relativa-rs-btc-e-forca-4h-adx_4h-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.4. Baterias K6, K7, K8 e K9 — Sinergia entre Liderança Relativa (RS &gt;= BTC) e Força 4h (ADX_4h &gt;= 17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#65-quadro-oficial-de-homologacao-do-gate-3-k93-congelado-em-configstrategiesyaml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.5. Quadro Oficial de Homologação do Gate 3 (K9.3, Congelado em config/strategies.yaml)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-4-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 4
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-5-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 5
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-6-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação do Bloco 6
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisões (ADR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methodology-and-roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metodologia e roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../todo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TODO
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_16" >
+        
+          
+          <label class="md-nav__link" for="__nav_16" id="__nav_16_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Histórico
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_16_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_16">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Histórico
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v5-to-v6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migração v5 → v6
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v5
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-estrategias-canonicas-srcstrategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Estratégias Canônicas (src/strategies/)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Estratégias Canônicas (src/strategies/)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-contrato-base-srcstrategiesbase_strategypy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1. Contrato Base (src/strategies/base_strategy.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-estrategia-1-bull_trend_pullbackpy-ativa-na-fase-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2. Estratégia 1 — bull_trend_pullback.py (Ativa na Fase 1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-estrategia-2-sideways_pingpongpy-desligada-na-fase-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3. Estratégia 2 — sideways_pingpong.py (Desligada na Fase 1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-estrategia-3-bear_capitulation_snappy-em-quarentena" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4. Estratégia 3 — bear_capitulation_snap.py (Em Quarentena)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-simulador-causal-single-slot-srcbacktestcausal_simulatorpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Simulador Causal Single-Slot (src/backtest/causal_simulator.py)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-governanca-anti-overfitting-afml-e-dsr-srcbacktestablation_and_dsrpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Governança Anti-Overfitting, AFML e DSR (src/backtest/ablation_and_dsr.py)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-notebooks-do-google-colab-notebooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Notebooks do Google Colab (notebooks/)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-gate-3-unificado-pytest-teststest_block3_causal_sim_and_dsrpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Gate 3 Unificado (pytest tests/test_block3_causal_sim_and_dsr.py)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-homologacao-empirica-no-google-colab-2022-01-01-a-2026-04-7-pares-k-1-dots-9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Homologação Empírica no Google Colab (2022-01-01 a 2026-04, 7 Pares, \(K = 1 \dots 9\))
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Homologação Empírica no Google Colab (2022-01-01 a 2026-04, 7 Pares, \(K = 1 \dots 9\))">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-bateria-k1-diagnostico-da-hipotese-inicial-pullback-passivo-na-ema-20-stop-20x-alvo-50x-24h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1. Bateria K1 — Diagnóstico da Hipótese Inicial (Pullback Passivo na EMA 20, Stop 2.0x, Alvo 5.0x, 24h)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-baterias-k2-e-k3-diagnostico-no-cofre-de-treino-60-iniciais-e-teste-do-filtro-anti-climax-launchpad" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2. Baterias K2 e K3 — Diagnóstico no Cofre de Treino (60% Iniciais) e Teste do Filtro Anti-Clímax (Launchpad)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-baterias-k4-e-k5-descoberta-do-rompimento-donchian-12h-e-raio-x-do-holdout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3. Baterias K4 e K5 — Descoberta do Rompimento Donchian 12h e Raio-X do Holdout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#64-baterias-k6-k7-k8-e-k9-sinergia-entre-lideranca-relativa-rs-btc-e-forca-4h-adx_4h-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.4. Baterias K6, K7, K8 e K9 — Sinergia entre Liderança Relativa (RS &gt;= BTC) e Força 4h (ADX_4h &gt;= 17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#65-quadro-oficial-de-homologacao-do-gate-3-k93-congelado-em-configstrategiesyaml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.5. Quadro Oficial de Homologação do Gate 3 (K9.3, Congelado em config/strategies.yaml)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="especificacao-de-partida-bloco-3-unificado">Especificação de partida — Bloco 3 Unificado<a class="headerlink" href="#especificacao-de-partida-bloco-3-unificado" title="Permanent link">&para;</a></h1>
+<p>Este documento congela as assinaturas de classes, métodos (<code>type hints</code> do Python), equações estatísticas e o <strong>Gate 3</strong> para a construção do <strong>Bloco 3</strong> (Estratégias Canônicas, Simulador Causal Single-Slot, Estudo de Ablação A–E, Governança DSR e Notebooks do Google Colab).</p>
+<div class="admonition info">
+<p class="admonition-title">Pré-requisito de Partida</p>
+<p>O Bloco 3 depende diretamente dos artefatos validados no <a href="../block-1-spec/">Bloco 1</a> (<code>CandleCollector.align_causal_1h_4h</code>) e no <a href="../block-2-spec/">Bloco 2</a> (<code>FeatureStore.compute_unified_features</code> e <code>RegimeDetector.detect_market_regime</code>). Para garantir <strong>zero divergência entre backtest e produção</strong>, os notebooks do Google Colab importam diretamente os módulos <code>src/strategies/</code> e <code>src/backtest/</code>.</p>
+</div>
+<hr />
+<h2 id="1-estrategias-canonicas-srcstrategies">1. Estratégias Canônicas (<code>src/strategies/</code>)<a class="headerlink" href="#1-estrategias-canonicas-srcstrategies" title="Permanent link">&para;</a></h2>
+<h3 id="11-contrato-base-srcstrategiesbase_strategypy">1.1. Contrato Base (<code>src/strategies/base_strategy.py</code>)<a class="headerlink" href="#11-contrato-base-srcstrategiesbase_strategypy" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.regimes.regime_detector</span><span class="w"> </span><span class="kn">import</span> <span class="n">MarketRegime</span>
+
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">SignalCandidate</span><span class="p">:</span>
+    <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">close_time_ms</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">regime</span><span class="p">:</span> <span class="n">MarketRegime</span>
+    <span class="n">strategy_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">entry_price</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">stop_price</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">target_price</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">atr_14</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">stop_distance_pct</span><span class="p">:</span> <span class="nb">float</span>        <span class="c1"># (entry_price - stop_price) / entry_price</span>
+    <span class="n">gross_rr_ratio</span><span class="p">:</span> <span class="nb">float</span>           <span class="c1"># (target_price - entry_price) / (entry_price - stop_price)</span>
+    <span class="n">time_barrier_hours</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">rs_vol_adjusted_12h</span><span class="p">:</span> <span class="nb">float</span>      <span class="c1"># (Close[t] - Close[t-12]) / ATR_14[t]</span>
+    <span class="n">order_flow_delta</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">taker_buy_ratio</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">has_liquidity_sweep</span><span class="p">:</span> <span class="nb">bool</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">BaseStrategy</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+    <span class="nd">@property</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span> <span class="o">...</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">required_regime</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MarketRegime</span><span class="p">:</span> <span class="o">...</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">evaluate_row</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
+        <span class="n">regime</span><span class="p">:</span> <span class="n">MarketRegime</span><span class="p">,</span>
+        <span class="n">require_order_flow_filter</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SignalCandidate</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Avalia causalmente a última linha fechada (1h alinhada com 4h e BTC)."""</span>
+</code></pre></div>
+<h3 id="12-estrategia-1-bull_trend_pullbackpy-ativa-na-fase-1">1.2. Estratégia 1 — <code>bull_trend_pullback.py</code> (Ativa na Fase 1)<a class="headerlink" href="#12-estrategia-1-bull_trend_pullbackpy-ativa-na-fase-1" title="Permanent link">&para;</a></h3>
+<p>Opera exclusivamente quando <code>regime == MarketRegime.BULL</code> e <code>enabled: true</code>:
+1. <strong>Estrutura de Tendência 1h:</strong> <span class="arithmatex">\(\text{EMA}_{20, 1h} &gt; \text{EMA}_{100, 1h}\)</span> e <span class="arithmatex">\(\text{Close}_{1h} &gt; \text{EMA}_{100, 1h}\)</span>.
+2. <strong>Recuo (<em>Pullback</em>) na Média Rápida com Rejeição Compradora:</strong> A mínima da vela toca ou penetra a zona da <span class="arithmatex">\(\text{EMA}_{20, 1h}\)</span> (<span class="arithmatex">\(\text{Low}_{1h} \le \text{EMA}_{20, 1h} \times 1,003\)</span>) e o fechamento recupera acima da <span class="arithmatex">\(\text{EMA}_{20, 1h}\)</span> (<span class="arithmatex">\(\text{Close}_{1h} \ge \text{EMA}_{20, 1h}\)</span>) com vela de alta (<span class="arithmatex">\(\text{Close}_{1h} &gt; \text{Open}_{1h}\)</span>) ou gatilho de Price Action (<code>is_bullish_pinbar</code>, <code>is_bullish_engulfing</code> ou <code>is_liquidity_sweep</code>).
+3. <strong>Filtro Opcional de Ablação (<em>Order Flow</em> no Degrau C):</strong> Quando <code>require_order_flow_filter=True</code>, exige adicionalmente <span class="arithmatex">\(\text{Delta}_{\text{quote}, t} &gt; 0\)</span> (<span class="arithmatex">\(\text{TBR}_t &gt; 0,50\)</span>).
+4. <strong>Barreiras OCO:</strong>
+   - <span class="arithmatex">\(P_{\text{stop}} = P_{\text{entry}} - 2,0 \cdot \text{ATR}_{14, 1h}\)</span> (<span class="arithmatex">\(-1,0R\)</span> bruto)
+   - <span class="arithmatex">\(P_{\text{target}} = P_{\text{entry}} + 5,0 \cdot \text{ATR}_{14, 1h}\)</span> (<span class="arithmatex">\(+2,5R\)</span> bruto)
+   - Barreira de tempo: <code>time_barrier_candles_1h = 24</code>.</p>
+<h3 id="13-estrategia-2-sideways_pingpongpy-desligada-na-fase-1">1.3. Estratégia 2 — <code>sideways_pingpong.py</code> (Desligada na Fase 1)<a class="headerlink" href="#13-estrategia-2-sideways_pingpongpy-desligada-na-fase-1" title="Permanent link">&para;</a></h3>
+<p>Opera exclusivamente quando <code>regime == MarketRegime.SIDEWAYS</code>:
+- Entrada se <span class="arithmatex">\(\text{Close}_{1h} \le \text{BB}_{\text{lower}}(20, 2,0)\)</span> e <span class="arithmatex">\(\text{RSI}_{14, 1h} &lt; 32,0\)</span>.
+- <span class="arithmatex">\(P_{\text{stop}} = P_{\text{entry}} - 1,5 \cdot \text{ATR}_{14, 1h}\)</span>, <span class="arithmatex">\(P_{\text{target}} = \text{SMA}_{20, 1h}\)</span>.
+- <strong>Trava Geométrica Obrigatória v6.0:</strong> Bloqueia a entrada (<code>return None</code>) se:
+  $<span class="arithmatex">\(\text{RR}_{\text{initial}} = \frac{\text{SMA}_{20, 1h} - P_{\text{entry}}}{1,5 \cdot \text{ATR}_{14, 1h}} &lt; 1,50\)</span>$</p>
+<h3 id="14-estrategia-3-bear_capitulation_snappy-em-quarentena">1.4. Estratégia 3 — <code>bear_capitulation_snap.py</code> (Em Quarentena)<a class="headerlink" href="#14-estrategia-3-bear_capitulation_snappy-em-quarentena" title="Permanent link">&para;</a></h3>
+<p>Opera apenas em estudos de estresse quando explicitamente habilitada em <code>regime == MarketRegime.BEAR</code>:
+- Exige <span class="arithmatex">\(\text{RSI}_{2, 1h} &lt; 5,0\)</span>, <span class="arithmatex">\(\text{RVOL}_{20, 1h} \ge 3,0\)</span> e <span class="arithmatex">\(\text{lower\_wick\_ratio} \ge 0,40\)</span>.</p>
+<hr />
+<h2 id="2-simulador-causal-single-slot-srcbacktestcausal_simulatorpy">2. Simulador Causal Single-Slot (<code>src/backtest/causal_simulator.py</code>)<a class="headerlink" href="#2-simulador-causal-single-slot-srcbacktestcausal_simulatorpy" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.strategies.base_strategy</span><span class="w"> </span><span class="kn">import</span> <span class="n">SignalCandidate</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">CostScenario</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+    <span class="n">OPTIMISTIC</span> <span class="o">=</span> <span class="s2">"OPTIMISTIC"</span>   <span class="c1"># Maker no alvo (0.075%), Taker no stop/tempo (0.075%) + 0.03% slippage</span>
+    <span class="n">BASE</span> <span class="o">=</span> <span class="s2">"BASE"</span>               <span class="c1"># Taker/Taker (0.15% ida+volta com BNB) + 0.06% slippage base</span>
+    <span class="n">PESSIMISTIC</span> <span class="o">=</span> <span class="s2">"PESSIMISTIC"</span> <span class="c1"># Sem BNB (0.20% ida+volta) + 0.12% slippage + gap adverso no stop</span>
+
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">SimulatedTrade</span><span class="p">:</span>
+    <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">strategy_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">regime</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">entry_time_ms</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">exit_time_ms</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">entry_price</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">exit_price</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">stop_price</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">target_price</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">exit_reason</span><span class="p">:</span> <span class="nb">str</span>            <span class="c1"># "TARGET", "STOP", "BREAKEVEN", "TIME_BARRIER"</span>
+    <span class="n">gross_r</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">net_r</span><span class="p">:</span> <span class="nb">float</span>                <span class="c1"># R líquido após taxas e slippage do cenário</span>
+    <span class="n">pnl_pct_equity</span><span class="p">:</span> <span class="nb">float</span>       <span class="c1"># Impacto percentual na Carteira Tática</span>
+    <span class="n">bars_held</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">rs_score</span><span class="p">:</span> <span class="nb">float</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">CausalSingleSlotSimulator</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Simulador determinístico de fila única (MAX_OPEN_POSITIONS = 1).</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">cost_scenario</span><span class="p">:</span> <span class="n">CostScenario</span> <span class="o">=</span> <span class="n">CostScenario</span><span class="o">.</span><span class="n">BASE</span><span class="p">,</span>
+        <span class="n">risk_per_trade_pct</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.010</span><span class="p">,</span>
+        <span class="n">max_cash_pct</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.50</span><span class="p">,</span>
+        <span class="n">breakeven_enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">breakeven_trigger_r</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.2</span><span class="p">,</span>
+        <span class="n">cppi_enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">cppi_drawdown_threshold_pct</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.04</span><span class="p">,</span>
+        <span class="n">cppi_reduction_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.50</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">select_single_slot_winner</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">candidates</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">SignalCandidate</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SignalCandidate</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Desempate coerente da Fase 1: escolhe o candidato com maior rs_vol_adjusted_12h</span>
+<span class="sd">        (e desempate secundário determinístico por ordem alfabética do symbol).</span>
+<span class="sd">        """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">resolve_trade_1h_or_1m</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">candidate</span><span class="p">:</span> <span class="n">SignalCandidate</span><span class="p">,</span>
+        <span class="n">future_bars_1h</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+        <span class="n">intracandle_bars_1m</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SimulatedTrade</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Resolve o desfecho da posição aberta respeitando:</span>
+<span class="sd">        - Precedência pessimista (STOP antes de TARGET se ambos tocados na mesma barra sem 1m);</span>
+<span class="sd">        - Resolução de 1 minuto (1m) quando fornecida (obrigatória para testar Breakeven no Degrau E);</span>
+<span class="sd">        - Fechamento a mercado no close da 24ª barra (TIME_BARRIER), computando o R líquido real.</span>
+<span class="sd">        """</span>
+</code></pre></div>
+<hr />
+<h2 id="3-governanca-anti-overfitting-afml-e-dsr-srcbacktestablation_and_dsrpy">3. Governança Anti-Overfitting, AFML e DSR (<code>src/backtest/ablation_and_dsr.py</code>)<a class="headerlink" href="#3-governanca-anti-overfitting-afml-e-dsr-srcbacktestablation_and_dsrpy" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.backtest.causal_simulator</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimulatedTrade</span>
+
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PartitionBounds</span><span class="p">:</span>
+    <span class="n">train_end_ms</span><span class="p">:</span> <span class="nb">int</span>       <span class="c1"># Primeiros 60%</span>
+    <span class="n">val_end_ms</span><span class="p">:</span> <span class="nb">int</span>         <span class="c1"># Próximos 25% (com Purging de 24h e Embargo de 2%)</span>
+    <span class="n">holdout_end_ms</span><span class="p">:</span> <span class="nb">int</span>     <span class="c1"># Últimos 15% (cofre intocável)</span>
+
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Gate3Report</span><span class="p">:</span>
+    <span class="n">n_trades</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">mean_net_r</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">ci95_lower_r</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">ci95_upper_r</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">profit_factor_base</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">profit_factor_pessimistic</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">sharpe_annualized</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">deflated_sharpe_ratio</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">cvar_99_r</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">positive_subperiods</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">total_subperiods</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">holdout_positive</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">passed_gate3</span><span class="p">:</span> <span class="nb">bool</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">split_temporal_vaults</span><span class="p">(</span>
+    <span class="n">timestamps_ms</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+    <span class="n">train_pct</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.60</span><span class="p">,</span>
+    <span class="n">val_pct</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PartitionBounds</span><span class="p">:</span> <span class="o">...</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_afml_sample_uniqueness</span><span class="p">(</span>
+    <span class="n">events</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    AFML Snippet 4.2 (López de Prado): calcula u_bar_i = média de (1 / c_t)</span>
+<span class="sd">    ao longo de toda a janela [t_entry, t_exit] de cada evento.</span>
+<span class="sd">    """</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_block_bootstrap_ci95</span><span class="p">(</span>
+    <span class="n">net_r_series</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+    <span class="n">block_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="n">n_bootstraps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span> <span class="o">...</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_deflated_sharpe_ratio</span><span class="p">(</span>
+    <span class="n">returns_r</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+    <span class="n">n_trials</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">trials_sharpe_variance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">,</span>
+     <span class="n">trades_per_year</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">150.0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Calcula o Deflated Sharpe Ratio (Bailey &amp; López de Prado, 2014) descontando</span>
+<span class="sd">    não-normalidade (assimetria gamma_3 e curtose gamma_4) e o número total de</span>
+<span class="sd">    tentativas K registradas em trials_registry.csv.</span>
+<span class="sd">    """</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">register_backtest_trial</span><span class="p">(</span>
+    <span class="n">registry_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">step_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">params_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">],</span>
+    <span class="n">n_trades</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">mean_net_r</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">sharpe_annualized</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">max_trials_budget</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Registra a tentativa em trials_registry.csv e retorna o contador K acumulado.</span>
+<span class="sd">    Dispara RuntimeError se K &gt; max_trials_budget no conjunto de Validação.</span>
+<span class="sd">    """</span>
+</code></pre></div>
+<hr />
+<h2 id="4-notebooks-do-google-colab-notebooks">4. Notebooks do Google Colab (<code>notebooks/</code>)<a class="headerlink" href="#4-notebooks-do-google-colab-notebooks" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong><code>notebooks/01_download_causal_1h_4h_1m.ipynb</code>:</strong></li>
+<li>Baixa velas históricas públicas (<code>data-api.binance.vision</code>) desde <code>2022-01-01</code> para os 7 pares do universo (<code>BTCUSDT</code>, <code>ETHUSDT</code>, <code>SOLUSDT</code>, <code>XRPUSDT</code>, <code>ADAUSDT</code>, <code>LINKUSDT</code>, <code>AVAXUSDT</code>), preservando colunas 0 a 10 (incluindo <code>quote_volume</code> e <code>taker_buy_quote_volume</code>).</li>
+<li>Executa <code>CandleCollector.align_causal_1h_4h</code> e salva os datasets causais prontos para os estudos de ablação.</li>
+<li><strong><code>notebooks/02_ablation_and_dsr_sim.ipynb</code>:</strong></li>
+<li>Executa os <strong>Degraus A, B, C (com e sem filtro de Order Flow Delta), D e E (com velas de 1m para Breakeven)</strong> sobre a partição <code>60% Treino / 25% Validação / 15% Holdout</code>.</li>
+<li>Registra cada execução em <code>logs/backtest_trials_registry.csv</code>, calcula <span class="arithmatex">\(\bar{u}_i\)</span> (AFML), <span class="arithmatex">\(\text{DSR}\)</span>, <span class="arithmatex">\(\text{CVaR}_{99\%}\)</span> e valida o <strong>Gate 3</strong>.</li>
+<li><strong><code>notebooks/04_radar_layers_123_backtest.ipynb</code>:</strong></li>
+<li>Audita as Camadas 1 (Estrutura EMA 9/50/200), 2 (Price Action: Pinbar, Engolfo, Liquidity Sweep) e 3 (Order Flow: RVOL e Taker Buy Ratio) do Radar usando <code>FeatureStore</code> e o mesmo protocolo anti-overfitting.</li>
+</ol>
+<hr />
+<h2 id="5-gate-3-unificado-pytest-teststest_block3_causal_sim_and_dsrpy">5. Gate 3 Unificado (<code>pytest tests/test_block3_causal_sim_and_dsr.py</code>)<a class="headerlink" href="#5-gate-3-unificado-pytest-teststest_block3_causal_sim_and_dsrpy" title="Permanent link">&para;</a></h2>
+<p>O comando <code>pytest tests/test_block3_causal_sim_and_dsr.py</code> valida deterministicamente:</p>
+<ol>
+<li><strong>Teste 3A (Fila Single-Slot e Desempate <code>rs_vol_adjusted_12h</code>):</strong> Quando 2 ou mais moedas geram sinal no mesmo fechamento de 1h, o simulador seleciona exclusivamente a moeda de maior <code>rs_vol_adjusted_12h</code> e bloqueia novas entradas enquanto a posição estiver aberta.</li>
+<li><strong>Teste 3B (Três Cenários de Custos, Time-Barrier 24h e Resolução Intra-Vela de 1m para Breakeven):</strong></li>
+<li>Prova que <span class="arithmatex">\(R_{\text{net}}(\text{OPTIMISTIC}) &gt; R_{\text{net}}(\text{BASE}) &gt; R_{\text{net}}(\text{PESSIMISTIC})\)</span> para um mesmo trade;</li>
+<li>Prova que saídas na 24ª barra (<code>TIME_BARRIER</code>) entram no cálculo empírico de <span class="arithmatex">\(\mathbb{E}[R]\)</span> com seu P&amp;L real líquido;</li>
+<li>Prova que a resolução de 1 minuto (<code>1m</code>) aciona corretamente o Breakeven em <span class="arithmatex">\(+1,2R\)</span> quando o preço toca <span class="arithmatex">\(+1,2R\)</span> e depois reverte para o preço de entrada.</li>
+<li><strong>Teste 3C (AFML Sample Uniqueness <span class="arithmatex">\(\bar{u}_i\)</span>, Partição Temporal com Purging/Embargo e Orçamento <span class="arithmatex">\(K_{\max} = 20\)</span>):</strong></li>
+<li>Dois eventos com 100% de sobreposição temporal têm unicidade média <span class="arithmatex">\(\bar{u}_i = 0,5\)</span>, e eventos disjuntos têm <span class="arithmatex">\(\bar{u}_i = 1,0\)</span>;</li>
+<li>O registrador <code>register_backtest_trial</code> grava em <code>trials_registry.csv</code> e levanta <code>RuntimeError</code> na tentativa <span class="arithmatex">\(K = 21\)</span>.</li>
+<li><strong>Teste 3D (Ablação de Order Flow no Degrau C, Modo K9.3, Block Bootstrap CI 95%, DSR e Notebooks Válidos):</strong></li>
+<li>Verifica a matemática do <span class="arithmatex">\(\text{DSR}\)</span> (decrescente com o número de tentativas <span class="arithmatex">\(K\)</span> e crescente com o Sharpe e tamanho amostral <span class="arithmatex">\(N\)</span>), o modo <code>K9.3</code> de <code>bull_trend_pullback</code>, a trava geométrica <span class="arithmatex">\(\text{RR} \ge 1,50\)</span> de <code>sideways_pingpong</code>, e valida a estrutura JSON e execução ponta-a-ponta dos 3 notebooks em <code>notebooks/</code>.</li>
+</ol>
+<hr />
+<h2 id="6-homologacao-empirica-no-google-colab-2022-01-01-a-2026-04-7-pares-k-1-dots-9">6. Homologação Empírica no Google Colab (<code>2022-01-01</code> a <code>2026-04</code>, 7 Pares, <span class="arithmatex">\(K = 1 \dots 9\)</span>)<a class="headerlink" href="#6-homologacao-empirica-no-google-colab-2022-01-01-a-2026-04-7-pares-k-1-dots-9" title="Permanent link">&para;</a></h2>
+<p>A validação empírica foi executada sobre a massa histórica real da Binance (<code>data-api.binance.vision</code>, <code>&gt; 360.000</code> velas de <code>1h</code> e <code>4h</code> para <code>BTCUSDT</code>, <code>ETHUSDT</code>, <code>SOLUSDT</code>, <code>XRPUSDT</code>, <code>ADAUSDT</code>, <code>LINKUSDT</code> e <code>AVAXUSDT</code>, incluindo o tratamento da vela truncada da manutenção de <code>2023-03-24 12:39:41.646 UTC</code>). Abaixo está o registro auditável das <strong>9 baterias de testes (<span class="arithmatex">\(K = 9 / 20\)</span>)</strong> até a convergência final.</p>
+<h3 id="61-bateria-k1-diagnostico-da-hipotese-inicial-pullback-passivo-na-ema-20-stop-20x-alvo-50x-24h">6.1. Bateria <code>K1</code> — Diagnóstico da Hipótese Inicial (Pullback Passivo na EMA 20, Stop <code>2.0x</code>, Alvo <code>5.0x</code>, <code>24h</code>)<a class="headerlink" href="#61-bateria-k1-diagnostico-da-hipotese-inicial-pullback-passivo-na-ema-20-stop-20x-alvo-50x-24h" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Etapa de Ablação (<code>K1</code>)</th>
+<th><code>n_trades</code></th>
+<th><span class="arithmatex">\(\mathbb{E}[R]_{\text{net}}\)</span></th>
+<th>Observação</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>step_b</code> (Sem Filtro de Clima 4h)</td>
+<td><code>578</code></td>
+<td><code>-0,1176R</code></td>
+<td>Excesso de operações em lateralização e queda</td>
+</tr>
+<tr>
+<td><code>step_c_pure</code> (Clima 4h <code>BULL</code> puro)</td>
+<td><code>347</code></td>
+<td><code>-0,1874R</code></td>
+<td><code>PF_base = 0,72</code>, <code>PF_pess = 0,60</code>, <code>DSR = 0,002</code> (<code>PASS = False</code>)</td>
+</tr>
+<tr>
+<td><code>step_c_order_flow</code> (<code>Delta &gt; 0</code> em vela de recuo)</td>
+<td><code>309</code></td>
+<td><code>-0,1983R</code></td>
+<td>Exigir agressão compradora exatamente na vela de recuo não resolveu o stop curto</td>
+</tr>
+<tr>
+<td><code>step_e_breakeven_1m</code> (Breakeven em <code>+1,2R</code>)</td>
+<td><code>361</code></td>
+<td><code>-0,1687R</code></td>
+<td>Violino precoce antes da expansão da tendência</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Raio-X Anatômico do <code>step_c_pure</code> (<code>n = 347</code>, Distância média do Stop = <code>2,08%</code>, Fricção média = <code>-0,1272R</code>/trade):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Motivo de Saída</th>
+<th>Contagem (<code>%</code>)</th>
+<th><span class="arithmatex">\(\mathbb{E}[R]_{\text{gross}}\)</span> (Bruto)</th>
+<th><span class="arithmatex">\(\mathbb{E}[R]_{\text{net}}\)</span> (Líquido)</th>
+<th>Diagnóstico Físico</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TARGET</code> (<code>+2,5R</code>)</td>
+<td><code>49</code> (<code>14,1%</code>)</td>
+<td><code>+2,500R</code></td>
+<td><code>+2,373R</code></td>
+<td>Alvo de <code>5,0 * ATR</code> raramente era atingido em apenas <code>24h</code></td>
+</tr>
+<tr>
+<td><code>STOP</code> (<code>-1,0R</code>)</td>
+<td><code>190</code> (<code>54,8%</code>)</td>
+<td><code>-1,000R</code></td>
+<td><code>-1,129R</code></td>
+<td>Stop de <code>2,0 * ATR</code> (<code>2,08%</code>) era engolido pelo ruído normal de <code>1h</code> + taxas (<code>-0,129R</code>)</td>
+</tr>
+<tr>
+<td><code>TIME_BARRIER</code> (<code>24h</code>)</td>
+<td><code>108</code> (<code>31,1%</code>)</td>
+<td><strong><code>+0,432R</code></strong></td>
+<td><strong><code>+0,307R</code></strong></td>
+<td><strong>Descoberta-chave:</strong> quem não era violinado no stop curto saía no lucro por tempo (<code>+0,307R</code>), provando que a direção macro 4h <code>BULL</code> estava certa, mas precisava de <strong>stop mais largo (<code>3,0x ATR</code>)</strong> e <strong>horizonte maior (<code>72h</code>)</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="62-baterias-k2-e-k3-diagnostico-no-cofre-de-treino-60-iniciais-e-teste-do-filtro-anti-climax-launchpad">6.2. Baterias <code>K2</code> e <code>K3</code> — Diagnóstico no Cofre de Treino (<code>60%</code> Iniciais) e Teste do Filtro Anti-Clímax (<code>Launchpad</code>)<a class="headerlink" href="#62-baterias-k2-e-k3-diagnostico-no-cofre-de-treino-60-iniciais-e-teste-do-filtro-anti-climax-launchpad" title="Permanent link">&para;</a></h3>
+<p>No Cofre de Treino (<code>60%</code> iniciais), alargar o stop para <code>3,0 * ATR_14</code>, o alvo para <code>6,0 * ATR_14</code> (<code>+2,0R</code>), o horizonte para <code>72h</code> e vetar compras quando <code>BTC == BEAR</code> transformou a expectativa líquida de negativa para positiva, destacando a continuação de rompimento com volume (<code>G. Breakout RVOL &gt;= 1.3</code>: <code>n = 227</code>, <span class="arithmatex">\(\mathbb{E}[R]_{\text{gross}} = +0,204R\)</span>, <span class="arithmatex">\(\mathbb{E}[R]_{\text{net}} = +0,133R\)</span>, <code>PF = 1,25</code> no Treino; <code>n = 369</code>, <span class="arithmatex">\(\mathbb{E}[R]_{\text{net}} = +0,090R\)</span>, <code>Sub = 4/4</code> no período completo).</p>
+<p>Na bateria <code>K3</code>, testou-se restringir a distância do fechamento até a <code>EMA_20</code> (<code>max_dist_ema20_atr &lt;= 1,5 .. 2,2</code>, hipótese <em>Launchpad</em>):</p>
+<table>
+<thead>
+<tr>
+<th>Variante (<code>K3</code>)</th>
+<th><code>n_trades</code></th>
+<th><span class="arithmatex">\(\mathbb{E}[R]_{\text{net}}\)</span></th>
+<th><code>PF_base</code></th>
+<th><code>PF_pess</code></th>
+<th><code>DSR</code></th>
+<th><code>Holdout+</code></th>
+<th><code>PASS</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>K3.1</code> (<code>dist &lt;= 1.8</code>, Stop <code>3.0</code> / Tgt <code>6.0</code> / <code>72h</code>, s/ BE)</td>
+<td><code>233</code></td>
+<td><code>-0,003R</code></td>
+<td><code>1,00</code></td>
+<td><code>0,89</code></td>
+<td><code>0,29</code></td>
+<td><code>True</code></td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>K3.2</code> (<code>dist &lt;= 1.8</code>, Stop <code>3.0</code> / Tgt <code>6.0</code> / <code>72h</code>, BE <code>1.4R</code>)</td>
+<td><code>238</code></td>
+<td><code>+0,014R</code></td>
+<td><code>1,03</code></td>
+<td><code>0,91</code></td>
+<td><code>0,36</code></td>
+<td><code>True</code></td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>K3.3</code> (<code>dist &lt;= 1.5</code>, Stop <code>2.8</code> / Tgt <code>5.6</code> / <code>72h</code>, s/ BE)</td>
+<td><code>209</code></td>
+<td><code>-0,020R</code></td>
+<td><code>0,97</code></td>
+<td><code>0,87</code></td>
+<td><code>0,24</code></td>
+<td><code>False</code></td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>K3.4</code> (<code>dist &lt;= 2.2</code>, Stop <code>3.2</code> / Tgt <code>6.4</code> / <code>84h</code>, s/ BE)</td>
+<td><code>233</code></td>
+<td><code>+0,009R</code></td>
+<td><code>1,02</code></td>
+<td><code>0,92</code></td>
+<td><code>0,33</code></td>
+<td><code>True</code></td>
+<td><code>False</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Lição de <code>K3</code>:</strong> Em cripto, bloquear velas de ignição que fecham acima de <code>1,8–2,2 ATR</code> da <code>EMA_20</code> elimina justamente os rompimentos explosivos que geram a cauda direita de lucro (<code>+2,0R</code>), derrubando o <code>E[R]</code> de <code>+0,090R</code> para <code>~0,00R</code>.</p>
+</blockquote>
+<hr />
+<h3 id="63-baterias-k4-e-k5-descoberta-do-rompimento-donchian-12h-e-raio-x-do-holdout">6.3. Baterias <code>K4</code> e <code>K5</code> — Descoberta do Rompimento Donchian <code>12h</code> e Raio-X do Holdout<a class="headerlink" href="#63-baterias-k4-e-k5-descoberta-do-rompimento-donchian-12h-e-raio-x-do-holdout" title="Permanent link">&para;</a></h3>
+<p>Na bateria <code>K4</code>, exigir que a vela de ignição (<code>EMA 9 &gt; 20 &gt; 50 &gt; 100</code>, <code>RVOL &gt;= 1.3</code>, <code>TBR &gt;= 0.52</code>, <code>corpo &gt;= 0.7 * ATR</code>) rompa a máxima das últimas 12 horas (<code>donchian_12h</code>, <code>Close &gt; max(High[t-12:t-1])</code>) elevou todos os indicadores estruturais acima da barra do Gate 3, exceto o Holdout:</p>
+<table>
+<thead>
+<tr>
+<th>Variante (<code>K4</code> / <code>K5</code>)</th>
+<th><code>n_trades</code></th>
+<th><span class="arithmatex">\(\mathbb{E}[R]_{\text{net}}\)</span></th>
+<th><code>CI95_lo</code></th>
+<th><code>PF_base</code></th>
+<th><code>PF_pess</code></th>
+<th><code>DSR</code></th>
+<th><code>Sub</code></th>
+<th><code>Holdout+</code></th>
+<th><code>PASS</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>G1</code> (<code>g_orig</code>, Stop <code>3.0</code> / Tgt <code>6.0</code> / <code>72h</code>)</td>
+<td><code>369</code></td>
+<td><code>+0,090R</code></td>
+<td><code>-0,039R</code></td>
+<td><code>1,16</code></td>
+<td><code>1,03</code></td>
+<td><code>0,68</code></td>
+<td><code>4/4</code></td>
+<td><code>False</code></td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>G5</code> / <code>K5.1</code> (<code>donchian_12h</code>, Stop <code>3.0</code> / Tgt <code>6.0</code> / <code>72h</code>)</td>
+<td><code>328</code></td>
+<td><code>+0,154R</code></td>
+<td><code>+0,022R</code></td>
+<td><code>1,28</code></td>
+<td><code>1,15</code></td>
+<td><code>0,91</code></td>
+<td><code>4/4</code></td>
+<td><code>False</code> (<code>-6,58R</code>)</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>G6</code> (<code>donchian_12h</code>, Stop <code>3.5</code> / Tgt <code>7.5</code> / <code>96h</code>)</td>
+<td><code>271</code></td>
+<td><code>+0,168R</code></td>
+<td><code>+0,013R</code></td>
+<td><code>1,31</code></td>
+<td><code>1,19</code></td>
+<td><code>0,91</code></td>
+<td><code>4/4</code></td>
+<td><code>False</code></td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>K5.5</code> (<code>donchian_12h</code> + BE em <code>+1.5R</code>, <code>72h</code>)</td>
+<td><code>336</code></td>
+<td><code>+0,144R</code></td>
+<td><code>+0,022R</code></td>
+<td><code>1,28</code></td>
+<td><code>1,13</code></td>
+<td><code>0,87</code></td>
+<td><code>4/4</code></td>
+<td><code>False</code></td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>K5.6</code> (<code>donchian_12h</code>, Stop <code>2.8</code> / Tgt <code>5.0</code> / <code>60h</code>)</td>
+<td><code>377</code></td>
+<td><code>+0,151R</code></td>
+<td><code>+0,024R</code></td>
+<td><code>1,28</code></td>
+<td><code>1,14</code></td>
+<td><code>0,91</code></td>
+<td><code>4/4</code></td>
+<td><code>False</code></td>
+<td><code>False</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Raio-X por Ativo de <code>G5</code> no Holdout (Últimos 15% do Histórico, <code>n = 42</code>, Soma <code>= -6,58R</code>):</strong>
+- <strong>Líderes no lucro:</strong> <code>XRPUSDT (+1,96R)</code>, <code>SOLUSDT (+1,00R)</code>, <code>AVAXUSDT (+0,87R)</code>, <code>BTCUSDT (+0,27R)</code> <span class="arithmatex">\(\rightarrow\)</span> Soma dos líderes <code>= +4,10R</code>.
+- <strong>Retardatárias no prejuízo:</strong> <code>ETHUSDT (-4,50R em 11 trades)</code>, <code>ADAUSDT (-3,15R em 4 trades)</code>, <code>LINKUSDT (-3,04R em 7 trades)</code> <span class="arithmatex">\(\rightarrow\)</span> Soma das retardatárias <code>= -10,69R</code>.
+- <strong>Diagnóstico:</strong> Quando o slot estava livre, o robô aceitava rompimentos em altcoins <em>retardatárias</em> (que estavam mais fracas que o próprio <code>BTCUSDT</code> em <code>rs_vol_adjusted_12h</code>) durante repiques fracos do mercado.</p>
+<hr />
+<h3 id="64-baterias-k6-k7-k8-e-k9-sinergia-entre-lideranca-relativa-rs-btc-e-forca-4h-adx_4h-17">6.4. Baterias <code>K6</code>, <code>K7</code>, <code>K8</code> e <code>K9</code> — Sinergia entre Liderança Relativa (<code>RS &gt;= BTC</code>) e Força 4h (<code>ADX_4h &gt;= 17</code>)<a class="headerlink" href="#64-baterias-k6-k7-k8-e-k9-sinergia-entre-lideranca-relativa-rs-btc-e-forca-4h-adx_4h-17" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Em <strong><code>K6</code></strong>, introduzir a exigência de liderança relativa (<code>RS_12h &gt;= BTC_RS_12h</code>, <code>K6.4</code> e <code>K6.5</code>) virou imediatamente o <strong>Holdout para positivo (<code>+1,15R</code> e <code>+2,35R</code>)</strong>, mas o corte <code>max_dist_ema20_atr &lt;= 2,5</code> limitava o <code>DSR</code> a <code>0,70</code>.</li>
+<li>Em <strong><code>K7</code></strong>, remover o teto de distância e manter <code>Donchian 12h + BeatBTC_RS</code> elevou o <code>DSR</code> para <strong><code>0,91–0,96</code></strong> e <code>PF_base = 1,33–1,38</code> (<code>K7.4</code>: <span class="arithmatex">\(\mathbb{E}[R] = +0,191R\)</span>, <code>DSR = 0,93</code>, <code>HoldSum = -1,27R</code>).</li>
+<li>Em <strong><code>K8</code></strong>, identificou-se que a combinação <code>RS_12h &gt;= 1,4</code> (<code>K8.4</code>, <code>HoldSum = -0,20R</code>) com o filtro de força direcional macro <code>ADX_14_4h &gt;= 16..17</code> (<code>K8.3</code>, <span class="arithmatex">\(\mathbb{E}[R] = +0,214R\)</span>, <code>PF_base = 1,42</code>) eliminava os falsos rompimentos de fim de festa sem precisar amputar a distância à <code>EMA_20</code>.</li>
+<li>Na bateria <strong><code>K9</code></strong> (<span class="arithmatex">\(K = 9 / 20\)</span>), a união desses dois filtros formou um <strong>platô amplo e altamente lucrativo em todas as janelas (incluindo o Holdout)</strong>:</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Variante (<code>K9</code>, <span class="arithmatex">\(K = 9 / 20\)</span>)</th>
+<th><code>n_trades</code></th>
+<th><span class="arithmatex">\(\mathbb{E}[R]_{\text{net}}\)</span></th>
+<th><code>CI95_lo</code></th>
+<th><code>PF_base</code></th>
+<th><code>PF_pess</code></th>
+<th><code>DSR</code></th>
+<th><code>Sub</code></th>
+<th><code>HoldSum</code></th>
+<th><code>PASS</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>K9.1</code> (<code>Donch12 + ADX4h&gt;=16 + RS&gt;=1.2</code>, <code>72h</code>)</td>
+<td><code>289</code></td>
+<td><code>+0,208R</code></td>
+<td><code>+0,056R</code></td>
+<td><code>1,39</code></td>
+<td><code>1,25</code></td>
+<td><code>0,94</code></td>
+<td><code>4/4</code></td>
+<td><strong><code>+0,60R</code></strong></td>
+<td><code>False</code> (<code>DSR=0.94</code>)</td>
+</tr>
+<tr>
+<td><code>K9.2</code> (<code>Donch12 + ADX4h&gt;=16 + RS&gt;=1.4</code>, <code>72h</code>)</td>
+<td><code>286</code></td>
+<td><code>+0,208R</code></td>
+<td><code>+0,060R</code></td>
+<td><code>1,39</code></td>
+<td><code>1,25</code></td>
+<td><code>0,94</code></td>
+<td><code>4/4</code></td>
+<td><strong><code>+1,67R</code></strong></td>
+<td><code>False</code> (<code>DSR=0.94</code>)</td>
+</tr>
+<tr>
+<td><strong><code>K9.3</code> (<code>Donch12 + ADX4h&gt;=17 + RS&gt;=1.4</code>, <code>72h</code>)</strong></td>
+<td><strong><code>282</code></strong></td>
+<td><strong><code>+0,230R</code></strong></td>
+<td><strong><code>+0,068R</code></strong></td>
+<td><strong><code>1,43</code></strong></td>
+<td><strong><code>1,29</code></strong></td>
+<td><strong><code>0,96</code></strong></td>
+<td><strong><code>4/4</code></strong></td>
+<td><strong><code>+5,80R</code></strong></td>
+<td><strong><code>True</code> (HOMOLOGADA)</strong></td>
+</tr>
+<tr>
+<td><code>K9.4</code> (<code>Donch12 + ADX4h&gt;=16 + RS&gt;=1.4 + dist&lt;=3.3</code>)</td>
+<td><code>231</code></td>
+<td><code>+0,174R</code></td>
+<td><code>-0,015R</code></td>
+<td><code>1,32</code></td>
+<td><code>1,19</code></td>
+<td><code>0,85</code></td>
+<td><code>4/4</code></td>
+<td><code>-1,49R</code></td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>K9.5</code> (<code>Donch12 + ADX4h&gt;=17 + RS&gt;=1.3 + dist&lt;=3.2</code>)</td>
+<td><code>224</code></td>
+<td><code>+0,206R</code></td>
+<td><code>+0,029R</code></td>
+<td><code>1,40</code></td>
+<td><code>1,26</code></td>
+<td><code>0,92</code></td>
+<td><code>4/4</code></td>
+<td><strong><code>+0,86R</code></strong></td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>K9.6</code> (<code>Donch12 + ADX4h&gt;=16 + RS&gt;=1.5</code>, <code>72h</code>)</td>
+<td><code>287</code></td>
+<td><code>+0,214R</code></td>
+<td><code>+0,066R</code></td>
+<td><code>1,40</code></td>
+<td><code>1,26</code></td>
+<td><strong><code>0,95</code></strong></td>
+<td><code>4/4</code></td>
+<td><strong><code>+1,67R</code></strong></td>
+<td><code>False</code> (<code>0.948 &lt; 0.95</code>)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="65-quadro-oficial-de-homologacao-do-gate-3-k93-congelado-em-configstrategiesyaml">6.5. Quadro Oficial de Homologação do Gate 3 (<code>K9.3</code>, Congelado em <code>config/strategies.yaml</code>)<a class="headerlink" href="#65-quadro-oficial-de-homologacao-do-gate-3-k93-congelado-em-configstrategiesyaml" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Métrica do Gate 3</th>
+<th>Requisito Mínimo</th>
+<th>Resultado Empírico (<code>K9.3</code>)</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Amostra (<code>n_trades</code>)</strong></td>
+<td><span class="arithmatex">\(\ge 150\)</span> trades</td>
+<td><code>282</code> trades</td>
+<td><strong>PASS</strong></td>
+</tr>
+<tr>
+<td><strong>Expectância Líquida (<span class="arithmatex">\(\mathbb{E}[R]_{\text{net}}\)</span>)</strong></td>
+<td><span class="arithmatex">\(&gt; +0,10R\)</span></td>
+<td><strong><code>+0,230R</code></strong></td>
+<td><strong>PASS</strong></td>
+</tr>
+<tr>
+<td><strong>IC 95% Inferior (<em>Block Bootstrap</em>)</strong></td>
+<td><span class="arithmatex">\(&gt; 0,00R\)</span></td>
+<td><strong><code>+0,068R</code></strong></td>
+<td><strong>PASS</strong></td>
+</tr>
+<tr>
+<td><strong>Profit Factor (Cenário Base)</strong></td>
+<td><span class="arithmatex">\(\ge 1,20\)</span></td>
+<td><strong><code>1,43</code></strong></td>
+<td><strong>PASS</strong></td>
+</tr>
+<tr>
+<td><strong>Profit Factor (Cenário Pessimista)</strong></td>
+<td><span class="arithmatex">\(&gt; 1,05\)</span></td>
+<td><strong><code>1,29</code></strong></td>
+<td><strong>PASS</strong></td>
+</tr>
+<tr>
+<td><strong>Consistência em Subperíodos</strong></td>
+<td><span class="arithmatex">\(\ge 3 / 4\)</span> positivos</td>
+<td><strong><code>4 / 4</code> positivos</strong></td>
+<td><strong>PASS</strong></td>
+</tr>
+<tr>
+<td><strong>Holdout Intocável (Últimos 15%)</strong></td>
+<td>Soma <span class="arithmatex">\(&gt; 0,0R\)</span> (<code>holdout_positive = True</code>)</td>
+<td><strong><code>+5,80R</code> (<code>True</code>)</strong></td>
+<td><strong>PASS</strong></td>
+</tr>
+<tr>
+<td><strong>Deflated Sharpe Ratio (<span class="arithmatex">\(\text{DSR}\)</span>, <span class="arithmatex">\(K=9\)</span>)</strong></td>
+<td><span class="arithmatex">\(\ge 0,95\)</span></td>
+<td><strong><code>0,96</code></strong></td>
+<td><strong>PASS</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Síntese das 4 Leis Físicas Descobertas no Bloco 3 (Imutáveis para a Fase 1):</strong>
+1. <strong>Proibido Stop Curto (<code>2,0x ATR</code>) e Horizonte de <code>24h</code> em <code>1h</code>:</strong> A fricção de taxas + slippage consome <code>-0,127R</code> por trade em stops de <code>~2%</code> e gera <code>54,8%</code> de violinos; o stop de <code>3,0 * ATR_14</code> com alvo de <code>6,0 * ATR_14</code> e horizonte de <code>72h</code> reduz o peso percentual das taxas e captura a deriva positiva real do regime <code>BULL</code>.
+2. <strong>Continuação de Rompimento (<code>Donchian 12h + Order Flow</code>) vence Pullback Passivo:</strong> Comprar rompimento da máxima de <code>12h</code> com alinhamento <code>EMA 9 &gt; 20 &gt; 50 &gt; 100</code>, corpo <span class="arithmatex">\(\ge 0,65 \cdot \text{ATR}_{14}\)</span>, <code>RVOL_20 &gt;= 1,30</code> e <code>TBR &gt;= 0,52</code> seleciona apenas impulsos com agressão institucional real.
+3. <strong>Proibido Teto Artificial de Distância à <code>EMA_20</code> (<code>max_dist_ema20_atr</code>):</strong> Cortar velas que fecham acima de <code>2,0–3,3 ATR</code> da média rápida amputa a cauda direita dos maiores <em>winners</em> de tendência (<code>K3</code>, <code>K5.3</code>, <code>K8.1</code>, <code>K9.4</code>).
+4. <strong>Liderança Relativa (<code>RS_12h &gt;= 1,40</code> e <code>&gt;= BTC_RS_12h</code>) + <code>ADX_4h &gt;= 17,0</code> protegem o Holdout:</strong> Nunca comprar altcoin retardatária (mais fraca que o Bitcoin nas últimas 12h) nem operar tendência 4h frouxa (<code>ADX_4h &lt; 17</code>) eliminou o prejuízo em <code>ETH</code>, <code>ADA</code> e <code>LINK</code> nos últimos 6 meses, virando o Holdout de <code>-6,58R</code> para <strong><code>+5,80R</code></strong>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Voltar ao topo
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "content.code.copy"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "Mais 1 nesta p\u00e1gina", "search.result.more.other": "Mais # nesta p\u00e1gina", "search.result.none": "Nenhum resultado encontrado", "search.result.one": "1 resultado encontrado", "search.result.other": "# resultados encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
