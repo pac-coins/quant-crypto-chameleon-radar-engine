@@ -248,7 +248,7 @@ class WeightGovernor:
 # ---------------- Relógio monotônico (Cristian RTT/2) ----------------
 @dataclass(frozen=True, slots=True)
 class ClockSample:
-    offset_ms: float; rtt_ms: float; sampled_at_mono: float
+    offset_ms: float; rtt_ms: float; sampled_at_mono: float; wall_offset_ms: float = 0.0
 
 class MonotonicClock:
     def __init__(self, safety_margin_ms: int = 200, *, mono: Callable[[], float] = time.monotonic,

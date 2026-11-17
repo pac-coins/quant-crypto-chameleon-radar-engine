@@ -228,7 +228,7 @@ class QuantOrchestrator:
                 self.outbox.flush(now_ms=now_ms)
 
         if enqueue_startup_alert:
-            offset_ms = self.clock.last_sample.offset_ms if self.clock.last_sample else 0.0
+            offset_ms = self.clock.last_sample.wall_offset_ms if self.clock.last_sample else 0.0
             self.outbox.enqueue(
                 "BOT_START",
                 (
@@ -708,7 +708,7 @@ class QuantOrchestrator:
             CycleHealth(
                 cycle_close_time_ms=cycle_close_ms,
                 mode=self.settings.mode.value,
-                clock_offset_ms=last_sample.offset_ms if last_sample else 0.0,
+                clock_offset_ms=last_sample.wall_offset_ms if last_sample else 0.0,
                 clock_rtt_ms=last_sample.rtt_ms if last_sample else 0.0,
                 used_weight_1m_peak=self.public_client.governor.peak_weight_1m,
                 stale_symbols=tuple(stale_symbols),

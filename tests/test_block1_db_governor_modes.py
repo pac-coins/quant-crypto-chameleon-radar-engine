@@ -361,12 +361,19 @@ def test_gate1f_single_slot_unique_index_wrong_thread_and_wal_concurrency(
 def test_block1_clock_ed25519_sapi_mock_and_timeout_handling(tmp_path: Path) -> None:
     # 1. Cristian RTT/2 clock sync picks minimum-RTT sample
     mono_samples = iter([10.000, 10.040, 20.000, 20.010, 30.000, 30.050])
+    wall_samples = iter([1_700_010.000, 1_700_010.040, 1_700_020.000, 1_700_020.010, 1_700_030.000, 1_700_030.050])
     server_times = iter([1_700_010_025, 1_700_020_008, 1_700_030_030])
-    clock = MonotonicClock(safety_margin_ms=200, mono=lambda: next(mono_samples))
+    clock = MonotonicClock(
+        safety_margin_ms=200,
+        mono=lambda: next(mono_samples),
+        wall=lambda: next(wall_samples),
+    )
     best = clock.sync(lambda: next(server_times), samples=3)
     assert best.rtt_ms == pytest.approx(10.0)
     # Midpoint of 2nd sample was 20005.0 ms; server was 1_700_020_008 -> offset = 1_700_000_003.0
     assert best.offset_ms == pytest.approx(1_700_000_003.0)
+    # Wall midpoint of 2nd sample was 1_700_020_005.0 ms -> true wall skew is +3.0 ms
+    assert best.wall_offset_ms == pytest.approx(3.0)
 
     # 2. SignedBinanceClient Ed25519 signature, /sapi/* Testnet mock, and POST timeout -> RequestTimeoutUnknownState
     pem_path = _write_ed25519_pem(tmp_path / "signer.pem")

@@ -214,6 +214,7 @@ class ClockSample:
     offset_ms: float
     rtt_ms: float
     sampled_at_mono: float
+    wall_offset_ms: float = 0.0
 
 
 class MonotonicClock:
@@ -239,15 +240,20 @@ class MonotonicClock:
         best: ClockSample | None = None
         for _ in range(samples):
             t0 = self._mono() * 1000.0
+            w0 = self._wall() * 1000.0
             server_ms = float(fetch_server_time_ms())
             t1 = self._mono() * 1000.0
+            w1 = self._wall() * 1000.0
             rtt_ms = max(0.0, t1 - t0)
             midpoint_mono_ms = t0 + rtt_ms / 2.0
+            midpoint_wall_ms = (w0 + w1) / 2.0
             offset_ms = server_ms - midpoint_mono_ms
+            wall_offset_ms = server_ms - midpoint_wall_ms
             sample = ClockSample(
                 offset_ms=offset_ms,
                 rtt_ms=rtt_ms,
                 sampled_at_mono=t1 / 1000.0,
+                wall_offset_ms=wall_offset_ms,
             )
             if best is None or sample.rtt_ms < best.rtt_ms:
                 best = sample

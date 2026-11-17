@@ -561,7 +561,7 @@ def test_gate6_runtime_wiring_build_clients_collection_report_and_shadow_k93_tra
             return _klines(symbol, interval, cnt, t_close)
 
     pub = _FullFakePublic([])
-    clock = MonotonicClock()
+    clock = MonotonicClock(wall=lambda: (t_close + 2015) / 1000.0)
     clock.sync(pub.get_server_time_ms)
     all_syms = list(
         dict.fromkeys(
@@ -590,9 +590,20 @@ def test_gate6_runtime_wiring_build_clients_collection_report_and_shadow_k93_tra
         sleep_fn=lambda _: None,
     )
     orch.boot_reconcile(enqueue_startup_alert=True)
+    with db.read() as conn:
+        start_msg = conn.execute(
+            "SELECT payload FROM telegram_outbox WHERE kind = 'BOT_START' ORDER BY msg_id DESC LIMIT 1"
+        ).fetchone()[0]
+    assert "Offset relógio: -15.0 ms" in start_msg
+
     rep = orch.run_once(now_ms=t_close + 3000, skip_collect=False)
     assert rep.unhandled_errors == 0
     assert rep.cycle_close_time_ms == t_close
+    with db.read() as conn:
+        logged_offset = conn.execute(
+            "SELECT clock_offset_ms FROM cycle_health ORDER BY cycle_close_time_ms DESC LIMIT 1"
+        ).fetchone()[0]
+    assert abs(float(logged_offset)) <= 500.0
 
     # Also verify _manage_open_positions passes candles_by_symbol without TypeError
     filters = ex_cache.get("SOLUSDT")
@@ -625,3 +636,147 @@ def test_gate6_runtime_wiring_build_clients_collection_report_and_shadow_k93_tra
     assert rep_shadow.executed is True
     orch._manage_open_positions(t_close + 3000)
     db.close()
+
+
+def test_gate6_testnet_prepare_cli_and_production_refusal(tmp_path: Path) -> None:
+    from src.core.binance_client import BinanceAPIError
+    from src.core.config import (
+        PHASE_1_LIVE_CONFIRMATION,
+        AnalystConfig,
+        AppConfig,
+        BinanceEnv,
+        ConfigError,
+        RunMode,
+        RuntimeSettings,
+        StrategiesConfig,
+        load_yaml_strict,
+        sha256_file,
+    )
+    from src.tools.testnet_prepare import prepare_testnet_account
+
+    strategies_cfg = StrategiesConfig.model_validate(load_yaml_strict(Path("config/strategies.yaml")))
+    analyst_cfg = AnalystConfig.model_validate(load_yaml_strict(Path("config/analyst.yaml")))
+    pem_path = tmp_path / "ed25519.pem"
+    pem_path.write_text("dummy", encoding="utf-8")
+
+    # 1. Production config MUST be rejected unconditionally
+    prod_cfg = AppConfig(
+        runtime=RuntimeSettings(
+            mode=RunMode.LIVE_CHAMELEON_PHASE_1,
+            binance_env=BinanceEnv.PRODUCTION,
+            binance_api_key="prod_key",
+            binance_ed25519_private_key_path=pem_path,
+            live_confirmation=PHASE_1_LIVE_CONFIRMATION,
+            approved_strategies_sha256=sha256_file(Path("config/strategies.yaml")),
+            telegram_bot_token="123456:TEST",
+            telegram_chat_id="999999",
+            db_path=tmp_path / "prod.db",
+            backup_dir=tmp_path / "backups",
+        ),
+        strategies=strategies_cfg,
+        analyst=analyst_cfg,
+        strategies_sha256=sha256_file(Path("config/strategies.yaml")),
+    )
+    db_prod = Database(tmp_path / "prod.db")
+    db_prod.connect()
+    db_prod.migrate()
+    with pytest.raises(ConfigError, match="TESTNET"):
+        prepare_testnet_account(
+            cfg=prod_cfg,
+            db=db_prod,
+            public_client=_FakePublicClient([]),  # type: ignore[arg-type]
+            signed_client=None,
+            clock=MonotonicClock(),
+            execute=True,
+        )
+    db_prod.close()
+
+    # 2. Testnet cleanup sells all 7 starter coins (with chunk fallback on -1013), tops up BNB, resets HALT
+    tn_cfg = AppConfig(
+        runtime=RuntimeSettings(
+            mode=RunMode.LIVE_CHAMELEON_PHASE_1,
+            binance_env=BinanceEnv.TESTNET,
+            binance_api_key="tn_key",
+            binance_ed25519_private_key_path=pem_path,
+            telegram_bot_token="123456:TEST",
+            telegram_chat_id="999999",
+            db_path=tmp_path / "tn.db",
+            backup_dir=tmp_path / "backups",
+        ),
+        strategies=strategies_cfg,
+        analyst=analyst_cfg,
+        strategies_sha256=sha256_file(Path("config/strategies.yaml")),
+    )
+    db_tn = Database(tmp_path / "tn.db")
+    db_tn.connect()
+    db_tn.migrate()
+    db_tn.set_state("emergency_halt", "1")
+    db_tn.set_state("kill_switch_reason", "RECONCILIATION_OR_AUTH_FAILURE")
+    db_tn.set_state("reconcile_fail_streak", "2")
+
+    class _FakeTestnetSigned(_FakePublicClient):
+        def __init__(self) -> None:
+            super().__init__([])
+            self.testnet = True
+            self.balances: dict[str, Decimal] = {
+                "USDT": Decimal("5000.00"),
+                "BNB": Decimal("0.00"),
+                "BTC": Decimal("1.00"),
+                "ETH": Decimal("10.00"),
+                "SOL": Decimal("20.00"),
+                "XRP": Decimal("500.00"),
+                "ADA": Decimal("500.00"),
+                "LINK": Decimal("20.00"),
+                "AVAX": Decimal("20.00"),
+            }
+            self.eth_calls = 0
+
+        def get_server_time_ms(self) -> int:
+            return 1_794_918_000_012
+
+        def get_account(self, *, omit_zero_balances: bool = True) -> dict[str, Any]:
+            return {
+                "balances": [
+                    {"asset": k, "free": format(v, "f"), "locked": "0"}
+                    for k, v in self.balances.items()
+                    if (not omit_zero_balances or v > Decimal("0"))
+                ]
+            }
+
+        def new_market_sell(self, symbol: str, qty: Decimal, client_order_id: str) -> dict[str, Any]:
+            base = symbol.replace("USDT", "")
+            if symbol == "ETHUSDT" and qty > Decimal("3.00"):
+                self.eth_calls += 1
+                raise BinanceAPIError(400, -1013, "Filter failure: MARKET_LOT_SIZE", "/api/v3/order")
+            sold = min(qty, self.balances.get(base, Decimal("0")))
+            self.balances[base] -= sold
+            self.balances["USDT"] += sold * Decimal("200")
+            return {"executedQty": format(sold, "f")}
+
+        def new_market_buy_quote(self, symbol: str, quote_qty: Decimal, client_order_id: str) -> dict[str, Any]:
+            assert symbol == "BNBUSDT"
+            self.balances["USDT"] -= quote_qty
+            self.balances["BNB"] += Decimal("0.04")
+            return {"executedQty": "0.04"}
+
+    signed_tn = _FakeTestnetSigned()
+    clk = MonotonicClock(wall=lambda: 1_794_918_000.000)
+    summary = prepare_testnet_account(
+        cfg=tn_cfg,
+        db=db_tn,
+        public_client=signed_tn,  # type: ignore[arg-type]
+        signed_client=signed_tn,  # type: ignore[arg-type]
+        clock=clk,
+        execute=True,
+    )
+    assert summary.wall_offset_ms == pytest.approx(12.0, abs=1.0)
+    assert summary.halt_reset is True
+    assert summary.bnb_bought_usdt == Decimal("20.00")
+    assert summary.remaining_universe_assets == {}
+    assert set(summary.sold_assets.keys()) == {"BTC", "ETH", "SOL", "XRP", "ADA", "LINK", "AVAX"}
+    assert signed_tn.eth_calls >= 1
+    assert db_tn.get_state("emergency_halt") == "0"
+    assert db_tn.get_state("kill_switch_reason") == "NONE"
+    assert db_tn.get_state("reconcile_fail_streak") == "0"
+    db_tn.close()
+
