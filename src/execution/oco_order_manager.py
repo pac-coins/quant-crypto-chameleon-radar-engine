@@ -235,6 +235,26 @@ class OcoOrderManager:
 
         self._best_effort_db_write(_insert)
 
+    def _resync_clock_best_effort(self) -> bool:
+        """Ressincroniza o relógio monotônico via GET /api/v3/time em prioridade CRITICAL após erro -1021 (FI-02)."""
+        get_time = getattr(self.signed_client, "get_server_time_ms", None)
+        clock = getattr(self.signed_client, "clock", None)
+        if not callable(get_time) or clock is None or not callable(getattr(clock, "sync", None)):
+            return False
+
+        def _fetch() -> int:
+            try:
+                return int(get_time(priority=Priority.CRITICAL))
+            except TypeError:
+                return int(get_time())
+
+        try:
+            clock.sync(_fetch, samples=1)
+            return True
+        except Exception as exc:
+            logger.warning("Best-effort clock resync failed after -1021: %s", exc)
+            return False
+
     def get_free_asset_balance(self, asset: str, *, retries: int = 2) -> Optional[Decimal]:
         """Consulta o saldo livre de um ativo em /api/v3/account com retry curto."""
         acct: Optional[dict[str, Any]] = None
@@ -242,6 +262,13 @@ class OcoOrderManager:
             try:
                 acct = self.signed_client.get_account(omit_zero_balances=True)
                 break
+            except BinanceAPIError as exc:
+                if exc.code == -1021 and attempt + 1 < max(1, int(retries)):
+                    self._resync_clock_best_effort()
+                    continue
+                if attempt + 1 < max(1, int(retries)):
+                    self._sleep(0.05)
+                continue
             except Exception:
                 if attempt + 1 < max(1, int(retries)):
                     self._sleep(0.05)
@@ -895,6 +922,36 @@ class OcoOrderManager:
                     continue
                 raise
             except BinanceAPIError as oco_exc:
+                if oco_exc.code == -1021 and attempt == 0:
+                    last_exc = oco_exc
+                    resynced = self._resync_clock_best_effort()
+                    logger.warning(
+                        "Binance -1021 timestamp error placing OCO for %s trade #%s; clock resynced=%s",
+                        ctx.symbol,
+                        ctx.trade_id,
+                        resynced,
+                    )
+                    if resynced:
+                        try:
+                            t_retry = self.signed_client.get_book_ticker(
+                                ctx.symbol, priority=Priority.CRITICAL
+                            )
+                            if (
+                                self.resilience_cfg.fallback_to_market_on_stop_breach
+                                and t_retry.bid <= stop_price * Decimal("1.0005")
+                            ):
+                                return self._execute_emergency_market_sell(
+                                    ctx, q_oco, reason=ExitReason.FALLBACK_MARKET_2010
+                                )
+                            if t_retry.bid >= tp_price:
+                                return self._execute_emergency_market_sell(
+                                    ctx, q_oco, reason=ExitReason.TARGET
+                                )
+                        except Exception:
+                            pass
+                        continue
+                    raise
+
                 msg_lower = oco_exc.msg.lower()
                 is_stop_trigger = oco_exc.code in (-2010, -1013) and (
                     "would trigger immediately" in msg_lower
@@ -971,44 +1028,59 @@ class OcoOrderManager:
         reason: ExitReason,
     ) -> ExecutionReport:
         """Dispara venda total a MARKET imediatamente e marca a operação como CLOSED."""
-        sell_client_id = f"EMERG_{ctx.symbol}_{ctx.trade_id}_{self._now_ms()}"
-        try:
-            sell_resp = self.signed_client.new_market_sell(
-                symbol=ctx.symbol,
-                qty=qty,
-                client_order_id=sell_client_id,
-            )
-            self._log_order_event_best_effort(
-                trade_id=ctx.trade_id,
-                client_order_id=sell_client_id,
-                method="POST",
-                endpoint="/api/v3/order",
-                http_status=200,
-                binance_code=None,
-                request_obj={
-                    "symbol": ctx.symbol,
-                    "side": "SELL",
-                    "type": "MARKET",
-                    "quantity": to_api_str(qty),
-                    "newClientOrderId": sell_client_id,
-                    "reason": reason.value,
-                },
-                response_obj=sell_resp,
-            )
-        except RequestTimeoutUnknownState:
-            sell_resp = self.signed_client.get_order(
-                ctx.symbol, orig_client_order_id=sell_client_id
-            )
-            self._log_order_event_best_effort(
-                trade_id=ctx.trade_id,
-                client_order_id=sell_client_id,
-                method="GET",
-                endpoint="/api/v3/order",
-                http_status=200,
-                binance_code=None,
-                request_obj={"symbol": ctx.symbol, "origClientOrderId": sell_client_id},
-                response_obj=sell_resp,
-            )
+        sell_resp: Optional[dict[str, Any]] = None
+        for attempt in range(2):
+            sell_client_id = f"EMERG_{ctx.symbol}_{ctx.trade_id}_{self._now_ms()}"
+            try:
+                sell_resp = self.signed_client.new_market_sell(
+                    symbol=ctx.symbol,
+                    qty=qty,
+                    client_order_id=sell_client_id,
+                )
+                self._log_order_event_best_effort(
+                    trade_id=ctx.trade_id,
+                    client_order_id=sell_client_id,
+                    method="POST",
+                    endpoint="/api/v3/order",
+                    http_status=200,
+                    binance_code=None,
+                    request_obj={
+                        "symbol": ctx.symbol,
+                        "side": "SELL",
+                        "type": "MARKET",
+                        "quantity": to_api_str(qty),
+                        "newClientOrderId": sell_client_id,
+                        "reason": reason.value,
+                    },
+                    response_obj=sell_resp,
+                )
+                break
+            except RequestTimeoutUnknownState:
+                sell_resp = self.signed_client.get_order(
+                    ctx.symbol, orig_client_order_id=sell_client_id
+                )
+                self._log_order_event_best_effort(
+                    trade_id=ctx.trade_id,
+                    client_order_id=sell_client_id,
+                    method="GET",
+                    endpoint="/api/v3/order",
+                    http_status=200,
+                    binance_code=None,
+                    request_obj={"symbol": ctx.symbol, "origClientOrderId": sell_client_id},
+                    response_obj=sell_resp,
+                )
+                break
+            except BinanceAPIError as sell_exc:
+                if sell_exc.code == -1021 and attempt == 0 and self._resync_clock_best_effort():
+                    logger.warning(
+                        "Binance -1021 timestamp error on emergency market sell for %s trade #%s; clock resynced, retrying once",
+                        ctx.symbol,
+                        ctx.trade_id,
+                    )
+                    continue
+                raise
+
+        assert sell_resp is not None
 
         sold_qty, sell_avg_price, quote_received, _ = extract_fill_summary(
             sell_resp, ctx.base_asset

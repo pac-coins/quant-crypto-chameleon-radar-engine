@@ -461,15 +461,6 @@ def test_fi_binance_1021_on_entry_rejects_cleanly_without_duplicate(tmp_path: Pa
     assert session.request.call_count == 1  # Zero duplicate order
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "FI-02 (Cat. 1): Binance -1021 (Timestamp outside recvWindow) on POST /api/v3/orderList/oco "
-        "after a FILLED buy is neither resynced nor retried in SignedBinanceClient.signed_request "
-        "(src/core/binance_client.py:710-756) or OcoOrderManager.protect_or_fallback_market "
-        "(src/execution/oco_order_manager.py:897-961), leaving the bought position without a stop."
-    ),
-)
 def test_fi_binance_1021_after_fill_on_oco_must_resync_and_protect(tmp_path: Path) -> None:
     st, _ = _load_cfgs()
     db = Database(tmp_path / "fi_1021_oco.db")
@@ -477,13 +468,20 @@ def test_fi_binance_1021_after_fill_on_oco_must_resync_and_protect(tmp_path: Pat
 
     session = MagicMock(spec=requests.Session)
     oco_attempts = 0
+    time_syncs = 0
+    oco_timestamps: list[int] = []
 
     def _dispatch(method: str, url: str, **kwargs: Any) -> MagicMock:
-        nonlocal oco_attempts
+        nonlocal oco_attempts, time_syncs
         if method == "GET" and "/api/v3/time" in url:
+            time_syncs += 1
             return _mock_response(200, {"serverTime": 1_700_000_005_000})
         if method == "POST" and "/api/v3/orderList/oco" in url:
+            from urllib.parse import parse_qs, urlsplit
+
             oco_attempts += 1
+            ts = int(parse_qs(urlsplit(url).query)["timestamp"][0])
+            oco_timestamps.append(ts)
             if oco_attempts == 1:
                 return _mock_response(
                     400, {"code": -1021, "msg": "Timestamp for this request is outside of the recvWindow."}
@@ -528,6 +526,88 @@ def test_fi_binance_1021_after_fill_on_oco_must_resync_and_protect(tmp_path: Pat
 
     assert rep.status == TradeStatus.PROTECTED.value
     assert oco_attempts == 2
+    assert time_syncs == 1
+    assert oco_timestamps[1] > oco_timestamps[0]  # Resynced against serverTime (+5000 ms)
+
+
+def test_fi_binance_1021_on_emergency_market_sell_resyncs_and_closes(tmp_path: Path) -> None:
+    """-1021 on emergency market sell (stop-breach fallback) resyncs clock at CRITICAL and closes cleanly."""
+    st, _ = _load_cfgs()
+    db = Database(tmp_path / "fi_1021_sell.db")
+    db.migrate()
+    tid = _insert_trade(db, status=TradeStatus.ENTRY_FILLED.value, oco_order_list_id=None, oco_qty=None)
+
+    session = MagicMock(spec=requests.Session)
+    sell_attempts = 0
+    time_syncs = 0
+
+    def _dispatch(method: str, url: str, **kwargs: Any) -> MagicMock:
+        nonlocal sell_attempts, time_syncs
+        if method == "GET" and "/api/v3/time" in url:
+            time_syncs += 1
+            return _mock_response(200, {"serverTime": 1_700_000_005_000})
+        if method == "GET" and "/api/v3/account" in url:
+            return _mock_response(200, {"balances": [{"asset": "SOL", "free": "10.00", "locked": "0.00"}]})
+        if method == "GET" and "/api/v3/ticker/bookTicker" in url:
+            return _mock_response(
+                200,
+                {"symbol": "SOLUSDT", "bidPrice": "93.00", "bidQty": "50", "askPrice": "93.05", "askQty": "50"},
+            )
+        if method == "POST" and "/api/v3/order" in url:
+            sell_attempts += 1
+            if sell_attempts == 1:
+                return _mock_response(
+                    400, {"code": -1021, "msg": "Timestamp for this request is outside of the recvWindow."}
+                )
+            return _mock_response(
+                200,
+                {
+                    "symbol": "SOLUSDT",
+                    "orderId": 9001,
+                    "status": "FILLED",
+                    "executedQty": "10.00",
+                    "cummulativeQuoteQty": "930.00",
+                    "fills": [],
+                },
+            )
+        raise AssertionError(f"Unexpected HTTP call: {method} {url}")
+
+    session.request.side_effect = _dispatch
+    client = SignedBinanceClient(
+        "https://testnet.binance.vision",
+        WeightGovernor(),
+        MonotonicClock(mono=lambda: 100.0, wall=lambda: 1_700_000_000.0),
+        api_key="k",
+        ed25519_private_key_path=_make_ed25519_pem(tmp_path),
+        testnet=True,
+        session=session,
+    )
+    mgr = OcoOrderManager(
+        db=db, signed_client=client, resilience_cfg=st.execution_and_resilience, sleep_fn=lambda _: None
+    )
+    ctx = ActiveTradeContext(
+        trade_id=tid,
+        client_order_id="CHM_SOLUSDT_FI1",
+        symbol="SOLUSDT",
+        base_asset="SOL",
+        status=TradeStatus.ENTRY_FILLED.value,
+        entry_order_id=1001,
+        executed_qty=Decimal("10.00"),
+        avg_entry_price=Decimal("100.00"),
+        quote_spent=Decimal("1000.00"),
+        commission_base_asset=Decimal("0"),
+        planned_stop_price=Decimal("94.00"),
+        planned_target_price=Decimal("112.00"),
+        time_barrier_end_ms=1_700_259_200_000,
+    )
+    with client.governor.critical_section():
+        rep = mgr.protect_or_fallback_market(ctx, _sol_filters())
+    db.close()
+
+    assert rep.status == TradeStatus.CLOSED.value
+    assert rep.exit_reason == ExitReason.FALLBACK_MARKET_2010.value
+    assert sell_attempts == 2
+    assert time_syncs == 1
 
 
 def test_fi_binance_429_rate_limit_suspends_non_critical_while_oco_retries_and_protects(
