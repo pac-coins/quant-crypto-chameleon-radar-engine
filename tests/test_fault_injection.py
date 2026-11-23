@@ -269,14 +269,6 @@ def test_fi_binance_1007_timeout_on_buy_and_oco_no_duplicate_and_always_protecte
     assert oco_posts == 1  # Invariant: never duplicate OCO when accepted on exchange
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "FI-01 (Cat. 1): _execute_emergency_market_sell (src/execution/oco_order_manager.py:998-1001) "
-        "does not retry emergency sell when -1007 timeout recovery via get_order returns -2013 "
-        "(order did not reach Binance), leaving an open position without a stop."
-    ),
-)
 def test_fi_binance_1007_timeout_on_emergency_market_sell_missing_2013_retries_sell(
     tmp_path: Path,
 ) -> None:
@@ -290,6 +282,7 @@ def test_fi_binance_1007_timeout_on_emergency_market_sell_missing_2013_retries_s
             self.governor = WeightGovernor()
             self.clock = MonotonicClock()
             self.sell_attempts = 0
+            self.sell_client_ids: list[str] = []
             self.free_sol = Decimal("10.00")
 
         def get_account(self, **_: Any) -> dict[str, Any]:
@@ -301,6 +294,7 @@ def test_fi_binance_1007_timeout_on_emergency_market_sell_missing_2013_retries_s
 
         def new_market_sell(self, symbol: str, qty: Decimal, client_order_id: str) -> dict[str, Any]:
             self.sell_attempts += 1
+            self.sell_client_ids.append(client_order_id)
             if self.sell_attempts == 1:
                 raise RequestTimeoutUnknownState("-1007 before matching engine")
             self.free_sol -= qty
@@ -332,6 +326,67 @@ def test_fi_binance_1007_timeout_on_emergency_market_sell_missing_2013_retries_s
     db.close()
     assert rep.status == TradeStatus.CLOSED.value
     assert ex.free_sol == Decimal("0.00")
+    assert ex.sell_attempts == 2
+    assert len(set(ex.sell_client_ids)) == 2
+    assert all(len(coid) <= 36 for coid in ex.sell_client_ids)
+
+    # Companion invariant: when -1007 happens AFTER matching engine filled the sell,
+    # get_order recovers the filled sell and NEVER sends a duplicate market sell.
+    db2 = Database(tmp_path / "fi_1007_emerg_filled.db")
+    db2.migrate()
+    tid2 = _insert_trade(db2, status=TradeStatus.ENTRY_FILLED.value, oco_order_list_id=None, oco_qty=None)
+
+    class _ExchangeTimeoutAfterFilledEmergencySell:
+        def __init__(self) -> None:
+            self.governor = WeightGovernor()
+            self.clock = MonotonicClock()
+            self.sell_attempts = 0
+            self.free_sol = Decimal("10.00")
+            self.filled_by_coid: dict[str, dict[str, Any]] = {}
+
+        def get_account(self, **_: Any) -> dict[str, Any]:
+            return {"balances": [{"asset": "SOL", "free": str(self.free_sol), "locked": "0.00"}]}
+
+        def get_book_ticker(self, symbol: str, **_: Any) -> BookTicker:
+            return BookTicker(symbol, Decimal("93.00"), Decimal("10"), Decimal("93.05"), Decimal("10"))
+
+        def new_market_sell(self, symbol: str, qty: Decimal, client_order_id: str) -> dict[str, Any]:
+            self.sell_attempts += 1
+            self.free_sol -= qty
+            self.filled_by_coid[client_order_id] = {
+                "executedQty": str(qty),
+                "cummulativeQuoteQty": str(qty * Decimal("93.00")),
+                "fills": [],
+            }
+            raise RequestTimeoutUnknownState("-1007 after matching engine filled sell")
+
+        def get_order(self, symbol: str, *, orig_client_order_id: str) -> dict[str, Any]:
+            return self.filled_by_coid[orig_client_order_id]
+
+    ex2 = _ExchangeTimeoutAfterFilledEmergencySell()
+    mgr2 = OcoOrderManager(
+        db=db2, signed_client=ex2, resilience_cfg=st.execution_and_resilience, sleep_fn=lambda _: None  # type: ignore[arg-type]
+    )
+    ctx2 = ActiveTradeContext(
+        trade_id=tid2,
+        client_order_id="CHM_SOLUSDT_FI1",
+        symbol="SOLUSDT",
+        base_asset="SOL",
+        status=TradeStatus.ENTRY_FILLED.value,
+        entry_order_id=1001,
+        executed_qty=Decimal("10.00"),
+        avg_entry_price=Decimal("100.00"),
+        quote_spent=Decimal("1000.00"),
+        commission_base_asset=Decimal("0"),
+        planned_stop_price=Decimal("94.00"),
+        planned_target_price=Decimal("112.00"),
+        time_barrier_end_ms=1_700_259_200_000,
+    )
+    rep2 = mgr2.protect_or_fallback_market(ctx2, _sol_filters())
+    db2.close()
+    assert rep2.status == TradeStatus.CLOSED.value
+    assert ex2.free_sol == Decimal("0.00")
+    assert ex2.sell_attempts == 1  # Zero duplicate sell!
 
 
 def test_fi_binance_2010_price_breach_stop_and_target_exits_cleanly_without_naked_position(

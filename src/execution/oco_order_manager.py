@@ -1030,7 +1030,7 @@ class OcoOrderManager:
         """Dispara venda total a MARKET imediatamente e marca a operação como CLOSED."""
         sell_resp: Optional[dict[str, Any]] = None
         for attempt in range(2):
-            sell_client_id = f"EMERG_{ctx.symbol}_{ctx.trade_id}_{self._now_ms()}"
+            sell_client_id = f"EMERG_{ctx.symbol}_{ctx.trade_id}_{self._now_ms() + attempt}"
             try:
                 sell_resp = self.signed_client.new_market_sell(
                     symbol=ctx.symbol,
@@ -1056,9 +1056,44 @@ class OcoOrderManager:
                 )
                 break
             except RequestTimeoutUnknownState:
-                sell_resp = self.signed_client.get_order(
-                    ctx.symbol, orig_client_order_id=sell_client_id
-                )
+                try:
+                    sell_resp = self.signed_client.get_order(
+                        ctx.symbol, orig_client_order_id=sell_client_id
+                    )
+                except BinanceAPIError as get_exc:
+                    if get_exc.code == -1021 and self._resync_clock_best_effort():
+                        try:
+                            sell_resp = self.signed_client.get_order(
+                                ctx.symbol, orig_client_order_id=sell_client_id
+                            )
+                        except BinanceAPIError as get_exc2:
+                            get_exc = get_exc2
+                        else:
+                            get_exc = None  # type: ignore[assignment]
+                    if get_exc is not None:
+                        self._log_order_event_best_effort(
+                            trade_id=ctx.trade_id,
+                            client_order_id=sell_client_id,
+                            method="GET",
+                            endpoint="/api/v3/order",
+                            http_status=get_exc.http_status,
+                            binance_code=get_exc.code,
+                            request_obj={"symbol": ctx.symbol, "origClientOrderId": sell_client_id},
+                            response_obj={"msg": get_exc.msg},
+                        )
+                        if get_exc.code == -2013 and attempt == 0:
+                            # FI-01: -2013 confirma que a venda de emergência NÃO chegou à Binance;
+                            # reenvia uma única vez para jamais deixar a posição aberta sem stop.
+                            logger.warning(
+                                "Emergency market sell %s timed out (-1007) and get_order returned -2013 "
+                                "on %s trade #%s; retrying once",
+                                sell_client_id,
+                                ctx.symbol,
+                                ctx.trade_id,
+                            )
+                            continue
+                        raise
+                assert sell_resp is not None
                 self._log_order_event_best_effort(
                     trade_id=ctx.trade_id,
                     client_order_id=sell_client_id,
