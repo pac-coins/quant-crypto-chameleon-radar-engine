@@ -1,14 +1,23 @@
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Final, Sequence
 
 import pandas as pd
+import requests
 
-from src.core.binance_client import MonotonicClock, PublicBinanceClient
+from src.core.binance_client import (
+    BinanceAPIError,
+    MonotonicClock,
+    PublicBinanceClient,
+    WeightBudgetExceeded,
+)
 from src.core.config import Interval
 from src.core.database import CandleRow, Database
+
+logger = logging.getLogger("candle_collector")
 
 INTERVAL_MS: Final[dict[str, int]] = {
     "1m": 60_000,
@@ -250,8 +259,33 @@ class CandleCollector:
             still_pending: list[str] = []
             for sym in pending:
                 now_ms = max(self.clock.server_now_ms(), int(expected_close_time_ms))
-                raw_list = self.client.get_klines(sym, interval, limit=3)
-                parsed = [parse_kline(r, sym, interval, now_ms) for r in raw_list]
+                try:
+                    raw_list = self.client.get_klines(sym, interval, limit=3)
+                except (BinanceAPIError, requests.RequestException, WeightBudgetExceeded) as exc:
+                    logger.warning(
+                        "Transient kline fetch error for %s (%s, attempt %d/%d): %s",
+                        sym,
+                        interval,
+                        attempt,
+                        self.max_retries,
+                        exc,
+                    )
+                    still_pending.append(sym)
+                    continue
+
+                parsed: list[CandleRow] = []
+                for r in raw_list:
+                    try:
+                        parsed.append(parse_kline(r, sym, interval, now_ms))
+                    except KlineIntegrityError as exc:
+                        logger.warning(
+                            "Skipping malformed/truncated kline for %s (%s): %s",
+                            sym,
+                            interval,
+                            exc,
+                        )
+                        continue
+
                 closed = drop_unclosed(parsed, now_ms)
                 if closed:
                     self.db.upsert_candles(closed)
@@ -318,7 +352,12 @@ class CandleCollector:
                 end_time_ms=end_close_ms,
                 limit=1000,
             )
-            parsed = [parse_kline(r, symbol, interval, now_ms) for r in raw_list]
+            parsed: list[CandleRow] = []
+            for r in raw_list:
+                try:
+                    parsed.append(parse_kline(r, symbol, interval, now_ms))
+                except KlineIntegrityError:
+                    continue
             closed = drop_unclosed(parsed, now_ms)
             repaired_total += self.db.upsert_candles(closed)
         return repaired_total

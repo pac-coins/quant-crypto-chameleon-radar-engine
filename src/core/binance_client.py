@@ -30,6 +30,7 @@ ENDPOINT_WEIGHTS: Final[dict[str, int]] = {
     "GET /api/v3/order": 4,
     "GET /api/v3/orderList": 4,
     "GET /api/v3/openOrderList": 6,
+    "GET /api/v3/myTrades": 5,
     "POST /api/v3/order": 1,
     "POST /api/v3/orderList/oco": 1,
     "DELETE /api/v3/orderList": 1,
@@ -74,9 +75,33 @@ class BinanceAPIError(RuntimeError):
 class RateLimitedError(BinanceAPIError):
     """Raised when Binance returns HTTP 429 (Too Many Requests)."""
 
+    def __init__(
+        self,
+        http_status: int,
+        code: int | None,
+        msg: str,
+        endpoint: str,
+        *,
+        retry_after_s: float | None = None,
+    ) -> None:
+        self.retry_after_s = float(retry_after_s) if retry_after_s is not None else None
+        super().__init__(http_status, code, msg, endpoint)
+
 
 class IPBannedError(BinanceAPIError):
     """Raised when Binance returns HTTP 418 (IP auto-banned)."""
+
+    def __init__(
+        self,
+        http_status: int,
+        code: int | None,
+        msg: str,
+        endpoint: str,
+        *,
+        retry_after_s: float | None = None,
+    ) -> None:
+        self.retry_after_s = float(retry_after_s) if retry_after_s is not None else None
+        super().__init__(http_status, code, msg, endpoint)
 
 
 class WeightBudgetExceeded(RuntimeError):
@@ -103,15 +128,15 @@ class WeightGovernor:
         self._lock = threading.RLock()
         self._used_weight_1m: int = 0
         self._peak_weight_1m: int = 0
-        self._window_minute: int = int(self._now() // 60)
+        self._window_started_at: float = self._now()
         self._critical_depth: int = 0
+        self._rate_limit_until: float = 0.0
         self._non_critical_suspended_until: float = 0.0
         self._ip_banned_until: float = 0.0
 
     def _roll_window_unlocked(self, now_s: float) -> None:
-        cur_min = int(now_s // 60)
-        if cur_min != self._window_minute:
-            self._window_minute = cur_min
+        if (now_s - self._window_started_at) >= 60.0:
+            self._window_started_at = now_s
             self._used_weight_1m = 0
 
     def acquire(self, weight: int, priority: Priority) -> None:
@@ -151,20 +176,30 @@ class WeightGovernor:
                         f"HIGH priority budget exceeded: projected={projected} > {max_allowed}"
                     )
 
+            if self._used_weight_1m == 0 and projected > 0:
+                self._window_started_at = now_s
             self._used_weight_1m = projected
             if self._used_weight_1m > self._peak_weight_1m:
                 self._peak_weight_1m = self._used_weight_1m
 
     def update_from_headers(self, headers: Mapping[str, str]) -> None:
         with self._lock:
-            self._roll_window_unlocked(self._now())
+            now_s = self._now()
+            self._roll_window_unlocked(now_s)
             for k, v in headers.items():
                 if k.upper() == "X-MBX-USED-WEIGHT-1M":
                     try:
                         reported = int(v)
                     except ValueError:
                         return
-                    self._used_weight_1m = max(self._used_weight_1m, reported)
+                    if reported < self._used_weight_1m:
+                        # Binance UTC minute rolled over: trust authoritative lower server header.
+                        self._used_weight_1m = reported
+                        self._window_started_at = now_s
+                    else:
+                        if self._used_weight_1m == 0 and reported > 0:
+                            self._window_started_at = now_s
+                        self._used_weight_1m = max(self._used_weight_1m, reported)
                     if self._used_weight_1m > self._peak_weight_1m:
                         self._peak_weight_1m = self._used_weight_1m
                     return
@@ -173,12 +208,18 @@ class WeightGovernor:
         cooldown = max(float(retry_after_s), 1.0)
         with self._lock:
             now_s = self._now()
+            self._rate_limit_until = max(self._rate_limit_until, now_s + cooldown)
             if banned:
                 self._ip_banned_until = max(self._ip_banned_until, now_s + cooldown)
             self._non_critical_suspended_until = max(
                 self._non_critical_suspended_until,
                 now_s + 2.0 * cooldown,
             )
+
+    @property
+    def retry_after_remaining_s(self) -> float:
+        with self._lock:
+            return max(0.0, self._rate_limit_until - self._now())
 
     @contextmanager
     def critical_section(self) -> Iterator[None]:
@@ -426,8 +467,12 @@ class PublicBinanceClient:
             self.governor.on_rate_limited(retry_after, banned=banned)
             code, msg = self._parse_error_payload(resp)
             if banned:
-                raise IPBannedError(resp.status_code, code, msg, endpoint)
-            raise RateLimitedError(resp.status_code, code, msg, endpoint)
+                raise IPBannedError(
+                    resp.status_code, code, msg, endpoint, retry_after_s=retry_after
+                )
+            raise RateLimitedError(
+                resp.status_code, code, msg, endpoint, retry_after_s=retry_after
+            )
 
         if resp.status_code >= 400:
             code, msg = self._parse_error_payload(resp)
@@ -703,10 +748,10 @@ class SignedBinanceClient(PublicBinanceClient):
         try:
             return self._handle_response(resp, endpoint)
         except BinanceAPIError as exc:
-            if method.upper() == "POST" and exc.code == -1007:
+            if method.upper() == "POST" and (exc.code == -1007 or 500 <= exc.http_status < 600):
                 raise RequestTimeoutUnknownState(
-                    f"Binance returned -1007 (Timeout waiting for backend) on {endpoint}; "
-                    "query origClientOrderId before retrying."
+                    f"Binance returned HTTP {exc.http_status} (code={exc.code}) on {endpoint}; "
+                    "execution status is UNKNOWN. Query origClientOrderId before retrying."
                 ) from exc
             raise
 
@@ -720,11 +765,24 @@ class SignedBinanceClient(PublicBinanceClient):
         )
         return dict(data)
 
-    def get_order(self, symbol: str, *, orig_client_order_id: str) -> dict[str, Any]:
+    def get_order(
+        self,
+        symbol: str,
+        *,
+        orig_client_order_id: str | None = None,
+        order_id: int | None = None,
+    ) -> dict[str, Any]:
+        if orig_client_order_id is None and order_id is None:
+            raise ValueError("get_order requires orig_client_order_id or order_id.")
+        params: dict[str, Any] = {"symbol": symbol}
+        if orig_client_order_id is not None:
+            params["origClientOrderId"] = orig_client_order_id
+        if order_id is not None:
+            params["orderId"] = int(order_id)
         data = self.signed_request(
             "GET",
             "/api/v3/order",
-            {"symbol": symbol, "origClientOrderId": orig_client_order_id},
+            params,
             weight=ENDPOINT_WEIGHTS["GET /api/v3/order"],
             priority=Priority.CRITICAL,
         )
@@ -740,6 +798,27 @@ class SignedBinanceClient(PublicBinanceClient):
         )
         return list(data)
 
+    def get_my_trades(
+        self,
+        symbol: str,
+        *,
+        order_id: int | None = None,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        params: dict[str, Any] = {"symbol": symbol, "limit": int(limit)}
+        weight = 20
+        if order_id is not None:
+            params["orderId"] = int(order_id)
+            weight = ENDPOINT_WEIGHTS["GET /api/v3/myTrades"]
+        data = self.signed_request(
+            "GET",
+            "/api/v3/myTrades",
+            params,
+            weight=weight,
+            priority=Priority.CRITICAL,
+        )
+        return list(data)
+
     def get_account_commission(self, symbol: str) -> dict[str, Any]:
         data = self.signed_request(
             "GET",
@@ -750,7 +829,7 @@ class SignedBinanceClient(PublicBinanceClient):
         )
         return dict(data)
 
-    # /sapi/*: mock automático quando testnet=True (TODO Cat.2)
+    # /sapi/*: mock automático quando testnet=True (TODO Cat.2); pool SAPI separado (unified-architecture.md:221)
     def sapi_system_status(self) -> SystemStatus:
         if self.testnet:
             return SystemStatus(normal=True, msg="normal (mocked on TESTNET)", mocked=True)
@@ -758,7 +837,7 @@ class SignedBinanceClient(PublicBinanceClient):
             "GET",
             "/sapi/v1/system/status",
             None,
-            weight=1,
+            weight=0,
             priority=Priority.HIGH,
         )
         status_code = int(data.get("status", 0))
@@ -779,7 +858,7 @@ class SignedBinanceClient(PublicBinanceClient):
             "POST",
             "/sapi/v1/asset/transfer",
             {"type": "MAIN_FUNDING", "asset": asset, "amount": amt_str},
-            weight=1,
+            weight=0,
             priority=Priority.CRITICAL,
         )
         return dict(data)
@@ -871,11 +950,23 @@ class SignedBinanceClient(PublicBinanceClient):
         )
         return dict(data)
 
-    def get_order_list(self, order_list_id: int) -> dict[str, Any]:
+    def get_order_list(
+        self,
+        order_list_id: int | None = None,
+        *,
+        orig_client_order_id: str | None = None,
+    ) -> dict[str, Any]:
+        if order_list_id is None and orig_client_order_id is None:
+            raise ValueError("get_order_list requires order_list_id or orig_client_order_id.")
+        params: dict[str, Any] = {}
+        if order_list_id is not None:
+            params["orderListId"] = int(order_list_id)
+        if orig_client_order_id is not None:
+            params["origClientOrderId"] = orig_client_order_id
         data = self.signed_request(
             "GET",
             "/api/v3/orderList",
-            {"orderListId": int(order_list_id)},
+            params,
             weight=ENDPOINT_WEIGHTS["GET /api/v3/orderList"],
             priority=Priority.CRITICAL,
         )
