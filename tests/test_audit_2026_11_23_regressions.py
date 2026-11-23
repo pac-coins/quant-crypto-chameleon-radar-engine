@@ -632,3 +632,401 @@ def test_audit_a2_04_commission_recovery_via_mytrades_and_conservative_estimate_
     assert ev is not None and ev["endpoint"] == "local://oco_qty_estimated_fee"
     assert len(alerts2) == 1 and alerts2[0][0] == "OCO_QTY_ESTIMATED"
     db2.close()
+
+
+# =============================================================================
+# Commit 3 — Time-Stop (A1-02, A1-07) & Hanging-Stop Watchdog (A1-05a/b)
+# =============================================================================
+
+
+def test_audit_a1_02_time_stop_must_not_mark_closed_when_cancel_fails_and_oco_still_executing(
+    tmp_path: Path,
+) -> None:
+    from src.execution.executor_protocol import TradeStatus
+    from src.execution.oco_order_manager import OcoOrderManager
+
+    st, _ = _load_cfgs()
+    db = Database(tmp_path / "a1_02.db")
+    db.migrate()
+    trade_id = _insert_trade(
+        db, status=TradeStatus.PROTECTED.value, oco_order_list_id=5001, oco_qty="10.00"
+    )
+
+    class _ExchangeCancelFailsOcoStillOpen:
+        def __init__(self) -> None:
+            self.governor = WeightGovernor()
+            self.clock = MonotonicClock()
+
+        def cancel_order_list(self, symbol: str, order_list_id: int) -> dict[str, Any]:
+            raise BinanceAPIError(503, -1001, "Internal error; unable to process", "DELETE /api/v3/orderList")
+
+        def get_order_list(self, order_list_id: int) -> dict[str, Any]:
+            return {"orderListId": order_list_id, "listOrderStatus": "EXECUTING", "orders": []}
+
+        def get_account(self, **_: Any) -> dict[str, Any]:
+            return {"balances": [{"asset": "SOL", "free": "0.00", "locked": "10.00"}]}
+
+    ex = _ExchangeCancelFailsOcoStillOpen()
+    mgr = OcoOrderManager(
+        db=db,
+        signed_client=ex,  # type: ignore[arg-type]
+        resilience_cfg=st.execution_and_resilience,
+        sleep_fn=lambda _: None,
+    )
+
+    with pytest.raises(BinanceAPIError):
+        mgr.close_on_time_barrier(
+            trade_id=trade_id,
+            symbol="SOLUSDT",
+            base_asset="SOL",
+            oco_order_list_id=5001,
+            oco_qty=Decimal("10.00"),
+            symbol_filters=_sol_filters(),
+        )
+
+    with db.read() as conn:
+        row = conn.execute("SELECT status FROM trades WHERE trade_id = ?", (trade_id,)).fetchone()
+    db.close()
+    assert row is not None and row["status"] == TradeStatus.PROTECTED.value
+
+
+def test_audit_a1_05a_watchdog_cancels_oco_then_uses_remaining_from_oco_on_account_error(
+    tmp_path: Path,
+) -> None:
+    from src.execution.executor_protocol import ExitReason, TradeStatus
+    from src.execution.oco_order_manager import OcoOrderManager
+
+    st, _ = _load_cfgs()
+    db = Database(tmp_path / "a1_05a.db")
+    db.migrate()
+    trade_id = _insert_trade(
+        db, status=TradeStatus.PROTECTED.value, oco_order_list_id=5001, oco_qty="10.00"
+    )
+
+    class _ExchangeWatchdogAccountFails:
+        def __init__(self) -> None:
+            self.governor = WeightGovernor()
+            self.clock = MonotonicClock()
+            self.canceled: list[int] = []
+            self.market_sells: list[Decimal] = []
+            self.was_in_critical_section = False
+
+        def get_book_ticker(self, symbol: str, **_: Any) -> BookTicker:
+            return BookTicker(symbol, Decimal("89.00"), Decimal("10"), Decimal("89.10"), Decimal("10"))
+
+        def get_order_list(self, order_list_id: int) -> dict[str, Any]:
+            return {"orderListId": order_list_id, "listOrderStatus": "EXECUTING"}
+
+        def cancel_order_list(self, symbol: str, order_list_id: int) -> dict[str, Any]:
+            from src.core.binance_client import Priority, WeightBudgetExceeded
+
+            try:
+                self.governor.acquire(1, Priority.LOW)
+                self.was_in_critical_section = False
+            except WeightBudgetExceeded:
+                self.was_in_critical_section = True
+            self.canceled.append(order_list_id)
+            return {"orderListId": order_list_id, "listOrderStatus": "ALL_DONE"}
+
+        def get_account(self, **_: Any) -> dict[str, Any]:
+            raise BinanceAPIError(503, -1001, "Temporary error", "GET /api/v3/account")
+
+        def new_market_sell(self, symbol: str, qty: Decimal, client_order_id: str) -> dict[str, Any]:
+            self.market_sells.append(qty)
+            return {"executedQty": str(qty), "cummulativeQuoteQty": "890.00", "fills": []}
+
+    ex = _ExchangeWatchdogAccountFails()
+    mgr = OcoOrderManager(
+        db=db,
+        signed_client=ex,  # type: ignore[arg-type]
+        resilience_cfg=st.execution_and_resilience,
+        sleep_fn=lambda _: None,
+    )
+    rep = mgr.check_hanging_stop_watchdog(
+        trade_id=trade_id,
+        symbol="SOLUSDT",
+        base_asset="SOL",
+        oco_order_list_id=5001,
+        oco_stop_price=Decimal("94.00"),
+        oco_stop_limit_price=Decimal("91.65"),
+        symbol_filters=_sol_filters(),
+    )
+    db.close()
+    assert ex.was_in_critical_section is True
+    assert len(ex.canceled) == 1
+    assert rep is not None
+    assert rep.status == TradeStatus.CLOSED.value
+    assert rep.exit_reason == ExitReason.STOP_WATCHDOG.value
+    assert ex.market_sells == [Decimal("10.00")]
+
+
+def test_audit_a1_05a_watchdog_insufficient_balance_retries_once_then_halt_review_with_alert(
+    tmp_path: Path,
+) -> None:
+    from src.execution.executor_protocol import ExitReason, TradeStatus
+    from src.execution.oco_order_manager import OcoOrderManager
+    from src.risk.shadow_manager import ShadowManager
+
+    st, _ = _load_cfgs()
+
+    # Case 1: First sell fails with -2010 insufficient balance, balance re-read shows 7.50 SOL -> single retry succeeds!
+    db1 = Database(tmp_path / "a1_05a_retry_ok.db")
+    db1.migrate()
+    tid1 = _insert_trade(
+        db1, status=TradeStatus.PROTECTED.value, oco_order_list_id=5001, oco_qty="10.00"
+    )
+    alerts1: list[tuple[str, str]] = []
+
+    class _ExchangeRetrySucceeds:
+        def __init__(self) -> None:
+            self.governor = WeightGovernor()
+            self.clock = MonotonicClock()
+            self.account_calls = 0
+            self.sell_attempts: list[Decimal] = []
+
+        def get_book_ticker(self, symbol: str, **_: Any) -> BookTicker:
+            return BookTicker(symbol, Decimal("89.00"), Decimal("10"), Decimal("89.10"), Decimal("10"))
+
+        def get_order_list(self, order_list_id: int) -> dict[str, Any]:
+            return {"orderListId": order_list_id, "listOrderStatus": "EXECUTING"}
+
+        def cancel_order_list(self, symbol: str, order_list_id: int) -> dict[str, Any]:
+            return {"orderListId": order_list_id, "listOrderStatus": "ALL_DONE"}
+
+        def get_account(self, **_: Any) -> dict[str, Any]:
+            self.account_calls += 1
+            if self.account_calls <= 2:
+                raise BinanceAPIError(503, -1001, "Account down initially", "GET /api/v3/account")
+            return {"balances": [{"asset": "SOL", "free": "7.50", "locked": "0.00"}]}
+
+        def new_market_sell(self, symbol: str, qty: Decimal, client_order_id: str) -> dict[str, Any]:
+            self.sell_attempts.append(qty)
+            if qty > Decimal("7.50"):
+                raise BinanceAPIError(
+                    400, -2010, "Account has insufficient balance for requested action.", "POST /api/v3/order"
+                )
+            return {"executedQty": str(qty), "cummulativeQuoteQty": str(qty * Decimal("89.00")), "fills": []}
+
+    ex1 = _ExchangeRetrySucceeds()
+    mgr1 = OcoOrderManager(
+        db=db1,
+        signed_client=ex1,  # type: ignore[arg-type]
+        resilience_cfg=st.execution_and_resilience,
+        alert_callback=lambda k, t: alerts1.append((k, t)),
+        sleep_fn=lambda _: None,
+    )
+    rep1 = mgr1.check_hanging_stop_watchdog(
+        trade_id=tid1,
+        symbol="SOLUSDT",
+        base_asset="SOL",
+        oco_order_list_id=5001,
+        oco_stop_price=Decimal("94.00"),
+        oco_stop_limit_price=Decimal("91.65"),
+        symbol_filters=_sol_filters(),
+    )
+    assert rep1 is not None and rep1.status == TradeStatus.CLOSED.value
+    assert rep1.exit_reason == ExitReason.STOP_WATCHDOG.value
+    assert ex1.sell_attempts == [Decimal("10.00"), Decimal("7.50")]
+    assert alerts1 == []
+    db1.close()
+
+    # Case 2: Retry ALSO fails with -2010 insufficient balance -> MUST enter HALT_REVIEW + emergency_halt + alert!
+    db2 = Database(tmp_path / "a1_05a_retry_halt.db")
+    db2.migrate()
+    tid2 = _insert_trade(
+        db2, status=TradeStatus.PROTECTED.value, oco_order_list_id=5001, oco_qty="10.00"
+    )
+    alerts2: list[tuple[str, str]] = []
+    sm2 = ShadowManager(st.drawdown_and_shadow_protection, st.portfolio, db=db2)
+
+    class _ExchangeRetryStillInsufficient:
+        def __init__(self) -> None:
+            self.governor = WeightGovernor()
+            self.clock = MonotonicClock()
+            self.account_calls = 0
+            self.sell_attempts: list[Decimal] = []
+
+        def get_book_ticker(self, symbol: str, **_: Any) -> BookTicker:
+            return BookTicker(symbol, Decimal("89.00"), Decimal("10"), Decimal("89.10"), Decimal("10"))
+
+        def get_order_list(self, order_list_id: int) -> dict[str, Any]:
+            return {"orderListId": order_list_id, "listOrderStatus": "EXECUTING"}
+
+        def cancel_order_list(self, symbol: str, order_list_id: int) -> dict[str, Any]:
+            return {"orderListId": order_list_id, "listOrderStatus": "ALL_DONE"}
+
+        def get_account(self, **_: Any) -> dict[str, Any]:
+            self.account_calls += 1
+            if self.account_calls <= 2:
+                raise BinanceAPIError(503, -1001, "Account down initially", "GET /api/v3/account")
+            return {"balances": [{"asset": "SOL", "free": "8.00", "locked": "0.00"}]}
+
+        def new_market_sell(self, symbol: str, qty: Decimal, client_order_id: str) -> dict[str, Any]:
+            self.sell_attempts.append(qty)
+            raise BinanceAPIError(
+                400, -2010, "Account has insufficient balance for requested action.", "POST /api/v3/order"
+            )
+
+    ex2 = _ExchangeRetryStillInsufficient()
+    mgr2 = OcoOrderManager(
+        db=db2,
+        signed_client=ex2,  # type: ignore[arg-type]
+        resilience_cfg=st.execution_and_resilience,
+        alert_callback=lambda k, t: alerts2.append((k, t)),
+        shadow_manager=sm2,
+        sleep_fn=lambda _: None,
+    )
+    with pytest.raises(BinanceAPIError):
+        mgr2.check_hanging_stop_watchdog(
+            trade_id=tid2,
+            symbol="SOLUSDT",
+            base_asset="SOL",
+            oco_order_list_id=5001,
+            oco_stop_price=Decimal("94.00"),
+            oco_stop_limit_price=Decimal("91.65"),
+            symbol_filters=_sol_filters(),
+        )
+
+    assert ex2.sell_attempts == [Decimal("10.00"), Decimal("8.00")]  # Tried once more, never looped!
+    with db2.read() as conn:
+        row2 = conn.execute("SELECT status FROM trades WHERE trade_id = ?", (tid2,)).fetchone()
+    assert row2 is not None and row2["status"] == TradeStatus.HALT_REVIEW.value
+    assert db2.get_state("emergency_halt") == "1"
+    assert sm2.evaluate_defense(current_equity_usdt="300.00").emergency_halt is True
+    assert len(alerts2) == 1 and alerts2[0][0] == "KILL_SWITCH"
+    db2.close()
+
+
+def test_audit_a1_05b_watchdog_must_not_sell_untracked_manual_balance_beyond_oco_qty(
+    tmp_path: Path,
+) -> None:
+    from src.execution.executor_protocol import TradeStatus
+    from src.execution.oco_order_manager import OcoOrderManager
+
+    st, _ = _load_cfgs()
+    db = Database(tmp_path / "a1_05b.db")
+    db.migrate()
+    trade_id = _insert_trade(
+        db, status=TradeStatus.PROTECTED.value, oco_order_list_id=5001, oco_qty="10.00"
+    )
+
+    class _ExchangeWithManualSol:
+        def __init__(self) -> None:
+            self.governor = WeightGovernor()
+            self.clock = MonotonicClock()
+            self.sold_qty: Decimal | None = None
+
+        def get_book_ticker(self, symbol: str, **_: Any) -> BookTicker:
+            return BookTicker(symbol, Decimal("89.00"), Decimal("10"), Decimal("89.10"), Decimal("10"))
+
+        def get_order_list(self, order_list_id: int) -> dict[str, Any]:
+            return {"orderListId": order_list_id, "listOrderStatus": "EXECUTING"}
+
+        def cancel_order_list(self, symbol: str, order_list_id: int) -> dict[str, Any]:
+            return {"orderListId": order_list_id, "listOrderStatus": "ALL_DONE"}
+
+        def get_account(self, **_: Any) -> dict[str, Any]:
+            return {"balances": [{"asset": "SOL", "free": "15.00", "locked": "0.00"}]}
+
+        def new_market_sell(self, symbol: str, qty: Decimal, client_order_id: str) -> dict[str, Any]:
+            self.sold_qty = qty
+            return {"executedQty": str(qty), "cummulativeQuoteQty": str(qty * Decimal("89.00")), "fills": []}
+
+    ex = _ExchangeWithManualSol()
+    mgr = OcoOrderManager(
+        db=db,
+        signed_client=ex,  # type: ignore[arg-type]
+        resilience_cfg=st.execution_and_resilience,
+        sleep_fn=lambda _: None,
+    )
+    mgr.check_hanging_stop_watchdog(
+        trade_id=trade_id,
+        symbol="SOLUSDT",
+        base_asset="SOL",
+        oco_order_list_id=5001,
+        oco_stop_price=Decimal("94.00"),
+        oco_stop_limit_price=Decimal("91.65"),
+        symbol_filters=_sol_filters(),
+    )
+    db.close()
+    assert ex.sold_qty == Decimal("10.00")
+
+
+def test_audit_a1_07_time_stop_get_order_list_has_no_order_reports_and_oversells(
+    tmp_path: Path,
+) -> None:
+    from src.execution.executor_protocol import TradeStatus
+    from src.execution.oco_order_manager import OcoOrderManager
+
+    st, _ = _load_cfgs()
+    db = Database(tmp_path / "a1_07.db")
+    db.migrate()
+    trade_id = _insert_trade(
+        db, status=TradeStatus.PROTECTED.value, oco_order_list_id=5001, oco_qty="10.00"
+    )
+
+    class _ExchangeRealGetOrderListSchema:
+        def __init__(self) -> None:
+            self.governor = WeightGovernor()
+            self.clock = MonotonicClock()
+            self.market_sells: list[Decimal] = []
+
+        def cancel_order_list(self, symbol: str, order_list_id: int) -> dict[str, Any]:
+            raise BinanceAPIError(400, -2011, "Order list does not exist.", "DELETE /api/v3/orderList")
+
+        def get_order_list(self, order_list_id: int) -> dict[str, Any]:
+            # Schema oficial de GET /api/v3/orderList na Binance: sem "orderReports"
+            return {
+                "orderListId": order_list_id,
+                "contingencyType": "OCO",
+                "listStatusType": "ALL_DONE",
+                "listOrderStatus": "ALL_DONE",
+                "orders": [
+                    {"symbol": "SOLUSDT", "orderId": 11, "clientOrderId": "tp_leg"},
+                    {"symbol": "SOLUSDT", "orderId": 12, "clientOrderId": "sl_leg"},
+                ],
+            }
+
+        def get_order(self, symbol: str, *, orig_client_order_id: str) -> dict[str, Any]:
+            return {
+                "symbol": symbol,
+                "orderId": 11 if orig_client_order_id == "tp_leg" else 12,
+                "executedQty": "10.00" if orig_client_order_id == "tp_leg" else "0.00",
+                "cummulativeQuoteQty": "1120.00" if orig_client_order_id == "tp_leg" else "0.00",
+                "status": "FILLED" if orig_client_order_id == "tp_leg" else "EXPIRED",
+            }
+
+        def get_account(self, **_: Any) -> dict[str, Any]:
+            return {"balances": [{"asset": "SOL", "free": "2.00", "locked": "0.00"}]}
+
+        def new_market_sell(self, symbol: str, qty: Decimal, client_order_id: str) -> dict[str, Any]:
+            self.market_sells.append(qty)
+            return {"executedQty": str(qty), "cummulativeQuoteQty": str(qty * Decimal("112.00")), "fills": []}
+
+    ex = _ExchangeRealGetOrderListSchema()
+    mgr = OcoOrderManager(
+        db=db,
+        signed_client=ex,  # type: ignore[arg-type]
+        resilience_cfg=st.execution_and_resilience,
+        sleep_fn=lambda _: None,
+    )
+    rep = mgr.close_on_time_barrier(
+        trade_id=trade_id,
+        symbol="SOLUSDT",
+        base_asset="SOL",
+        oco_order_list_id=5001,
+        oco_qty=Decimal("10.00"),
+        symbol_filters=_sol_filters(),
+    )
+    with db.read() as conn:
+        row = conn.execute(
+            "SELECT status, exit_avg_price, realized_pnl_usdt FROM trades WHERE trade_id = ?",
+            (trade_id,),
+        ).fetchone()
+    db.close()
+    assert ex.market_sells == []
+    assert rep.status == TradeStatus.CLOSED.value
+    assert row is not None and row["status"] == TradeStatus.CLOSED.value
+    assert row["exit_avg_price"] == "112"
+    assert row["realized_pnl_usdt"] == "120"
+

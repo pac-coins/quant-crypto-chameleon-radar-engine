@@ -1057,6 +1057,113 @@ class OcoOrderManager:
             exit_reason=reason.value,
         )
 
+    def _extract_oco_executed_qty(
+        self,
+        symbol: str,
+        order_list_resp: dict[str, Any],
+    ) -> tuple[Decimal, Decimal, bool]:
+        """
+        Extrai (executed_qty, cummulative_quote_qty, confirmed) das pernas de uma orderList OCO (A1-07).
+        - DELETE /api/v3/orderList retorna `orderReports[]` com `executedQty`;
+        - GET /api/v3/orderList (schema oficial Binance) retorna apenas `orders[]` sem `orderReports`,
+          exigindo consulta por perna via GET /api/v3/order.
+        """
+        order_reports = order_list_resp.get("orderReports")
+        if isinstance(order_reports, list) and len(order_reports) > 0:
+            executed = Decimal("0")
+            quote_rec = Decimal("0")
+            for rep in order_reports:
+                if isinstance(rep, dict):
+                    if rep.get("executedQty") is not None:
+                        executed += to_decimal(str(rep["executedQty"]))
+                    if rep.get("cummulativeQuoteQty") is not None:
+                        quote_rec += to_decimal(str(rep["cummulativeQuoteQty"]))
+            return executed, quote_rec, True
+
+        orders = order_list_resp.get("orders")
+        if isinstance(orders, list) and len(orders) > 0:
+            executed = Decimal("0")
+            quote_rec = Decimal("0")
+            for leg in orders:
+                if not isinstance(leg, dict):
+                    continue
+                try:
+                    coid = leg.get("clientOrderId")
+                    oid = leg.get("orderId")
+                    if coid:
+                        leg_resp = self.signed_client.get_order(
+                            symbol, orig_client_order_id=str(coid)
+                        )
+                    elif oid is not None:
+                        leg_resp = self.signed_client.get_order(
+                            symbol, order_id=int(oid)
+                        )
+                    else:
+                        return Decimal("0"), Decimal("0"), False
+                except Exception as exc:
+                    logger.warning(
+                        "Failed to inspect OCO leg for %s (%s): %s",
+                        symbol,
+                        leg,
+                        exc,
+                    )
+                    return Decimal("0"), Decimal("0"), False
+                if leg_resp.get("executedQty") is not None:
+                    executed += to_decimal(str(leg_resp["executedQty"]))
+                if leg_resp.get("cummulativeQuoteQty") is not None:
+                    quote_rec += to_decimal(str(leg_resp["cummulativeQuoteQty"]))
+            return executed, quote_rec, True
+
+        return Decimal("0"), Decimal("0"), False
+
+    @staticmethod
+    def _is_insufficient_balance_error(exc: BinanceAPIError) -> bool:
+        return exc.code == -2010 and "insufficient" in exc.msg.lower()
+
+    def _enter_halt_review(
+        self,
+        *,
+        trade_id: int,
+        symbol: str,
+        reason_msg: str,
+    ) -> None:
+        """Coloca o trade em HALT_REVIEW, aciona emergency_halt e dispara alerta Telegram (nunca silencioso)."""
+        now_ms = self._now_ms()
+        logger.error("HALT_REVIEW triggered on %s trade #%s: %s", symbol, trade_id, reason_msg)
+        self._best_effort_db_write(
+            lambda tx: tx.execute(
+                "UPDATE trades SET status = ?, updated_at_ms = ? WHERE trade_id = ?",
+                (TradeStatus.HALT_REVIEW.value, now_ms, trade_id),
+            )
+        )
+        if self.shadow_manager is not None:
+            try:
+                from src.risk.shadow_manager import KillSwitchReason
+
+                self.shadow_manager._trigger_halt(KillSwitchReason.RECONCILIATION_OR_AUTH_FAILURE)
+            except Exception as exc:
+                logger.warning("Failed to trigger halt via ShadowManager: %s", exc)
+        try:
+            self.db.set_state("emergency_halt", "1")
+            self.db.set_state("kill_switch_reason", "RECONCILIATION_OR_AUTH_FAILURE")
+            self.db.set_state("halt_review_reason", reason_msg)
+        except Exception as exc:
+            logger.warning("Failed to persist halt_review state in SQLite: %s", exc)
+        self._log_order_event_best_effort(
+            trade_id=trade_id,
+            client_order_id=f"HALT_REVIEW_{symbol}_{trade_id}",
+            method="HALT_REVIEW",
+            endpoint="local://watchdog_halt_review",
+            http_status=0,
+            binance_code=None,
+            request_obj={"trade_id": trade_id, "symbol": symbol},
+            response_obj={"reason": reason_msg},
+        )
+        self._emit_alert(
+            "KILL_SWITCH",
+            f"HALT_REVIEW em {symbol} (trade #{trade_id}): {reason_msg}",
+        )
+
     def check_hanging_stop_watchdog(
         self,
         *,
@@ -1067,12 +1174,15 @@ class OcoOrderManager:
         oco_stop_price: Decimal,
         oco_stop_limit_price: Optional[Decimal],
         symbol_filters: SymbolFilters,
+        oco_qty: Optional[Decimal] = None,
     ) -> Optional[ExecutionReport]:
         """
-        Watchdog de Stop Pendurado (Item Cat. 1 do TODO):
+        Watchdog de Stop Pendurado (Item Cat. 1 do TODO / A1-05):
         Se a perna de stop da OCO foi acionada (ou o bid já caiu abaixo de oco_stop_limit_price)
-        mas a ordem STOP_LOSS_LIMIT ficou pendurada no livro sem executar, cancela a OCO e
-        vende imediatamente o saldo residual a MARKET (STOP_WATCHDOG).
+        mas a ordem STOP_LOSS_LIMIT ficou pendurada no livro sem executar, cancela a OCO dentro
+        de `critical_section()` e vende imediatamente o saldo residual rastreado a MARKET (STOP_WATCHDOG),
+        respeitando o teto C1-D (`oco_qty`), com fallback para `remaining_from_oco` se `get_account`
+        falhar e retry único seguido de `HALT_REVIEW` + alerta em caso de saldo insuficiente.
         """
         if oco_stop_limit_price is None:
             return None
@@ -1082,47 +1192,245 @@ class OcoOrderManager:
             return None
 
         order_list = self.signed_client.get_order_list(oco_order_list_id)
-        list_status = str(order_list.get("listOrderStatus", ""))
+        list_status = str(order_list.get("listOrderStatus", "")).upper()
         if list_status == "ALL_DONE":
             return None
 
-        # Preço pulou o stopLimitPrice com a OCO ainda aberta/pendurada -> Cancela e vende a MARKET!
-        try:
-            self.signed_client.cancel_order_list(symbol, oco_order_list_id)
-        except BinanceAPIError:
-            pass
+        # Preço pulou o stopLimitPrice com a OCO ainda aberta/pendurada -> Cancela e vende a MARKET em seção crítica!
+        with self.signed_client.governor.critical_section():
+            with self.db.read() as conn:
+                row = conn.execute("SELECT * FROM trades WHERE trade_id = ?", (trade_id,)).fetchone()
 
-        free_base = self.get_free_asset_balance(base_asset) or Decimal("0")
-        q_sell = floor_qty_to_step(free_base, symbol_filters.step_size)
-        if q_sell < symbol_filters.min_qty:
-            return None
+            if oco_qty is not None:
+                tracked_qty = to_decimal(oco_qty)
+            elif row and row["oco_qty"]:
+                tracked_qty = to_decimal(str(row["oco_qty"]))
+            elif row and row["entry_executed_qty"]:
+                tracked_qty = to_decimal(str(row["entry_executed_qty"]))
+            else:
+                tracked_qty = Decimal("0")
 
-        with self.db.read() as conn:
-            row = conn.execute("SELECT * FROM trades WHERE trade_id = ?", (trade_id,)).fetchone()
-        avg_entry = to_decimal(str(row["entry_avg_price"])) if row and row["entry_avg_price"] else oco_stop_price
-        quote_spent = to_decimal(str(row["entry_quote_spent"])) if row and row["entry_quote_spent"] else Decimal("0")
-        client_oid = str(row["client_order_id"]) if row else f"WD_{symbol}_{trade_id}"
+            avg_entry = (
+                to_decimal(str(row["entry_avg_price"]))
+                if row and row["entry_avg_price"]
+                else oco_stop_price
+            )
+            quote_spent = (
+                to_decimal(str(row["entry_quote_spent"]))
+                if row and row["entry_quote_spent"]
+                else Decimal("0")
+            )
+            orig_entry_qty = (
+                to_decimal(str(row["entry_executed_qty"]))
+                if row and row["entry_executed_qty"]
+                else tracked_qty
+            )
+            client_oid = str(row["client_order_id"]) if row else f"WD_{symbol}_{trade_id}"
 
-        ctx = ActiveTradeContext(
-            trade_id=trade_id,
-            client_order_id=client_oid,
-            symbol=symbol,
-            base_asset=base_asset,
-            status=TradeStatus.PROTECTED.value,
-            entry_order_id=None,
-            executed_qty=q_sell,
-            avg_entry_price=avg_entry,
-            quote_spent=quote_spent,
-            commission_base_asset=Decimal("0"),
-            planned_stop_price=oco_stop_price,
-            planned_target_price=oco_stop_price,
-            time_barrier_end_ms=0,
-        )
-        return self._execute_emergency_market_sell(
-            ctx,
-            q_sell,
-            reason=ExitReason.STOP_WATCHDOG,
-        )
+            self._best_effort_db_write(
+                lambda tx: tx.execute(
+                    "UPDATE trades SET status = ?, updated_at_ms = ? WHERE trade_id = ?",
+                    (TradeStatus.CLOSING.value, self._now_ms(), trade_id),
+                )
+            )
+
+            cancel_resp: dict[str, Any] = {}
+            try:
+                cancel_resp = self.signed_client.cancel_order_list(symbol, oco_order_list_id)
+            except (BinanceAPIError, RequestTimeoutUnknownState) as cancel_exc:
+                try:
+                    check_resp = self.signed_client.get_order_list(oco_order_list_id)
+                except Exception:
+                    raise cancel_exc
+                check_status = str(check_resp.get("listOrderStatus", "")).upper()
+                if check_status != "ALL_DONE":
+                    self._best_effort_db_write(
+                        lambda tx: tx.execute(
+                            "UPDATE trades SET status = ?, updated_at_ms = ? WHERE trade_id = ?",
+                            (TradeStatus.PROTECTED.value, self._now_ms(), trade_id),
+                        )
+                    )
+                    raise cancel_exc
+                cancel_resp = check_resp
+
+            executed_on_oco, quote_from_oco, executed_confirmed = self._extract_oco_executed_qty(
+                symbol, cancel_resp
+            )
+            remaining_from_oco = max(Decimal("0"), tracked_qty - executed_on_oco)
+
+            # Se a OCO já preencheu 100% no instante do cancelamento, não vende nada e encerra o trade.
+            if executed_confirmed and tracked_qty > Decimal("0") and executed_on_oco >= tracked_qty:
+                now_ms = self._now_ms()
+                self._best_effort_db_write(
+                    lambda tx: tx.execute(
+                        """
+                        UPDATE trades
+                        SET status = ?, exit_reason = ?, updated_at_ms = ?, closed_at_ms = ?
+                        WHERE trade_id = ?
+                        """,
+                        (
+                            TradeStatus.CLOSED.value,
+                            ExitReason.STOP_WATCHDOG.value,
+                            now_ms,
+                            now_ms,
+                            trade_id,
+                        ),
+                    )
+                )
+                return ExecutionReport(
+                    executed=True,
+                    mode="LIVE_CHAMELEON_PHASE_1",
+                    trade_id=trade_id,
+                    client_order_id=client_oid,
+                    status=TradeStatus.CLOSED.value,
+                    filled_qty=Decimal("0"),
+                    avg_entry_price=avg_entry,
+                    exit_reason=ExitReason.STOP_WATCHDOG.value,
+                )
+
+            free_base = self.get_free_asset_balance(base_asset, retries=2)
+            if free_base is not None:
+                # A1-05b (C1-D): jamais vender saldo manual além da quantidade rastreada.
+                raw_sell = (
+                    min(tracked_qty, max(Decimal("0"), free_base))
+                    if tracked_qty > Decimal("0")
+                    else Decimal("0")
+                )
+                if (
+                    executed_confirmed
+                    and executed_on_oco > Decimal("0")
+                    and free_base > remaining_from_oco
+                ):
+                    logger.warning(
+                        "Watchdog %s trade #%s observed free_base=%s > remaining_from_oco=%s (tracked_qty=%s, executed_on_oco=%s)",
+                        symbol,
+                        trade_id,
+                        free_base,
+                        remaining_from_oco,
+                        tracked_qty,
+                        executed_on_oco,
+                    )
+            else:
+                # A1-05a: get_account falhou após cancelar a OCO; usa remaining_from_oco (limitado ao rastreado)
+                # em vez de retornar None silenciosamente deixando a posição sem stop em flash-crash.
+                raw_sell = remaining_from_oco
+                logger.warning(
+                    "Watchdog get_account failed for %s trade #%s after OCO cancel; "
+                    "using tracked remaining_from_oco=%s",
+                    symbol,
+                    trade_id,
+                    remaining_from_oco,
+                )
+
+            q_sell = floor_qty_to_step(raw_sell, symbol_filters.step_size)
+            if q_sell < symbol_filters.min_qty or (q_sell * ticker.bid) < symbol_filters.min_notional:
+                now_ms = self._now_ms()
+                self._best_effort_db_write(
+                    lambda tx: tx.execute(
+                        """
+                        UPDATE trades
+                        SET status = ?, exit_reason = ?, updated_at_ms = ?, closed_at_ms = ?
+                        WHERE trade_id = ?
+                        """,
+                        (
+                            TradeStatus.CLOSED.value,
+                            ExitReason.STOP_WATCHDOG.value,
+                            now_ms,
+                            now_ms,
+                            trade_id,
+                        ),
+                    )
+                )
+                return ExecutionReport(
+                    executed=True,
+                    mode="LIVE_CHAMELEON_PHASE_1",
+                    trade_id=trade_id,
+                    client_order_id=client_oid,
+                    status=TradeStatus.CLOSED.value,
+                    filled_qty=Decimal("0"),
+                    avg_entry_price=avg_entry,
+                    exit_reason=ExitReason.STOP_WATCHDOG.value,
+                )
+
+            def _build_watchdog_ctx(sell_qty: Decimal) -> ActiveTradeContext:
+                prorated_quote_spent = (
+                    quote_spent * (sell_qty / orig_entry_qty)
+                    if orig_entry_qty > Decimal("0") and sell_qty < orig_entry_qty
+                    else quote_spent
+                )
+                return ActiveTradeContext(
+                    trade_id=trade_id,
+                    client_order_id=client_oid,
+                    symbol=symbol,
+                    base_asset=base_asset,
+                    status=TradeStatus.CLOSING.value,
+                    entry_order_id=None,
+                    executed_qty=sell_qty,
+                    avg_entry_price=avg_entry,
+                    quote_spent=prorated_quote_spent,
+                    commission_base_asset=Decimal("0"),
+                    planned_stop_price=oco_stop_price,
+                    planned_target_price=oco_stop_price,
+                    time_barrier_end_ms=0,
+                )
+
+            try:
+                return self._execute_emergency_market_sell(
+                    _build_watchdog_ctx(q_sell),
+                    q_sell,
+                    reason=ExitReason.STOP_WATCHDOG,
+                )
+            except BinanceAPIError as sell_exc:
+                if self._is_insufficient_balance_error(sell_exc):
+                    # A1-05a: releia o saldo e tente UMA vez; se falhar de novo, vá para HALT_REVIEW com alerta.
+                    logger.warning(
+                        "Watchdog market sell failed with insufficient balance on %s trade #%s (qty=%s); "
+                        "re-reading balance for single retry",
+                        symbol,
+                        trade_id,
+                        q_sell,
+                    )
+                    free_retry = self.get_free_asset_balance(base_asset, retries=2)
+                    if free_retry is not None:
+                        q_retry = floor_qty_to_step(
+                            min(remaining_from_oco, max(Decimal("0"), free_retry)),
+                            symbol_filters.step_size,
+                        )
+                        if (
+                            q_retry >= symbol_filters.min_qty
+                            and (q_retry * ticker.bid) >= symbol_filters.min_notional
+                        ):
+                            try:
+                                return self._execute_emergency_market_sell(
+                                    _build_watchdog_ctx(q_retry),
+                                    q_retry,
+                                    reason=ExitReason.STOP_WATCHDOG,
+                                )
+                            except BinanceAPIError as retry_exc:
+                                self._enter_halt_review(
+                                    trade_id=trade_id,
+                                    symbol=symbol,
+                                    reason_msg=(
+                                        f"Watchdog retry market sell failed after OCO cancel "
+                                        f"(qty={to_api_str(q_retry)}, err={retry_exc})"
+                                    ),
+                                )
+                                raise
+                    self._enter_halt_review(
+                        trade_id=trade_id,
+                        symbol=symbol,
+                        reason_msg=(
+                            f"Watchdog insufficient balance after OCO cancel and balance re-read "
+                            f"(free_retry={free_retry}, remaining_from_oco={to_api_str(remaining_from_oco)}, "
+                            f"err={sell_exc})"
+                        ),
+                    )
+                    raise
+                self._emit_alert(
+                    "WATCHDOG_ERROR",
+                    f"Watchdog falhou ao vender {symbol} (trade #{trade_id}) após cancelar OCO: {sell_exc}",
+                )
+                raise
 
     def close_on_time_barrier(
         self,
@@ -1136,8 +1444,8 @@ class OcoOrderManager:
     ) -> ExecutionReport:
         """
         Sequência serializada de 4 passos para encerramento por Barreira de Tempo (TIME):
-        1. Cancela a orderList OCO (DELETE /api/v3/orderList);
-        2. Lê as quantidades já executadas nas pernas da OCO cancelada;
+        1. Cancela a orderList OCO (DELETE /api/v3/orderList) e valida `listOrderStatus == ALL_DONE` (A1-02);
+        2. Lê as quantidades já executadas nas pernas da OCO (incluindo `orders[] -> get_order`, A1-07);
         3. Consulta o saldo livre atualizado em /api/v3/account;
         4. Envia a venda MARKET exclusivamente para a quantidade residual não executada.
         """
@@ -1149,28 +1457,55 @@ class OcoOrderManager:
                 )
             )
 
-            # Passo 1: Cancela a orderList OCO
+            # Passo 1: Cancela a orderList OCO e confirma encerramento real (A1-02)
             cancel_resp: dict[str, Any] = {}
             try:
                 cancel_resp = self.signed_client.cancel_order_list(symbol, oco_order_list_id)
-            except BinanceAPIError:
-                cancel_resp = self.signed_client.get_order_list(oco_order_list_id)
+            except (BinanceAPIError, RequestTimeoutUnknownState) as cancel_exc:
+                try:
+                    cancel_resp = self.signed_client.get_order_list(oco_order_list_id)
+                except Exception:
+                    raise cancel_exc
+                list_status = str(cancel_resp.get("listOrderStatus", "")).upper()
+                if list_status != "ALL_DONE":
+                    self._best_effort_db_write(
+                        lambda tx: tx.execute(
+                            "UPDATE trades SET status = ?, updated_at_ms = ? WHERE trade_id = ?",
+                            (TradeStatus.PROTECTED.value, self._now_ms(), trade_id),
+                        )
+                    )
+                    logger.warning(
+                        "Time-stop cancel failed for %s trade #%s and OCO %s remains %s; keeping PROTECTED",
+                        symbol,
+                        trade_id,
+                        oco_order_list_id,
+                        list_status or "UNKNOWN",
+                    )
+                    raise cancel_exc
 
-            # Passo 2: Soma quantidades já executadas nas pernas da OCO
-            executed_on_oco = Decimal("0")
-            order_reports = cancel_resp.get("orderReports", [])
-            if isinstance(order_reports, list):
-                for rep in order_reports:
-                    if isinstance(rep, dict) and rep.get("executedQty") is not None:
-                        executed_on_oco += to_decimal(str(rep["executedQty"]))
+            # Passo 2: Soma quantidades já executadas nas pernas da OCO (orderReports ou orders[] -> get_order)
+            executed_on_oco, quote_from_oco, executed_confirmed = self._extract_oco_executed_qty(
+                symbol, cancel_resp
+            )
+            tracked_oco_qty = to_decimal(oco_qty)
+            remaining_from_oco = max(Decimal("0"), tracked_oco_qty - executed_on_oco)
 
-            # Passo 3: Consulta o saldo livre atualizado na corretora
-            free_base = self.get_free_asset_balance(base_asset)
-            remaining_from_oco = max(Decimal("0"), to_decimal(oco_qty) - executed_on_oco)
-            if free_base is not None:
-                raw_rem = min(remaining_from_oco, max(Decimal("0"), free_base))
+            # Passo 3: Consulta o saldo livre atualizado na corretora (somente se ainda restar quantidade)
+            if remaining_from_oco <= Decimal("0"):
+                raw_rem = Decimal("0")
             else:
-                raw_rem = remaining_from_oco
+                free_base = self.get_free_asset_balance(base_asset, retries=2)
+                if free_base is not None:
+                    raw_rem = min(remaining_from_oco, max(Decimal("0"), free_base))
+                elif executed_confirmed:
+                    raw_rem = remaining_from_oco
+                else:
+                    raise BinanceAPIError(
+                        503,
+                        -1001,
+                        "Unable to confirm OCO executedQty or free balance during time-stop; deferring to reconciler",
+                        "GET /api/v3/account",
+                    )
             q_rem = floor_qty_to_step(raw_rem, symbol_filters.step_size)
 
             with self.db.read() as conn:
@@ -1190,10 +1525,29 @@ class OcoOrderManager:
                 if row and row["entry_quote_spent"]
                 else Decimal("0")
             )
+            orig_entry_qty = (
+                to_decimal(str(row["entry_executed_qty"]))
+                if row and row["entry_executed_qty"]
+                else tracked_oco_qty
+            )
             client_oid = str(row["client_order_id"]) if row else f"TIME_{symbol}_{trade_id}"
+
+            # Verifica min_notional antes do Passo 4 para não crashar com -1013 NOTIONAL em resíduo de poeira
+            if q_rem >= symbol_filters.min_qty:
+                try:
+                    t_now = self.signed_client.get_book_ticker(symbol, priority=Priority.CRITICAL)
+                    if (q_rem * t_now.bid) < symbol_filters.min_notional:
+                        q_rem = Decimal("0")
+                except Exception:
+                    pass
 
             # Passo 4: Vende a MARKET apenas a quantidade residual
             if q_rem >= symbol_filters.min_qty:
+                prorated_quote_spent = (
+                    quote_spent * (q_rem / orig_entry_qty)
+                    if orig_entry_qty > Decimal("0") and q_rem < orig_entry_qty
+                    else quote_spent
+                )
                 ctx = ActiveTradeContext(
                     trade_id=trade_id,
                     client_order_id=client_oid,
@@ -1203,7 +1557,7 @@ class OcoOrderManager:
                     entry_order_id=None,
                     executed_qty=q_rem,
                     avg_entry_price=avg_entry,
-                    quote_spent=quote_spent,
+                    quote_spent=prorated_quote_spent,
                     commission_base_asset=Decimal("0"),
                     planned_stop_price=planned_stop,
                     planned_target_price=avg_entry,
@@ -1216,16 +1570,45 @@ class OcoOrderManager:
                 )
 
             now_ms = self._now_ms()
-            self._best_effort_db_write(
-                lambda tx: tx.execute(
-                    """
-                    UPDATE trades
-                    SET status = ?, exit_reason = ?, updated_at_ms = ?, closed_at_ms = ?
-                    WHERE trade_id = ?
-                    """,
-                    (TradeStatus.CLOSED.value, ExitReason.TIME.value, now_ms, now_ms, trade_id),
+            if executed_on_oco > Decimal("0") and quote_from_oco > Decimal("0"):
+                exit_avg = quote_from_oco / executed_on_oco
+                pnl_usdt = quote_from_oco - quote_spent
+                risk_unit = max(Decimal("0.00000001"), avg_entry - planned_stop)
+                realized_r = float((exit_avg - avg_entry) / risk_unit)
+                self._best_effort_db_write(
+                    lambda tx: tx.execute(
+                        """
+                        UPDATE trades
+                        SET status = ?, exit_reason = ?,
+                            exit_avg_price = ?, exit_quote_received = ?,
+                            realized_pnl_usdt = ?, realized_r = ?,
+                            updated_at_ms = ?, closed_at_ms = ?
+                        WHERE trade_id = ?
+                        """,
+                        (
+                            TradeStatus.CLOSED.value,
+                            ExitReason.TIME.value,
+                            to_api_str(exit_avg),
+                            to_api_str(quote_from_oco),
+                            to_api_str(pnl_usdt),
+                            realized_r,
+                            now_ms,
+                            now_ms,
+                            trade_id,
+                        ),
+                    )
                 )
-            )
+            else:
+                self._best_effort_db_write(
+                    lambda tx: tx.execute(
+                        """
+                        UPDATE trades
+                        SET status = ?, exit_reason = ?, updated_at_ms = ?, closed_at_ms = ?
+                        WHERE trade_id = ?
+                        """,
+                        (TradeStatus.CLOSED.value, ExitReason.TIME.value, now_ms, now_ms, trade_id),
+                    )
+                )
             return ExecutionReport(
                 executed=True,
                 mode="LIVE_CHAMELEON_PHASE_1",
