@@ -11,6 +11,7 @@ from typing import Any, Callable, Optional, Sequence
 
 from src.core.binance_client import (
     BinanceAPIError,
+    IPBannedError,
     Priority,
     SignedBinanceClient,
     floor_qty_to_step,
@@ -135,15 +136,18 @@ class StateReconciler:
 
     def _record_failure(self, exc: Exception) -> None:
         code = exc.code if isinstance(exc, BinanceAPIError) else None
+        is_immediate_halt = isinstance(exc, IPBannedError) or (
+            code is not None and int(code) in EXTENDED_AUTH_KILL_CODES
+        )
         try:
             if self.shadow_manager is not None:
                 self.shadow_manager.record_reconciliation_outcome(
                     success=False,
                     binance_error_code=code,
                 )
-                if code is not None and int(code) in EXTENDED_AUTH_KILL_CODES:
+                if is_immediate_halt:
                     self.shadow_manager._trigger_halt(KillSwitchReason.RECONCILIATION_OR_AUTH_FAILURE)
-            elif code is not None and int(code) in EXTENDED_AUTH_KILL_CODES:
+            elif is_immediate_halt:
                 self.db.set_state("emergency_halt", "1")
                 self.db.set_state(
                     "kill_switch_reason",

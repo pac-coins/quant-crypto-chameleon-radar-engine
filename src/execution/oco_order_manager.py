@@ -255,6 +255,41 @@ class OcoOrderManager:
             logger.warning("Best-effort clock resync failed after -1021: %s", exc)
             return False
 
+    def _handle_ip_ban(
+        self,
+        *,
+        trade_id: Optional[int],
+        symbol: str,
+        exc: IPBannedError,
+    ) -> None:
+        """Aciona emergency_halt e alerta KILL_SWITCH imediato em HTTP 418 IPBannedError (FI-03)."""
+        logger.error(
+            "HTTP 418 IP BANNED on %s (trade #%s, retry_after_s=%s): %s",
+            symbol,
+            trade_id,
+            exc.retry_after_s,
+            exc.msg,
+        )
+        if self.shadow_manager is not None:
+            try:
+                from src.risk.shadow_manager import KillSwitchReason
+
+                self.shadow_manager._trigger_halt(KillSwitchReason.RECONCILIATION_OR_AUTH_FAILURE)
+            except Exception as sm_exc:
+                logger.warning("Failed to trigger halt via ShadowManager on HTTP 418: %s", sm_exc)
+        try:
+            self.db.set_state("emergency_halt", "1")
+            self.db.set_state("kill_switch_reason", "RECONCILIATION_OR_AUTH_FAILURE")
+        except Exception as db_exc:
+            logger.warning("Failed to persist emergency_halt in SQLite on HTTP 418: %s", db_exc)
+        self._emit_alert(
+            "KILL_SWITCH",
+            (
+                f"🚨 HTTP 418 IP BAN Binance em {symbol} "
+                f"(trade #{trade_id}, retry_after={exc.retry_after_s}s): {exc.msg}"
+            ),
+        )
+
     def get_free_asset_balance(self, asset: str, *, retries: int = 2) -> Optional[Decimal]:
         """Consulta o saldo livre de um ativo em /api/v3/account com retry curto."""
         acct: Optional[dict[str, Any]] = None
@@ -262,6 +297,9 @@ class OcoOrderManager:
             try:
                 acct = self.signed_client.get_account(omit_zero_balances=True)
                 break
+            except IPBannedError as ban_exc:
+                self._handle_ip_ban(trade_id=None, symbol=asset, exc=ban_exc)
+                raise
             except BinanceAPIError as exc:
                 if exc.code == -1021 and attempt + 1 < max(1, int(retries)):
                     self._resync_clock_best_effort()
@@ -489,6 +527,19 @@ class OcoOrderManager:
                         request_obj={"symbol": req.symbol, "origClientOrderId": client_order_id},
                         response_obj=order_resp,
                     )
+                except IPBannedError as ban_exc:
+                    self._log_order_event_best_effort(
+                        trade_id=trade_id,
+                        client_order_id=client_order_id,
+                        method="GET",
+                        endpoint="/api/v3/order",
+                        http_status=ban_exc.http_status,
+                        binance_code=ban_exc.code,
+                        request_obj={"symbol": req.symbol, "origClientOrderId": client_order_id},
+                        response_obj={"msg": ban_exc.msg},
+                    )
+                    self._handle_ip_ban(trade_id=trade_id, symbol=req.symbol, exc=ban_exc)
+                    raise
                 except BinanceAPIError as get_exc:
                     if get_exc.code == -2013:
                         self._best_effort_db_write(
@@ -508,6 +559,25 @@ class OcoOrderManager:
                             error_msg="Order not found after -1007 timeout (-2013)",
                         )
                     raise
+            except IPBannedError as ban_exc:
+                self._log_order_event_best_effort(
+                    trade_id=trade_id,
+                    client_order_id=client_order_id,
+                    method="POST",
+                    endpoint="/api/v3/order",
+                    http_status=ban_exc.http_status,
+                    binance_code=ban_exc.code,
+                    request_obj={"symbol": req.symbol, "newClientOrderId": client_order_id},
+                    response_obj={"msg": ban_exc.msg},
+                )
+                self._best_effort_db_write(
+                    lambda tx: tx.execute(
+                        "UPDATE trades SET status = ?, updated_at_ms = ? WHERE trade_id = ?",
+                        (TradeStatus.ENTRY_REJECTED.value, self._now_ms(), trade_id),
+                    )
+                )
+                self._handle_ip_ban(trade_id=trade_id, symbol=req.symbol, exc=ban_exc)
+                raise
             except BinanceAPIError as api_exc:
                 self._log_order_event_best_effort(
                     trade_id=trade_id,
@@ -912,7 +982,8 @@ class OcoOrderManager:
                         pass
                     continue
                 raise
-            except IPBannedError:
+            except IPBannedError as ban_exc:
+                self._handle_ip_ban(trade_id=ctx.trade_id, symbol=ctx.symbol, exc=ban_exc)
                 raise
             except RateLimitedError as rl_exc:
                 last_exc = rl_exc
@@ -1060,12 +1131,18 @@ class OcoOrderManager:
                     sell_resp = self.signed_client.get_order(
                         ctx.symbol, orig_client_order_id=sell_client_id
                     )
+                except IPBannedError as ban_exc:
+                    self._handle_ip_ban(trade_id=ctx.trade_id, symbol=ctx.symbol, exc=ban_exc)
+                    raise
                 except BinanceAPIError as get_exc:
                     if get_exc.code == -1021 and self._resync_clock_best_effort():
                         try:
                             sell_resp = self.signed_client.get_order(
                                 ctx.symbol, orig_client_order_id=sell_client_id
                             )
+                        except IPBannedError as ban_exc:
+                            self._handle_ip_ban(trade_id=ctx.trade_id, symbol=ctx.symbol, exc=ban_exc)
+                            raise
                         except BinanceAPIError as get_exc2:
                             get_exc = get_exc2
                         else:
@@ -1105,6 +1182,9 @@ class OcoOrderManager:
                     response_obj=sell_resp,
                 )
                 break
+            except IPBannedError as ban_exc:
+                self._handle_ip_ban(trade_id=ctx.trade_id, symbol=ctx.symbol, exc=ban_exc)
+                raise
             except BinanceAPIError as sell_exc:
                 if sell_exc.code == -1021 and attempt == 0 and self._resync_clock_best_effort():
                     logger.warning(
@@ -1344,6 +1424,9 @@ class OcoOrderManager:
             cancel_resp: dict[str, Any] = {}
             try:
                 cancel_resp = self.signed_client.cancel_order_list(symbol, oco_order_list_id)
+            except IPBannedError as ban_exc:
+                self._handle_ip_ban(trade_id=trade_id, symbol=symbol, exc=ban_exc)
+                raise
             except (BinanceAPIError, RequestTimeoutUnknownState) as cancel_exc:
                 try:
                     check_resp = self.signed_client.get_order_list(oco_order_list_id)
@@ -1487,6 +1570,8 @@ class OcoOrderManager:
                     q_sell,
                     reason=ExitReason.STOP_WATCHDOG,
                 )
+            except IPBannedError:
+                raise
             except BinanceAPIError as sell_exc:
                 if self._is_insufficient_balance_error(sell_exc):
                     # A1-05a: releia o saldo e tente UMA vez; se falhar de novo, vá para HALT_REVIEW com alerta.
@@ -1513,6 +1598,8 @@ class OcoOrderManager:
                                     q_retry,
                                     reason=ExitReason.STOP_WATCHDOG,
                                 )
+                            except IPBannedError:
+                                raise
                             except BinanceAPIError as retry_exc:
                                 self._enter_halt_review(
                                     trade_id=trade_id,
@@ -1568,6 +1655,9 @@ class OcoOrderManager:
             cancel_resp: dict[str, Any] = {}
             try:
                 cancel_resp = self.signed_client.cancel_order_list(symbol, oco_order_list_id)
+            except IPBannedError as ban_exc:
+                self._handle_ip_ban(trade_id=trade_id, symbol=symbol, exc=ban_exc)
+                raise
             except (BinanceAPIError, RequestTimeoutUnknownState) as cancel_exc:
                 try:
                     cancel_resp = self.signed_client.get_order_list(oco_order_list_id)

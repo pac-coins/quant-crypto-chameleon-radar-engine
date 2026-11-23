@@ -744,18 +744,11 @@ def test_fi_binance_429_rate_limit_suspends_non_critical_while_oco_retries_and_p
         gov.acquire(1, Priority.LOW)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "FI-03 (Cat. 2): HTTP 418 IPBannedError in execute_entry (src/execution/oco_order_manager.py:484-510) "
-        "is caught as generic BinanceAPIError -> ENTRY_REJECTED, and in protect_or_fallback_market "
-        "(src/execution/oco_order_manager.py:888-889) it re-raises without triggering emergency_halt "
-        "or an immediate KILL_SWITCH Telegram alert."
-    ),
-)
 def test_fi_binance_418_ip_ban_triggers_emergency_halt_and_alert(tmp_path: Path) -> None:
     st, _ = _load_cfgs()
-    db = Database(tmp_path / "fi_418.db")
+
+    # Subcase A: HTTP 418 on execute_entry -> raises IPBannedError, triggers emergency_halt + KILL_SWITCH alert
+    db = Database(tmp_path / "fi_418_entry.db")
     db.migrate()
     sm = ShadowManager(st.drawdown_and_shadow_protection, st.portfolio, db=db)
     alerts: list[tuple[str, str]] = []
@@ -785,19 +778,82 @@ def test_fi_binance_418_ip_ban_triggers_emergency_halt_and_alert(tmp_path: Path)
         shadow_manager=sm,
         sleep_fn=lambda _: None,
     )
-    try:
+    with pytest.raises(IPBannedError):
         mgr.execute_entry(_make_req(st))
-    except IPBannedError:
-        pass
 
     # WeightGovernor blocks all further calls (including CRITICAL) during ban
     with pytest.raises(WeightBudgetExceeded):
         gov.acquire(1, Priority.CRITICAL)
 
-    # Expected: IP ban immediately halts bot and emits KILL_SWITCH alert
     assert sm.evaluate_defense(current_equity_usdt="300.00").emergency_halt is True
     assert any(k == "KILL_SWITCH" for k, _ in alerts)
+    assert session.request.call_count == 1  # Zero duplicate buy
     db.close()
+
+    # Subcase B: HTTP 418 on POST /api/v3/orderList/oco (after fill) -> triggers emergency_halt + KILL_SWITCH alert
+    db2 = Database(tmp_path / "fi_418_oco.db")
+    db2.migrate()
+    sm2 = ShadowManager(st.drawdown_and_shadow_protection, st.portfolio, db=db2)
+    alerts2: list[tuple[str, str]] = []
+
+    fake_now2 = [100.0]
+    gov2 = WeightGovernor(now=lambda: fake_now2[0])
+    session2 = MagicMock(spec=requests.Session)
+
+    def _dispatch_oco_418(method: str, url: str, **kwargs: Any) -> MagicMock:
+        if method == "POST" and "/api/v3/orderList/oco" in url:
+            return _mock_response(
+                418,
+                {"code": -1003, "msg": "Way too many requests; IP banned"},
+                headers={"Retry-After": "120"},
+            )
+        if method == "POST" and "/api/v3/order" in url:
+            return _mock_response(
+                200,
+                {
+                    "symbol": "SOLUSDT",
+                    "orderId": 1001,
+                    "status": "FILLED",
+                    "executedQty": "10.00",
+                    "cummulativeQuoteQty": "1000.00",
+                    "fills": [{"price": "100.00", "qty": "10.00", "commission": "0", "commissionAsset": "BNB"}],
+                },
+            )
+        if method == "GET" and "/api/v3/account" in url:
+            return _mock_response(200, {"balances": [{"asset": "SOL", "free": "10.00", "locked": "0.00"}]})
+        if method == "GET" and "/api/v3/ticker/bookTicker" in url:
+            return _mock_response(
+                200,
+                {"symbol": "SOLUSDT", "bidPrice": "100.00", "bidQty": "50", "askPrice": "100.05", "askQty": "50"},
+            )
+        raise AssertionError(f"Unexpected HTTP call: {method} {url}")
+
+    session2.request.side_effect = _dispatch_oco_418
+    client2 = SignedBinanceClient(
+        "https://testnet.binance.vision",
+        gov2,
+        MonotonicClock(mono=lambda: fake_now2[0], wall=lambda: 1_700_000_000.0),
+        api_key="k",
+        ed25519_private_key_path=_make_ed25519_pem(tmp_path),
+        testnet=True,
+        session=session2,
+    )
+    mgr2 = OcoOrderManager(
+        db=db2,
+        signed_client=client2,
+        resilience_cfg=st.execution_and_resilience,
+        alert_callback=lambda k, t: alerts2.append((k, t)),
+        shadow_manager=sm2,
+        sleep_fn=lambda _: None,
+    )
+    with pytest.raises(IPBannedError):
+        mgr2.execute_entry(_make_req(st))
+
+    with pytest.raises(WeightBudgetExceeded):
+        gov2.acquire(1, Priority.CRITICAL)
+    assert sm2.evaluate_defense(current_equity_usdt="300.00").emergency_halt is True
+    assert any(k == "KILL_SWITCH" for k, _ in alerts2)
+    db2.close()
 
 
 # =============================================================================
