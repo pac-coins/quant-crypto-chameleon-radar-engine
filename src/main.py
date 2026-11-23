@@ -160,12 +160,21 @@ class QuantOrchestrator:
                 signed_client=signed_client,
                 resilience_cfg=strategies_cfg.execution_and_resilience,
                 environment=settings.binance_env,
+                alert_callback=lambda kind, text: self.outbox.enqueue(
+                    kind,
+                    text,
+                    now_ms=self.clock.server_now_ms(),
+                ),
+                shadow_manager=self.shadow_manager,
+                sleep_fn=sleep_fn,
             )
             self.reconciler = StateReconciler(
                 db=db,
                 signed_client=signed_client,
                 oco_manager=self.oco_manager,
-                execution_universe=strategies_cfg.universe.symbols,
+                execution_universe=[
+                    s for s in strategies_cfg.universe.symbols if s not in FORBIDDEN_EXECUTION_SYMBOLS
+                ],
                 filters_provider=exchange_cache.get,
                 shadow_manager=self.shadow_manager,
             )
@@ -213,10 +222,22 @@ class QuantOrchestrator:
             self.collector.backfill(need_4h, "4h", lookback_candles=250)
 
         if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1 and self.reconciler is not None:
-            res = self.reconciler.reconcile()
-            if res.action == ReconcileAction.HALT_REVIEW_UNTRACKED_BALANCE or (
-                self.db.get_state("emergency_halt") == "1"
-            ):
+            try:
+                res = self.reconciler.reconcile()
+            except Exception as exc:
+                logger.error("Boot StateReconciler failed: %s", exc)
+                if self.db.get_state("emergency_halt") == "1":
+                    self.outbox.enqueue(
+                        "KILL_SWITCH",
+                        format_kill_switch_alert(self.settings.mode.value, str(exc)),
+                        now_ms=now_ms,
+                    )
+                    self.outbox.flush(now_ms=now_ms)
+                raise
+            if res.action in (
+                ReconcileAction.HALT_REVIEW_UNTRACKED_BALANCE,
+                ReconcileAction.HALT_REVIEW_PERSISTENT,
+            ) or self.db.get_state("emergency_halt") == "1":
                 self.outbox.enqueue(
                     "KILL_SWITCH",
                     format_kill_switch_alert(
@@ -255,12 +276,18 @@ class QuantOrchestrator:
 
     def _count_trades_last_24h(self, now_ms: int) -> int:
         cutoff = now_ms - ONE_DAY_MS
-        table = "shadow_trades" if self.settings.mode == RunMode.SHADOW_CHAMELEON else "trades"
         with self.db.read() as conn:
-            row = conn.execute(
-                f"SELECT COUNT(*) FROM {table} WHERE created_at_ms >= ?",
-                (int(cutoff),),
-            ).fetchone()
+            if self.settings.mode == RunMode.SHADOW_CHAMELEON:
+                row = conn.execute(
+                    "SELECT COUNT(*) FROM shadow_trades WHERE created_at_ms >= ?",
+                    (int(cutoff),),
+                ).fetchone()
+            else:
+                # A2-05a: tentativas ENTRY_REJECTED nunca abrem posição e não devem acionar o teto diário
+                row = conn.execute(
+                    "SELECT COUNT(*) FROM trades WHERE created_at_ms >= ? AND status != 'ENTRY_REJECTED'",
+                    (int(cutoff),),
+                ).fetchone()
         return int(row[0]) if row else 0
 
     def _get_live_balances(self) -> tuple[Decimal, Decimal, Decimal]:
@@ -284,8 +311,20 @@ class QuantOrchestrator:
             try:
                 bt = self.public_client.get_book_ticker("BNBUSDT")
                 bnb_usdt = free_bnb * bt.bid
-            except Exception:
-                bnb_usdt = Decimal("10.00")
+            except Exception as exc:
+                # A2-05b: fallback para último close de BNBUSDT no SQLite; se ausente, fail-closed = 0 (nunca $10 fictício)
+                logger.warning("BNBUSDT ticker unavailable (%s); trying SQLite candle fallback", exc)
+                try:
+                    with self.db.read() as conn:
+                        c_row = conn.execute(
+                            "SELECT close FROM candles WHERE symbol = 'BNBUSDT' ORDER BY close_time_ms DESC LIMIT 1"
+                        ).fetchone()
+                    if c_row is not None and c_row["close"] is not None:
+                        bnb_px = Decimal(str(c_row["close"]))
+                        if bnb_px > Decimal("0"):
+                            bnb_usdt = free_bnb * bnb_px
+                except Exception:
+                    bnb_usdt = Decimal("0")
         return free_usdt, free_usdt, bnb_usdt
 
     def _has_open_live_trade(self) -> dict[str, Any] | None:
@@ -334,36 +373,63 @@ class QuantOrchestrator:
             for r in rows
         ]
 
-    def _manage_open_positions(self, now_ms: int) -> None:
-        if self.settings.mode == RunMode.SHADOW_CHAMELEON:
-            with self.db.read() as conn:
-                open_sh = conn.execute(
-                    "SELECT symbol, signal_close_time_ms FROM shadow_trades WHERE status = 'OPEN' LIMIT 1"
-                ).fetchone()
-            if open_sh is not None:
-                sym = str(open_sh["symbol"])
-                bars = self._load_recent_1h_candle_rows(sym, int(open_sh["signal_close_time_ms"]))
-                self.paper_executor.evaluate_open_shadow_trade({sym: bars})
+    def _manage_shadow_open_positions(self) -> None:
+        if self.settings.mode != RunMode.SHADOW_CHAMELEON:
             return
+        with self.db.read() as conn:
+            open_sh = conn.execute(
+                "SELECT symbol, signal_close_time_ms FROM shadow_trades WHERE status = 'OPEN' LIMIT 1"
+            ).fetchone()
+        if open_sh is not None:
+            sym = str(open_sh["symbol"])
+            bars = self._load_recent_1h_candle_rows(sym, int(open_sh["signal_close_time_ms"]))
+            self.paper_executor.evaluate_open_shadow_trade({sym: bars})
 
-        if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1 and self.oco_manager is not None:
-            if self.reconciler is not None:
+    def _manage_live_open_positions(self, now_ms: int) -> tuple[bool, int]:
+        """
+        Gerencia posições LIVE (StateReconciler, Time-Stop e Watchdog) em prioridade CRITICAL,
+        isolado de erros em exchangeInfo ou velas exclusivas do Radar (A1-09, A2-01).
+        Retorna (entries_blocked, unhandled_errors).
+        """
+        if self.settings.mode != RunMode.LIVE_CHAMELEON_PHASE_1 or self.oco_manager is None:
+            return False, 0
+
+        errors = 0
+        if self.reconciler is not None:
+            try:
                 res = self.reconciler.reconcile()
-                if res.action == ReconcileAction.HALT_REVIEW_UNTRACKED_BALANCE:
+            except Exception as exc:
+                logger.error("Live StateReconciler failed: %s", exc)
+                errors += 1
+                if self.db.get_state("emergency_halt") == "1":
                     self.outbox.enqueue(
                         "KILL_SWITCH",
-                        format_kill_switch_alert(
-                            self.settings.mode.value,
-                            res.details or res.action.value,
-                        ),
+                        format_kill_switch_alert(self.settings.mode.value, str(exc)),
                         now_ms=now_ms,
                     )
-                    return
-            open_t = self._has_open_live_trade()
-            if open_t is None or open_t["status"] != "PROTECTED":
-                return
-            trade_id = int(open_t["trade_id"])
-            sym = str(open_t["symbol"])
+                return True, errors
+
+            if res.action in (
+                ReconcileAction.HALT_REVIEW_UNTRACKED_BALANCE,
+                ReconcileAction.HALT_REVIEW_PERSISTENT,
+            ) or self.db.get_state("emergency_halt") == "1":
+                self.outbox.enqueue(
+                    "KILL_SWITCH",
+                    format_kill_switch_alert(
+                        self.settings.mode.value,
+                        res.details or res.action.value,
+                    ),
+                    now_ms=now_ms,
+                )
+                return True, errors
+
+        open_t = self._has_open_live_trade()
+        if open_t is None or open_t["status"] != "PROTECTED":
+            return False, errors
+
+        trade_id = int(open_t["trade_id"])
+        sym = str(open_t["symbol"])
+        try:
             filters = self.exchange_cache.get(sym)
             if now_ms >= int(open_t["time_barrier_end_ms"]):
                 self.oco_manager.close_on_time_barrier(
@@ -383,7 +449,31 @@ class QuantOrchestrator:
                     oco_stop_price=Decimal(str(open_t["oco_stop_price"] or "0")),
                     oco_stop_limit_price=Decimal(str(open_t["oco_stop_limit_price"])),
                     symbol_filters=filters,
+                    oco_qty=(
+                        Decimal(str(open_t["oco_qty"]))
+                        if open_t["oco_qty"] is not None
+                        else None
+                    ),
                 )
+        except Exception as exc:
+            logger.error("Live position exit/watchdog failed for %s trade #%s: %s", sym, trade_id, exc)
+            errors += 1
+            if self.db.get_state("emergency_halt") == "1":
+                self.outbox.enqueue(
+                    "KILL_SWITCH",
+                    format_kill_switch_alert(self.settings.mode.value, str(exc)),
+                    now_ms=now_ms,
+                )
+            return True, errors
+
+        return False, errors
+
+    def _manage_open_positions(self, now_ms: int) -> None:
+        if self.settings.mode == RunMode.SHADOW_CHAMELEON:
+            self._manage_shadow_open_positions()
+            return
+        if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1:
+            self._manage_live_open_positions(now_ms)
 
     def _execute_chameleon_step(
         self,
@@ -393,9 +483,16 @@ class QuantOrchestrator:
         aligned_frames: dict[str, pd.DataFrame],
         regimes: dict[str, MarketRegime],
         entries_blocked: bool,
+        live_already_managed: bool = False,
     ) -> tuple[bool, Optional[str]]:
         """Run Chameleon execution path FIRST (C2-9) before Radar L4."""
-        self._manage_open_positions(now_ms)
+        if self.settings.mode == RunMode.SHADOW_CHAMELEON:
+            self._manage_shadow_open_positions()
+        elif self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1 and not live_already_managed:
+            mgmt_blocked, _ = self._manage_live_open_positions(now_ms)
+            if mgmt_blocked:
+                entries_blocked = True
+
         if entries_blocked or self.settings.mode == RunMode.ANALYST_ONLY:
             return False, None
 
@@ -404,8 +501,23 @@ class QuantOrchestrator:
         if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1 and self._has_open_live_trade() is not None:
             return False, None
 
+        commission_payload: Optional[dict[str, Any]] = None
         if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1:
             free_usdt, eq_usdt, bnb_usdt = self._get_live_balances()
+            get_comm = getattr(self.signed_client, "get_account_commission", None)
+            if callable(get_comm) and self.strategies_cfg.universe.symbols:
+                try:
+                    ref_sym = next(
+                        (
+                            s
+                            for s in self.strategies_cfg.universe.symbols
+                            if s not in FORBIDDEN_EXECUTION_SYMBOLS
+                        ),
+                        self.strategies_cfg.universe.symbols[0],
+                    )
+                    commission_payload = get_comm(ref_sym)
+                except Exception as exc:
+                    logger.warning("get_account_commission unavailable (%s); continuing with defaults", exc)
         else:
             stored_eq = self.db.get_state("shadow_virtual_equity_usdt")
             eq_usdt = Decimal(stored_eq) if stored_eq else Decimal(str(self.settings.shadow_initial_usdt))
@@ -416,6 +528,7 @@ class QuantOrchestrator:
             current_equity_usdt=eq_usdt,
             bnb_free_usdt_equiv=bnb_usdt,
             trades_last_24h=self._count_trades_last_24h(now_ms),
+            account_commission_payload=commission_payload,
         )
         if defense.emergency_halt:
             self.outbox.enqueue(
@@ -588,6 +701,16 @@ class QuantOrchestrator:
             )
         return emitted, len(resolved_list)
 
+    def _has_cached_execution_filters(self) -> bool:
+        for sym in self.strategies_cfg.universe.symbols:
+            if sym in FORBIDDEN_EXECUTION_SYMBOLS:
+                continue
+            try:
+                self.exchange_cache.get(sym)
+            except KeyError:
+                return False
+        return True
+
     def run_once(self, *, now_ms: int | None = None, skip_collect: bool = False) -> CycleReport:
         """Execute a single hourly cycle deterministically."""
         t0 = time.monotonic()
@@ -604,7 +727,27 @@ class QuantOrchestrator:
                 logger.warning("Clock sync failed: %s", exc)
                 unhandled += 1
 
-        self.exchange_cache.refresh_if_stale(cur_ms)
+        # A1-09 (C1-B): Em modo LIVE, reconciliação, Time-Stop e Watchdog rodam PRIMEIRO em prioridade
+        # CRITICAL — antes de exchangeInfo (HIGH) e coleta de velas de símbolos exclusivos do Radar!
+        live_mgmt_blocked = False
+        live_already_managed = False
+        if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1:
+            live_mgmt_blocked, live_mgmt_errors = self._manage_live_open_positions(cur_ms)
+            unhandled += live_mgmt_errors
+            live_already_managed = True
+
+        try:
+            self.exchange_cache.refresh_if_stale(cur_ms)
+        except Exception as exc:
+            if self._has_cached_execution_filters():
+                logger.warning(
+                    "exchange_cache.refresh_if_stale failed (%s); continuing with cached filters",
+                    exc,
+                )
+                unhandled += 1
+            else:
+                raise
+
         maintenance_blocked = self._check_maintenance()
         emergency_halted = self.db.get_state("emergency_halt") == "1"
 
@@ -623,14 +766,18 @@ class QuantOrchestrator:
                         logger.warning("Gap repair failed for %s (%s): %s", sym, rep.interval, exc)
             stale_symbols = list(dict.fromkeys(stale_symbols))
 
+        # A1-08: símbolos marcados como stale são excluídos deste ciclo (não geram sinal e não retrocedem cycle_close_ms)
+        stale_set = set(stale_symbols)
         aligned_frames: dict[str, pd.DataFrame] = {}
         regimes: dict[str, MarketRegime] = {}
-        cycle_close_ms = (cur_ms // ONE_HOUR_MS) * ONE_HOUR_MS
+        observed_closes: list[int] = []
 
         donchian_lb = int(
             self.strategies_cfg.regimes_and_strategies.bull_trend_pullback.donchian_lookback_1h
         )
         for sym in all_symbols:
+            if sym in stale_set:
+                continue
             df_1h = load_frame(self.db, sym, "1h", limit=350)
             df_4h = load_frame(self.db, sym, "4h", limit=250)
             if df_1h.empty or df_4h.empty:
@@ -650,9 +797,13 @@ class QuantOrchestrator:
             aligned_frames[sym] = df_al
             snap = self.regime_detector.detect_from_aligned_frame(df_al)
             regimes[sym] = snap.regime
-            last_1h_close = int(df_al["close_time_ms"].iloc[-1])
-            if last_1h_close > cycle_close_ms or cycle_close_ms == (cur_ms // ONE_HOUR_MS) * ONE_HOUR_MS:
-                cycle_close_ms = last_1h_close
+            observed_closes.append(int(df_al["close_time_ms"].iloc[-1]))
+
+        cycle_close_ms = (
+            max(observed_closes)
+            if observed_closes
+            else (cur_ms // ONE_HOUR_MS) * ONE_HOUR_MS
+        )
 
         # Enrich all non-BTC frames with BTC 12h RS and BTC 4h regime (K9.3 context)
         btc_df = aligned_frames.get("BTCUSDT")
@@ -678,7 +829,8 @@ class QuantOrchestrator:
             cycle_close_ms=cycle_close_ms,
             aligned_frames=aligned_frames,
             regimes=regimes,
-            entries_blocked=maintenance_blocked or emergency_halted,
+            entries_blocked=maintenance_blocked or emergency_halted or live_mgmt_blocked,
+            live_already_managed=live_already_managed,
         )
         emitted, resolved = self._execute_radar_step(
             now_ms=cur_ms,

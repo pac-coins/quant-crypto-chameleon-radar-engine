@@ -1577,3 +1577,373 @@ def test_audit_a2_02b_completed_oco_dust_revalued_at_bid_avoids_false_halt(
     assert res2.action == ReconcileAction.CLEAN
 
 
+# =============================================================================
+# Commit 5 — Orchestrator & CandleCollector (A1-08, A1-09, A2-05a, A2-05b)
+# =============================================================================
+
+
+def test_audit_a1_08_run_once_must_exclude_stale_symbols_from_chameleon_entries(
+    tmp_path: Path,
+) -> None:
+    from src.core.binance_client import ExchangeInfoCache
+    from src.core.config import BinanceEnv, RunMode, RuntimeSettings
+    from src.core.database import CandleRow
+    from src.data.candle_collector import CollectionReport
+    from src.main import QuantOrchestrator
+    from src.notifications.telegram import TelegramOutbox
+    from src.radar.orderbook_inspector import OrderbookInspector
+    from src.regimes.regime_detector import MarketRegime
+    from src.strategies.base_strategy import SignalCandidate
+
+    st, an = _load_cfgs()
+    db = Database(tmp_path / "a1_08.db")
+    db.connect()
+    db.migrate()
+
+    t_prev = 1_700_510_400_000
+    t_now = t_prev + 3_600_000
+    rows_1h: list[CandleRow] = []
+    rows_4h: list[CandleRow] = []
+    # BTCUSDT has fresh candle at t_now; SOLUSDT is stale (last candle is t_prev)
+    for sym, end_t in (("BTCUSDT", t_now), ("SOLUSDT", t_prev)):
+        for i in range(250):
+            cl = end_t - (249 - i) * 3_600_000
+            op = cl - 3_600_000
+            px = 100.0 + i * 0.5
+            rows_1h.append(
+                CandleRow(sym, "1h", op, cl, px - 0.2, px + 0.5, px - 0.5, px, 1000.0, 100000.0, 100, 600.0, 60000.0, cl)
+            )
+        for i in range(150):
+            cl = t_prev - (149 - i) * 14_400_000
+            op = cl - 14_400_000
+            px = 100.0 + i * 1.5
+            rows_4h.append(
+                CandleRow(sym, "4h", op, cl, px - 0.2, px + 0.8, px - 0.4, px, 4000.0, 400000.0, 400, 2400.0, 240000.0, cl)
+            )
+    db.upsert_candles(rows_1h + rows_4h)
+
+    class _PubStub:
+        governor = WeightGovernor()
+
+        def get_server_time_ms(self) -> int:
+            return t_now + 3000
+
+        def get_book_ticker(self, symbol: str, **_: Any) -> BookTicker:
+            return BookTicker(symbol, Decimal("224.50"), Decimal("100"), Decimal("224.60"), Decimal("100"))
+
+        def get_exchange_info(self, symbols: Any) -> dict[str, SymbolFilters]:
+            return {s: _sol_filters(s) for s in symbols}
+
+    class _StaleCollector:
+        def run_cycle(self, symbols: Any) -> list[CollectionReport]:
+            return [
+                CollectionReport(
+                    interval="1h",
+                    expected_close_time_ms=t_now,
+                    ok=["BTCUSDT"],
+                    stale=["SOLUSDT"],
+                )
+            ]
+
+    pub = _PubStub()
+    clock = MonotonicClock()
+    clock.sync(pub.get_server_time_ms)
+    all_syms = list(dict.fromkeys(list(st.universe.symbols) + list(an.scanner_universe.symbols) + ["BNBUSDT"]))
+    ex_cache = ExchangeInfoCache(pub, db, all_syms)  # type: ignore[arg-type]
+    ex_cache.refresh_if_stale(t_now)
+
+    settings = RuntimeSettings(
+        mode=RunMode.SHADOW_CHAMELEON,
+        binance_env=BinanceEnv.TESTNET,
+        telegram_bot_token="123:ABC",
+        telegram_chat_id="1",
+        db_path=tmp_path / "a1_08.db",
+        backup_dir=tmp_path / "bkp",
+    )
+    orch = QuantOrchestrator(
+        settings=settings,
+        strategies_cfg=st,
+        analyst_cfg=an,
+        db=db,
+        public_client=pub,  # type: ignore[arg-type]
+        signed_client=None,
+        clock=clock,
+        exchange_cache=ex_cache,
+        outbox=TelegramOutbox(db, "1", transport=None),
+        collector=_StaleCollector(),  # type: ignore[arg-type]
+        orderbook_inspector=OrderbookInspector(an.layer_4_orderbook_live, sleep_fn=lambda _: None),
+        sleep_fn=lambda _: None,
+    )
+
+    def _emit_if_called(sym: str, row: Any, reg: MarketRegime) -> SignalCandidate | None:
+        if sym != "SOLUSDT":
+            return None
+        return SignalCandidate(
+            symbol="SOLUSDT",
+            close_time_ms=int(row["close_time_ms"]),
+            regime=MarketRegime.BULL,
+            strategy_name="bull_trend_pullback",
+            entry_price=224.5,
+            stop_price=210.0,
+            target_price=260.0,
+            atr_14=5.0,
+            stop_distance_pct=(224.5 - 210.0) / 224.5,
+            gross_rr_ratio=(260.0 - 224.5) / (224.5 - 210.0),
+            time_barrier_hours=72,
+            rs_vol_adjusted_12h=2.0,
+            order_flow_delta=100.0,
+            taker_buy_ratio=0.58,
+            has_liquidity_sweep=False,
+        )
+
+    orch.strategy.evaluate_row = _emit_if_called  # type: ignore[method-assign]
+    rep = orch.run_once(now_ms=t_now + 3000, skip_collect=False)
+    db.close()
+    assert rep.chameleon_executed is False
+    assert rep.cycle_close_time_ms == t_now
+
+
+def test_audit_a1_09_radar_symbol_kline_failure_must_not_block_live_time_stop(
+    tmp_path: Path,
+) -> None:
+    from src.core.binance_client import ExchangeInfoCache, SystemStatus
+    from src.core.config import BinanceEnv, RunMode, RuntimeSettings
+    from src.execution.executor_protocol import TradeStatus
+    from src.main import QuantOrchestrator
+    from src.notifications.telegram import TelegramOutbox
+    from src.radar.orderbook_inspector import OrderbookInspector
+
+    st, an = _load_cfgs()
+    db = Database(tmp_path / "a1_09.db")
+    db.connect()
+    db.migrate()
+
+    now_ms = 1_700_300_003_000
+    _insert_trade(
+        db,
+        status=TradeStatus.PROTECTED.value,
+        symbol="SOLUSDT",
+        oco_order_list_id=5001,
+        oco_qty="10.00",
+        time_barrier_end_ms=now_ms - 10_000,
+    )
+
+    class _PubRadarFails:
+        governor = WeightGovernor()
+
+        def get_server_time_ms(self) -> int:
+            return now_ms
+
+        def get_exchange_info(self, symbols: Any) -> dict[str, SymbolFilters]:
+            return {s: _sol_filters(s) for s in symbols}
+
+        def get_klines(self, symbol: str, interval: str, **_: Any) -> list[list[Any]]:
+            if symbol == "DOGEUSDT":
+                raise BinanceAPIError(503, -1001, "Transient radar symbol error", "GET /api/v3/klines")
+            cl = (now_ms // 3_600_000) * 3_600_000
+            op = cl - 3_600_000
+            return [[op, "100", "101", "99", "100", "10", cl - 1, "1000", 5, "5", "500", "0"]]
+
+    class _SignedLive:
+        def __init__(self, gov: WeightGovernor, clk: MonotonicClock) -> None:
+            self.governor = gov
+            self.clock = clk
+            self.canceled: list[int] = []
+            self.sold: list[Decimal] = []
+
+        def sapi_system_status(self) -> SystemStatus:
+            return SystemStatus(normal=True, msg="normal", mocked=True)
+
+        def get_account(self, **_: Any) -> dict[str, Any]:
+            if self.canceled:
+                return {"balances": [{"asset": "SOL", "free": "10.00", "locked": "0.00"}, {"asset": "USDT", "free": "300.00", "locked": "0.00"}, {"asset": "BNB", "free": "0.1", "locked": "0.00"}]}
+            return {"balances": [{"asset": "SOL", "free": "0.00", "locked": "10.00"}, {"asset": "USDT", "free": "300.00", "locked": "0.00"}, {"asset": "BNB", "free": "0.1", "locked": "0.00"}]}
+
+        def get_order_list(self, order_list_id: int) -> dict[str, Any]:
+            return {"orderListId": order_list_id, "listOrderStatus": "EXECUTING"}
+
+        def cancel_order_list(self, symbol: str, order_list_id: int) -> dict[str, Any]:
+            self.canceled.append(order_list_id)
+            return {
+                "orderListId": order_list_id,
+                "listOrderStatus": "ALL_DONE",
+                "orderReports": [{"executedQty": "0.00"}, {"executedQty": "0.00"}],
+            }
+
+        def new_market_sell(self, symbol: str, qty: Decimal, client_order_id: str) -> dict[str, Any]:
+            self.sold.append(qty)
+            return {"executedQty": str(qty), "cummulativeQuoteQty": "1000.00", "fills": []}
+
+    pub = _PubRadarFails()
+    clock = MonotonicClock()
+    clock.sync(pub.get_server_time_ms)
+    signed = _SignedLive(pub.governor, clock)
+    all_syms = list(dict.fromkeys(list(st.universe.symbols) + list(an.scanner_universe.symbols) + ["BNBUSDT"]))
+    ex_cache = ExchangeInfoCache(pub, db, all_syms)  # type: ignore[arg-type]
+    ex_cache.refresh_if_stale(now_ms)
+
+    settings = RuntimeSettings(
+        mode=RunMode.LIVE_CHAMELEON_PHASE_1,
+        binance_env=BinanceEnv.TESTNET,
+        binance_api_key="k",
+        telegram_bot_token="123:ABC",
+        telegram_chat_id="1",
+        db_path=tmp_path / "a1_09.db",
+        backup_dir=tmp_path / "bkp",
+    )
+    orch = QuantOrchestrator(
+        settings=settings,
+        strategies_cfg=st,
+        analyst_cfg=an,
+        db=db,
+        public_client=pub,  # type: ignore[arg-type]
+        signed_client=signed,  # type: ignore[arg-type]
+        clock=clock,
+        exchange_cache=ex_cache,
+        outbox=TelegramOutbox(db, "1", transport=None),
+        orderbook_inspector=OrderbookInspector(an.layer_4_orderbook_live, sleep_fn=lambda _: None),
+        sleep_fn=lambda _: None,
+    )
+    orch.run_once(now_ms=now_ms, skip_collect=False)
+    with db.read() as conn:
+        row = conn.execute("SELECT status FROM trades WHERE trade_id = 1").fetchone()
+    db.close()
+    assert signed.canceled == [5001]
+    assert signed.sold == [Decimal("10.00")]
+    assert row is not None and row["status"] == TradeStatus.CLOSED.value
+
+
+def test_audit_a2_05a_rejected_entries_must_not_trigger_daily_trade_cap(tmp_path: Path) -> None:
+    from src.core.binance_client import ExchangeInfoCache
+    from src.core.config import BinanceEnv, RunMode, RuntimeSettings
+    from src.execution.executor_protocol import TradeStatus
+    from src.main import QuantOrchestrator
+    from src.notifications.telegram import TelegramOutbox
+
+    st, an = _load_cfgs()
+    db = Database(tmp_path / "a2_05a.db")
+    db.connect()
+    db.migrate()
+    now_ms = 1_700_010_000_000
+    for i in range(6):
+        _insert_trade(
+            db,
+            status=TradeStatus.ENTRY_REJECTED.value,
+            client_order_id=f"REJ_{i}",
+            entry_executed_qty=None,
+            oco_order_list_id=None,
+            oco_qty=None,
+            created_at_ms=now_ms - 1000 * (i + 1),
+        )
+
+    class _PubStub:
+        governor = WeightGovernor()
+
+        def get_exchange_info(self, symbols: Any) -> dict[str, SymbolFilters]:
+            return {s: _sol_filters(s) for s in symbols}
+
+    pub = _PubStub()
+    settings = RuntimeSettings(
+        mode=RunMode.LIVE_CHAMELEON_PHASE_1,
+        binance_env=BinanceEnv.TESTNET,
+        binance_api_key="k",
+        telegram_bot_token="123:ABC",
+        telegram_chat_id="1",
+        db_path=tmp_path / "a2_05a.db",
+        backup_dir=tmp_path / "bkp",
+    )
+    orch = QuantOrchestrator(
+        settings=settings,
+        strategies_cfg=st,
+        analyst_cfg=an,
+        db=db,
+        public_client=pub,  # type: ignore[arg-type]
+        signed_client=None,
+        clock=MonotonicClock(),
+        exchange_cache=ExchangeInfoCache(pub, db, ["SOLUSDT"]),  # type: ignore[arg-type]
+        outbox=TelegramOutbox(db, "1", transport=None),
+        sleep_fn=lambda _: None,
+    )
+    count_24h = orch._count_trades_last_24h(now_ms)
+    db.close()
+    assert count_24h == 0
+
+
+def test_audit_a2_05b_bnb_ticker_error_must_not_fabricate_10usd_reserve(tmp_path: Path) -> None:
+    import requests as _requests
+
+    from src.core.binance_client import ExchangeInfoCache
+    from src.core.config import BinanceEnv, RunMode, RuntimeSettings
+    from src.core.database import CandleRow
+    from src.main import QuantOrchestrator
+    from src.notifications.telegram import TelegramOutbox
+
+    st, an = _load_cfgs()
+    db = Database(tmp_path / "a2_05b.db")
+    db.connect()
+    db.migrate()
+
+    class _PubBnbTickerFails:
+        governor = WeightGovernor()
+
+        def get_book_ticker(self, symbol: str, **_: Any) -> BookTicker:
+            raise _requests.ConnectionError("ticker down")
+
+        def get_exchange_info(self, symbols: Any) -> dict[str, SymbolFilters]:
+            return {s: _sol_filters(s) for s in symbols}
+
+    class _SignedDepletedBnb:
+        governor = WeightGovernor()
+        clock = MonotonicClock()
+
+        def get_account(self, **_: Any) -> dict[str, Any]:
+            return {
+                "balances": [
+                    {"asset": "USDT", "free": "300.00", "locked": "0.00"},
+                    {"asset": "BNB", "free": "0.00001", "locked": "0.00"},
+                ]
+            }
+
+    pub = _PubBnbTickerFails()
+    signed = _SignedDepletedBnb()
+    settings = RuntimeSettings(
+        mode=RunMode.LIVE_CHAMELEON_PHASE_1,
+        binance_env=BinanceEnv.TESTNET,
+        binance_api_key="k",
+        telegram_bot_token="123:ABC",
+        telegram_chat_id="1",
+        db_path=tmp_path / "a2_05b.db",
+        backup_dir=tmp_path / "bkp",
+    )
+    orch = QuantOrchestrator(
+        settings=settings,
+        strategies_cfg=st,
+        analyst_cfg=an,
+        db=db,
+        public_client=pub,  # type: ignore[arg-type]
+        signed_client=signed,  # type: ignore[arg-type]
+        clock=signed.clock,
+        exchange_cache=ExchangeInfoCache(pub, db, ["SOLUSDT"]),  # type: ignore[arg-type]
+        outbox=TelegramOutbox(db, "1", transport=None),
+        sleep_fn=lambda _: None,
+    )
+    # No candles -> fail-closed 0
+    _, _, bnb_usdt_no_candle = orch._get_live_balances()
+    assert bnb_usdt_no_candle == Decimal("0")
+
+    # With BNBUSDT candle at $600 -> 0.00001 * 600 = $0.006 (< $1.00, triggers BNB_FEE_RESERVE_DEPLETED!)
+    db.upsert_candles(
+        [
+            CandleRow(
+                "BNBUSDT", "1h", 1_700_000_000_000, 1_700_003_600_000,
+                600.0, 605.0, 595.0, 600.0, 100.0, 60000.0, 50, 50.0, 30000.0, 1_700_003_600_000
+            )
+        ]
+    )
+    _, _, bnb_usdt_candle = orch._get_live_balances()
+    db.close()
+    assert bnb_usdt_candle == Decimal("0.00600")
+    assert bnb_usdt_candle < Decimal("1.00")
+
+
+
