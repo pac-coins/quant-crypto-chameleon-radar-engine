@@ -29,6 +29,7 @@ from src.core.config import (
     load_config,
 )
 from src.core.database import CandleRow, CycleHealth, Database
+from src.core.healthcheck import ping_healthcheck
 from src.data.candle_collector import CandleCollector, align_4h_to_1h, align_btc_context, load_frame
 from src.execution.executor_protocol import ExecutionReport, ExecutionRequest, NoOpExecutor
 from src.execution.paper_executor import PaperExecutor
@@ -930,6 +931,16 @@ class QuantOrchestrator:
                 unhandled_errors=unhandled,
             )
         )
+
+        # Heartbeat externo opcional (dead-man switch): somente após ciclo bem-sucedido,
+        # garantidamente fora de transação SQLite e fora de governor.critical_section().
+        if (
+            unhandled == 0
+            and self.settings.healthcheck_url is not None
+            and not getattr(self.db, "_in_write_tx", False)
+            and getattr(self.public_client.governor, "_critical_depth", 0) == 0
+        ):
+            ping_healthcheck(self.settings.healthcheck_url.get_secret_value())
 
         return CycleReport(
             cycle_close_time_ms=cycle_close_ms,

@@ -56,17 +56,29 @@ class RuntimeSettings(BaseSettings):
     telegram_chat_id: str
     db_path: Path = Path("data/quant.db")
     backup_dir: Path = Path("data/backups")
+    healthcheck_url: SecretStr | None = None
 
     @field_validator(
         "binance_api_key",
         "binance_ed25519_private_key_path",
         "live_confirmation",
         "approved_strategies_sha256",
+        "healthcheck_url",
         mode="before",
     )
     @classmethod
     def _normalize_optional_env(cls, v: Any) -> Any:
         return _empty_to_none(v)
+
+    @field_validator("healthcheck_url")
+    @classmethod
+    def _validate_healthcheck_url(cls, v: SecretStr | None) -> SecretStr | None:
+        if v is None:
+            return None
+        raw = v.get_secret_value().strip()
+        if not (raw.startswith("http://") or raw.startswith("https://")):
+            raise ValueError("HEALTHCHECK_URL must start with http:// or https://")
+        return v
 
 
 # ---- Espelhos estritos dos YAMLs (extra="forbid": chave desconhecida = erro de boot) ----
