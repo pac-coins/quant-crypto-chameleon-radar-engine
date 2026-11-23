@@ -1946,4 +1946,289 @@ def test_audit_a2_05b_bnb_ticker_error_must_not_fabricate_10usd_reserve(tmp_path
     assert bnb_usdt_candle < Decimal("1.00")
 
 
+# =============================================================================
+# Commit 6 — Structural Compliance (A3-01a, A3-01b, A3-01c)
+# =============================================================================
+
+
+def test_audit_a3_01a_main_must_not_import_live_executor_modules_outside_live(
+    tmp_path: Path,
+) -> None:
+    import subprocess
+    import sys
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import sys, src.main; "
+                "print('src.execution.oco_order_manager' in sys.modules, 'src.core.state_reconciler' in sys.modules)"
+            ),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert proc.stdout.strip() == "False False"
+
+    # Also verify instantiating QuantOrchestrator in SHADOW_CHAMELEON still does NOT import live modules
+    code = f"""
+import sys
+from pathlib import Path
+from src.core.binance_client import ExchangeInfoCache, MonotonicClock, WeightGovernor
+from src.core.config import AnalystConfig, BinanceEnv, RunMode, RuntimeSettings, StrategiesConfig, load_yaml_strict
+from src.core.database import Database
+from src.main import QuantOrchestrator
+from src.notifications.telegram import TelegramOutbox
+
+st = StrategiesConfig.model_validate(load_yaml_strict(Path("config/strategies.yaml")))
+an = AnalystConfig.model_validate(load_yaml_strict(Path("config/analyst.yaml")))
+db = Database(Path({str(tmp_path / 'shadow_lazy.db')!r}))
+db.connect(); db.migrate()
+class _P:
+    governor = WeightGovernor()
+    def get_exchange_info(self, syms): return {{}}
+pub = _P()
+settings = RuntimeSettings(
+    mode=RunMode.SHADOW_CHAMELEON,
+    binance_env=BinanceEnv.TESTNET,
+    telegram_bot_token="123:ABC",
+    telegram_chat_id="1",
+    db_path=Path({str(tmp_path / 'shadow_lazy.db')!r}),
+    backup_dir=Path({str(tmp_path / 'bkp')!r}),
+)
+orch = QuantOrchestrator(
+    settings=settings, strategies_cfg=st, analyst_cfg=an, db=db,
+    public_client=pub, signed_client=object(), clock=MonotonicClock(),
+    exchange_cache=ExchangeInfoCache(pub, db, []), outbox=TelegramOutbox(db, "1", transport=None),
+)
+db.close()
+print('src.execution.oco_order_manager' in sys.modules, 'src.core.state_reconciler' in sys.modules, orch.oco_manager is None, orch.reconciler is None)
+"""
+    proc2 = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
+    assert proc2.stdout.strip() == "False False True True"
+
+
+def test_audit_a3_01b_live_radar_card_includes_c1d_execution_basket_footer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import pandas as pd
+
+    from src.core.binance_client import ExchangeInfoCache
+    from src.core.config import BinanceEnv, RunMode, RuntimeSettings
+    from src.main import QuantOrchestrator
+    from src.notifications.telegram import TelegramOutbox, format_radar_signal_alert
+    from src.radar.confluence_scorer import RadarSignal
+    from src.radar.structure_ema import Layer123Score
+    from src.regimes.regime_detector import MarketRegime
+
+    def _make_sig(symbol: str) -> RadarSignal:
+        return RadarSignal(
+            signal_id=f"{symbol}_1700000000000",
+            symbol=symbol,
+            signal_close_time_ms=1_700_000_000_000,
+            emitted_at_ms=1_700_000_005_000,
+            setup="PULLBACK",
+            regime_4h="BULL",
+            score_total=80,
+            score_l1=20,
+            score_l2=20,
+            score_l3=20,
+            score_l4=20,
+            grade="A",
+            entry_ref_price=100.0,
+            candle_close_price=100.0,
+            stop_price=95.0,
+            target1_price=107.5,
+            target2_price=112.5,
+            atr14=2.0,
+            horizon_end_ms=1_700_086_400_000,
+            cost_roundtrip_pct=0.0021,
+            features_snapshot={},
+            orderbook=None,
+            ob_ask_wall_before_t2=False,
+        )
+
+    # Direct formatter behavior (backward-compatible default False + True adds C1-D warning)
+    card_default = format_radar_signal_alert(_make_sig("SOLUSDT"))
+    assert "Ativo gerido pelo executor" not in card_default
+    card_live = format_radar_signal_alert(_make_sig("SOLUSDT"), live_managed_asset=True)
+    assert "⚠️ Ativo gerido pelo executor — não opere nesta conta." in card_live
+
+    # Integration through QuantOrchestrator._execute_radar_step in LIVE mode:
+    # SOLUSDT (in execution_universe) gets C1-D footer; DOGEUSDT (Radar-only) does NOT!
+    st, an = _load_cfgs()
+    db = Database(tmp_path / "a3_01b.db")
+    db.connect()
+    db.migrate()
+
+    class _Pub:
+        governor = WeightGovernor()
+
+        def get_book_ticker(self, symbol: str, **_: Any) -> BookTicker:
+            return BookTicker(symbol, Decimal("100.00"), Decimal("10"), Decimal("100.05"), Decimal("10"))
+
+        def get_exchange_info(self, symbols: Any) -> dict[str, SymbolFilters]:
+            return {s: _sol_filters(s) for s in symbols}
+
+    pub = _Pub()
+    settings = RuntimeSettings(
+        mode=RunMode.LIVE_CHAMELEON_PHASE_1,
+        binance_env=BinanceEnv.TESTNET,
+        binance_api_key="k",
+        telegram_bot_token="123:ABC",
+        telegram_chat_id="1",
+        db_path=tmp_path / "a3_01b.db",
+        backup_dir=tmp_path / "bkp",
+    )
+    orch = QuantOrchestrator(
+        settings=settings,
+        strategies_cfg=st,
+        analyst_cfg=an,
+        db=db,
+        public_client=pub,  # type: ignore[arg-type]
+        signed_client=None,
+        clock=MonotonicClock(),
+        exchange_cache=ExchangeInfoCache(pub, db, ["SOLUSDT"]),  # type: ignore[arg-type]
+        outbox=TelegramOutbox(db, "1", transport=None),
+        sleep_fn=lambda _: None,
+    )
+    monkeypatch.setattr(orch.orderbook_inspector, "inspect_batch", lambda syms, cli: {})
+
+    import src.main as main_mod
+
+    monkeypatch.setattr(
+        main_mod,
+        "score_layers_1_to_3",
+        lambda sym, df, reg, cfg: Layer123Score(
+            symbol=sym,
+            signal_close_time_ms=1_700_000_000_000,
+            regime_4h=MarketRegime.BULL,
+            score_l1=25,
+            score_l2=25,
+            score_l3=25,
+            subtotal_l1_l3=75,
+            close_price=100.0,
+            low_price=98.0,
+            atr14=2.0,
+            setup="PULLBACK",
+            features_snapshot={},
+        )
+        if sym in ("SOLUSDT", "DOGEUSDT")
+        else None,
+    )
+    monkeypatch.setattr(
+        main_mod,
+        "score_and_build_signal",
+        lambda hit, ob, **kwargs: _make_sig(hit.symbol),
+    )
+
+    dummy_df = pd.DataFrame([{"close_time_ms": 1_700_000_000_000, "close": 100.0}])
+    emitted, _ = orch._execute_radar_step(
+        now_ms=1_700_000_005_000,
+        aligned_frames={"SOLUSDT": dummy_df, "DOGEUSDT": dummy_df},
+        regimes={"SOLUSDT": MarketRegime.BULL, "DOGEUSDT": MarketRegime.BULL},
+    )
+    assert emitted == 2
+    with db.read() as conn:
+        rows = conn.execute(
+            "SELECT reply_to_signal_id, payload FROM telegram_outbox WHERE kind = 'RADAR_SIGNAL'"
+        ).fetchall()
+    db.close()
+    by_sig = {str(r["reply_to_signal_id"]): str(r["payload"]) for r in rows}
+    assert "⚠️ Ativo gerido pelo executor — não opere nesta conta." in by_sig["SOLUSDT_1700000000000"]
+    assert "Ativo gerido pelo executor" not in by_sig["DOGEUSDT_1700000000000"]
+
+
+def test_audit_a3_01c_radar_signal_id_backfilled_on_trade_preserving_fk(
+    tmp_path: Path,
+) -> None:
+    from src.core.binance_client import ExchangeInfoCache
+    from src.core.config import BinanceEnv, RunMode, RuntimeSettings
+    from src.execution.executor_protocol import TradeStatus
+    from src.main import QuantOrchestrator
+    from src.notifications.telegram import TelegramOutbox
+    from src.radar.confluence_scorer import RadarSignal
+
+    st, an = _load_cfgs()
+    db = Database(tmp_path / "a3_01c.db")
+    db.connect()
+    db.migrate()
+
+    close_ms = 1_700_000_000_000
+    tid = _insert_trade(
+        db,
+        status=TradeStatus.PROTECTED.value,
+        symbol="SOLUSDT",
+        oco_order_list_id=5001,
+        oco_qty="10.00",
+    )
+
+    class _Pub:
+        governor = WeightGovernor()
+
+        def get_exchange_info(self, symbols: Any) -> dict[str, SymbolFilters]:
+            return {s: _sol_filters(s) for s in symbols}
+
+    pub = _Pub()
+    settings = RuntimeSettings(
+        mode=RunMode.LIVE_CHAMELEON_PHASE_1,
+        binance_env=BinanceEnv.TESTNET,
+        binance_api_key="k",
+        telegram_bot_token="123:ABC",
+        telegram_chat_id="1",
+        db_path=tmp_path / "a3_01c.db",
+        backup_dir=tmp_path / "bkp",
+    )
+    orch = QuantOrchestrator(
+        settings=settings,
+        strategies_cfg=st,
+        analyst_cfg=an,
+        db=db,
+        public_client=pub,  # type: ignore[arg-type]
+        signed_client=None,
+        clock=MonotonicClock(),
+        exchange_cache=ExchangeInfoCache(pub, db, ["SOLUSDT"]),  # type: ignore[arg-type]
+        outbox=TelegramOutbox(db, "1", transport=None),
+        sleep_fn=lambda _: None,
+    )
+    sig = RadarSignal(
+        signal_id="SOLUSDT_1700000000000",
+        symbol="SOLUSDT",
+        signal_close_time_ms=close_ms,
+        emitted_at_ms=close_ms + 5000,
+        setup="PULLBACK",
+        regime_4h="BULL",
+        score_total=80,
+        score_l1=20,
+        score_l2=20,
+        score_l3=20,
+        score_l4=20,
+        grade="A",
+        entry_ref_price=100.0,
+        candle_close_price=100.0,
+        stop_price=95.0,
+        target1_price=107.5,
+        target2_price=112.5,
+        atr14=2.0,
+        horizon_end_ms=close_ms + 86_400_000,
+        cost_roundtrip_pct=0.0021,
+        features_snapshot={},
+        orderbook=None,
+        ob_ask_wall_before_t2=False,
+    )
+    assert orch.virtual_auditor.record_signal(sig) is True
+    orch._backfill_trade_radar_signal_id(
+        symbol="SOLUSDT",
+        cycle_close_ms=close_ms,
+        radar_signal_id=sig.signal_id,
+    )
+    with db.read() as conn:
+        row = conn.execute("SELECT radar_signal_id FROM trades WHERE trade_id = ?", (tid,)).fetchone()
+    db.close()
+    assert row is not None and row["radar_signal_id"] == "SOLUSDT_1700000000000"
+
+
+
 

@@ -6,7 +6,7 @@ import time
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, Callable, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Optional, Sequence
 
 import pandas as pd
 
@@ -29,13 +29,15 @@ from src.core.config import (
     load_config,
 )
 from src.core.database import CandleRow, CycleHealth, Database
-from src.core.state_reconciler import ReconcileAction, StateReconciler
 from src.data.candle_collector import CandleCollector, align_4h_to_1h, align_btc_context, load_frame
 from src.execution.executor_protocol import ExecutionReport, ExecutionRequest, NoOpExecutor
-from src.execution.oco_order_manager import OcoOrderManager
 from src.execution.paper_executor import PaperExecutor
 from src.features.feature_store import FeatureRequest, FeatureStore
 from src.features.ml_judge import MLJudge
+
+if TYPE_CHECKING:
+    from src.core.state_reconciler import StateReconciler
+    from src.execution.oco_order_manager import OcoOrderManager
 from src.notifications.telegram import (
     HttpTelegramTransport,
     TelegramOutbox,
@@ -154,8 +156,11 @@ class QuantOrchestrator:
         )
         self.oco_manager: OcoOrderManager | None = None
         self.reconciler: StateReconciler | None = None
-        if signed_client is not None:
-            self.oco_manager = OcoOrderManager(
+        if settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1 and signed_client is not None:
+            from src.core.state_reconciler import StateReconciler as _StateReconciler
+            from src.execution.oco_order_manager import OcoOrderManager as _OcoOrderManager
+
+            self.oco_manager = _OcoOrderManager(
                 db=db,
                 signed_client=signed_client,
                 resilience_cfg=strategies_cfg.execution_and_resilience,
@@ -168,7 +173,7 @@ class QuantOrchestrator:
                 shadow_manager=self.shadow_manager,
                 sleep_fn=sleep_fn,
             )
-            self.reconciler = StateReconciler(
+            self.reconciler = _StateReconciler(
                 db=db,
                 signed_client=signed_client,
                 oco_manager=self.oco_manager,
@@ -181,6 +186,7 @@ class QuantOrchestrator:
 
         self._last_clock_sync_ms: int = 0
         self._last_backup_day_utc: int = -1
+        self._last_emitted_radar_signals: dict[str, str] = {}
 
     def _all_universe_symbols(self) -> tuple[str, ...]:
         return tuple(
@@ -222,6 +228,8 @@ class QuantOrchestrator:
             self.collector.backfill(need_4h, "4h", lookback_candles=250)
 
         if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1 and self.reconciler is not None:
+            from src.core.state_reconciler import ReconcileAction as _ReconcileAction
+
             try:
                 res = self.reconciler.reconcile()
             except Exception as exc:
@@ -235,8 +243,8 @@ class QuantOrchestrator:
                     self.outbox.flush(now_ms=now_ms)
                 raise
             if res.action in (
-                ReconcileAction.HALT_REVIEW_UNTRACKED_BALANCE,
-                ReconcileAction.HALT_REVIEW_PERSISTENT,
+                _ReconcileAction.HALT_REVIEW_UNTRACKED_BALANCE,
+                _ReconcileAction.HALT_REVIEW_PERSISTENT,
             ) or self.db.get_state("emergency_halt") == "1":
                 self.outbox.enqueue(
                     "KILL_SWITCH",
@@ -396,6 +404,8 @@ class QuantOrchestrator:
 
         errors = 0
         if self.reconciler is not None:
+            from src.core.state_reconciler import ReconcileAction as _ReconcileAction
+
             try:
                 res = self.reconciler.reconcile()
             except Exception as exc:
@@ -410,8 +420,8 @@ class QuantOrchestrator:
                 return True, errors
 
             if res.action in (
-                ReconcileAction.HALT_REVIEW_UNTRACKED_BALANCE,
-                ReconcileAction.HALT_REVIEW_PERSISTENT,
+                _ReconcileAction.HALT_REVIEW_UNTRACKED_BALANCE,
+                _ReconcileAction.HALT_REVIEW_PERSISTENT,
             ) or self.db.get_state("emergency_halt") == "1":
                 self.outbox.enqueue(
                     "KILL_SWITCH",
@@ -661,6 +671,8 @@ class QuantOrchestrator:
             )
 
         emitted = 0
+        self._last_emitted_radar_signals = {}
+        execution_set = set(self.strategies_cfg.universe.symbols) - set(FORBIDDEN_EXECUTION_SYMBOLS)
         for hit in top_hits:
             ob = ob_results.get(hit.symbol)
             if ob is not None and ob.best_ask_snapshot0 > 0.0:
@@ -683,9 +695,14 @@ class QuantOrchestrator:
                 continue
             if self.virtual_auditor.record_signal(sig):
                 emitted += 1
+                self._last_emitted_radar_signals[sig.symbol] = sig.signal_id
+                is_live_managed = (
+                    self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1
+                    and sig.symbol in execution_set
+                )
                 self.outbox.enqueue(
                     "RADAR_SIGNAL",
-                    format_radar_signal_alert(sig),
+                    format_radar_signal_alert(sig, live_managed_asset=is_live_managed),
                     reply_to_signal_id=sig.signal_id,
                     now_ms=now_ms,
                 )
@@ -700,6 +717,42 @@ class QuantOrchestrator:
                 now_ms=now_ms,
             )
         return emitted, len(resolved_list)
+
+    def _backfill_trade_radar_signal_id(
+        self,
+        *,
+        symbol: str,
+        cycle_close_ms: int,
+        radar_signal_id: str,
+    ) -> None:
+        """
+        Anota silenciosamente trades.radar_signal_id / shadow_trades.radar_signal_id após o Radar
+        persistir virtual_signals (preserva C2-9 sem atrasar a entrada e respeita a FK).
+        """
+        if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1:
+            table = "trades"
+        elif self.settings.mode == RunMode.SHADOW_CHAMELEON:
+            table = "shadow_trades"
+        else:
+            return
+        try:
+            with self.db.write_tx() as tx:
+                tx.execute(
+                    f"""
+                    UPDATE {table}
+                    SET radar_signal_id = ?
+                    WHERE symbol = ? AND signal_close_time_ms = ? AND radar_signal_id IS NULL
+                    """,
+                    (radar_signal_id, symbol, int(cycle_close_ms)),
+                )
+        except Exception as exc:
+            logger.warning(
+                "Failed to backfill radar_signal_id=%s on %s (%s): %s",
+                radar_signal_id,
+                table,
+                symbol,
+                exc,
+            )
 
     def _has_cached_execution_filters(self) -> bool:
         for sym in self.strategies_cfg.universe.symbols:
@@ -837,6 +890,14 @@ class QuantOrchestrator:
             aligned_frames=aligned_frames,
             regimes=regimes,
         )
+        if chameleon_executed and chameleon_symbol:
+            matched_sig_id = self._last_emitted_radar_signals.get(chameleon_symbol)
+            if matched_sig_id:
+                self._backfill_trade_radar_signal_id(
+                    symbol=chameleon_symbol,
+                    cycle_close_ms=cycle_close_ms,
+                    radar_signal_id=matched_sig_id,
+                )
 
         self.outbox.flush(now_ms=cur_ms)
 

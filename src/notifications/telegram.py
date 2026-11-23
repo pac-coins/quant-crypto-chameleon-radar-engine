@@ -159,14 +159,21 @@ class TelegramOutbox:
         return FlushStats(sent=sent_count, failed=failed_count, pending_remaining=int(rem))
 
 
-def format_radar_signal_alert(sig: RadarSignal) -> str:
+def format_radar_signal_alert(
+    sig: RadarSignal,
+    *,
+    live_managed_asset: bool = False,
+) -> str:
     obi_txt = f"{sig.orderbook.obi_mean:+.2f}" if (sig.orderbook and sig.orderbook.obi_mean is not None) else "N/A"
-    return (
+    msg = (
         f"📡 RADAR [{sig.grade}] {sig.symbol} | Score {sig.score_total}/100\n"
         f"Clima 4h: {sig.regime_4h} | Setup: {sig.setup}\n"
         f"L1={sig.score_l1} L2={sig.score_l2} L3={sig.score_l3} L4={sig.score_l4} (OBI={obi_txt})\n"
         f"Ref Ask: {sig.entry_ref_price:.4f} | Stop: {sig.stop_price:.4f} | T1: {sig.target1_price:.4f} | T2: {sig.target2_price:.4f}"
     )
+    if live_managed_asset:
+        msg += "\n⚠️ Ativo gerido pelo executor — não opere nesta conta."
+    return msg
 
 
 def format_kill_switch_alert(mode: str, reason: str) -> str:
