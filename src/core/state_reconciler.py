@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import sqlite3
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import StrEnum
@@ -18,7 +19,7 @@ from src.core.binance_client import (
     to_decimal,
 )
 from src.core.config import FORBIDDEN_EXECUTION_SYMBOLS
-from src.core.database import Database, SymbolFilters
+from src.core.database import Database, DatabaseError, SymbolFilters
 from src.execution.executor_protocol import ExitReason, TradeStatus
 from src.execution.oco_order_manager import (
     ActiveTradeContext,
@@ -101,22 +102,55 @@ class StateReconciler:
     def _now_ms(self) -> int:
         return int(self.signed_client.clock.server_now_ms())
 
+    def _best_effort_db_write(
+        self,
+        fn: Callable[[sqlite3.Connection], None],
+        *,
+        context: str,
+        retries: int = 2,
+    ) -> bool:
+        """Escrita pós-fill best-effort (C1-E / FI-04): erro de SQLite nunca impede proteção de posição viva."""
+        last_exc: Optional[Exception] = None
+        for _ in range(max(1, retries)):
+            try:
+                with self.db.write_tx() as tx:
+                    fn(tx)
+                return True
+            except (sqlite3.Error, DatabaseError) as exc:
+                last_exc = exc
+                continue
+        logger.warning(
+            "Best-effort SQLite write failed during reconciliation (%s); proceeding with exchange protection (C1-E): %s",
+            context,
+            last_exc,
+        )
+        return False
+
     def _record_success(self) -> None:
         if self.shadow_manager is not None:
-            self.shadow_manager.record_reconciliation_outcome(success=True)
+            try:
+                self.shadow_manager.record_reconciliation_outcome(success=True)
+            except (sqlite3.Error, DatabaseError) as exc:
+                logger.warning("Failed to persist reconciliation success in SQLite: %s", exc)
 
     def _record_failure(self, exc: Exception) -> None:
         code = exc.code if isinstance(exc, BinanceAPIError) else None
-        if self.shadow_manager is not None:
-            self.shadow_manager.record_reconciliation_outcome(
-                success=False,
-                binance_error_code=code,
-            )
-            if code is not None and int(code) in EXTENDED_AUTH_KILL_CODES:
-                self.shadow_manager._trigger_halt(KillSwitchReason.RECONCILIATION_OR_AUTH_FAILURE)
-        elif code is not None and int(code) in EXTENDED_AUTH_KILL_CODES:
-            self.db.set_state("emergency_halt", "1")
-            self.db.set_state("kill_switch_reason", KillSwitchReason.RECONCILIATION_OR_AUTH_FAILURE.value)
+        try:
+            if self.shadow_manager is not None:
+                self.shadow_manager.record_reconciliation_outcome(
+                    success=False,
+                    binance_error_code=code,
+                )
+                if code is not None and int(code) in EXTENDED_AUTH_KILL_CODES:
+                    self.shadow_manager._trigger_halt(KillSwitchReason.RECONCILIATION_OR_AUTH_FAILURE)
+            elif code is not None and int(code) in EXTENDED_AUTH_KILL_CODES:
+                self.db.set_state("emergency_halt", "1")
+                self.db.set_state(
+                    "kill_switch_reason",
+                    KillSwitchReason.RECONCILIATION_OR_AUTH_FAILURE.value,
+                )
+        except (sqlite3.Error, DatabaseError) as db_exc:
+            logger.warning("Failed to persist reconciliation failure state in SQLite: %s", db_exc)
 
     def _record_closed_trade_outcome_if_available(self, trade_id: int) -> None:
         if self.shadow_manager is None:
@@ -405,8 +439,8 @@ class StateReconciler:
             entry_order_id = (
                 int(order_resp["orderId"]) if order_resp.get("orderId") is not None else None
             )
-            with self.db.write_tx() as tx:
-                tx.execute(
+            self._best_effort_db_write(
+                lambda tx: tx.execute(
                     """
                     UPDATE trades
                     SET status = ?,
@@ -428,7 +462,9 @@ class StateReconciler:
                         self._now_ms(),
                         trade_id,
                     ),
-                )
+                ),
+                context=f"PENDING_ENTRY->ENTRY_FILLED trade #{trade_id} ({symbol})",
+            )
 
             # A1-03a: verifica se a OCO já foi criada na Binance (ex.: pós-C1-E ou timeout em POST OCO)
             balances = self._fetch_account_balances()

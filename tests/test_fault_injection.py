@@ -1153,14 +1153,6 @@ def test_fi_sqlite_locked_after_fill_still_places_oco_and_heals_on_unlock(
     assert len(ex.buy_calls) == 1 and len(ex.oco_calls) == 1
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "FI-04 (Cat. 1): StateReconciler._reconcile_impl (src/core/state_reconciler.py:408-431) "
-        "writes ENTRY_FILLED with mandatory db.write_tx() BEFORE protecting a recovered FILLED "
-        "PENDING_ENTRY trade; if SQLite is locked at boot, the live position remains without a stop (violates C1-E)."
-    ),
-)
 def test_fi_sqlite_locked_during_reconciler_pending_entry_must_still_protect_filled_position(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1168,7 +1160,7 @@ def test_fi_sqlite_locked_during_reconciler_pending_entry_must_still_protect_fil
     db = Database(tmp_path / "locked_reconcile.db")
     db.connect()
     db.migrate()
-    _insert_trade(
+    tid = _insert_trade(
         db,
         status=TradeStatus.PENDING_ENTRY.value,
         client_order_id="CHM_SOLUSDT_LOCKED",
@@ -1177,10 +1169,13 @@ def test_fi_sqlite_locked_during_reconciler_pending_entry_must_still_protect_fil
         oco_list_client_id=None,
         oco_qty=None,
     )
+    sm = ShadowManager(st.drawdown_and_shadow_protection, st.portfolio, db=db)
 
     ex = _StatefulSpotExchange()
     ex.new_market_buy_quote("SOLUSDT", Decimal("1000.00"), "CHM_SOLUSDT_LOCKED")
     assert ex.free_sol == Decimal("10.00") and ex.locked_sol == Decimal("0.00")
+
+    orig_write_tx = db.write_tx
 
     def _locked_tx():
         raise sqlite3.OperationalError("database is locked")
@@ -1195,16 +1190,25 @@ def test_fi_sqlite_locked_during_reconciler_pending_entry_must_still_protect_fil
         oco_manager=mgr,
         execution_universe=st.universe.symbols,
         filters_provider=_sol_filters,
+        shadow_manager=sm,
     )
-    try:
-        rec.reconcile()
-    except sqlite3.OperationalError:
-        pass
-    db.close()
+    res_locked = rec.reconcile()
 
     # Invariant (C1-E): even if SQLite is locked, the exchange position MUST be protected by an OCO!
+    assert res_locked.action == ReconcileAction.RECOVERED_PENDING_TO_PROTECTED
     assert len(ex.oco_calls) == 1
-    assert ex.locked_sol == Decimal("10.00")
+    assert ex.locked_sol == Decimal("10.00") and ex.free_sol == Decimal("0.00")
+
+    # Unlock SQLite -> next reconcile heals DB to PROTECTED without creating a duplicate OCO!
+    monkeypatch.setattr(db, "write_tx", orig_write_tx)
+    res_healed = rec.reconcile()
+    with db.read() as conn:
+        row = conn.execute("SELECT status, oco_order_list_id FROM trades WHERE trade_id = ?", (tid,)).fetchone()
+    db.close()
+
+    assert res_healed.action == ReconcileAction.HEALED_EXISTING_OCO
+    assert len(ex.oco_calls) == 1  # Zero duplicate OCO
+    assert row is not None and row["status"] == TradeStatus.PROTECTED.value and row["oco_order_list_id"] == 5001
 
 
 def test_fi_sqlite_locked_during_time_stop_still_exits_and_reconciler_heals_without_duplicate(
