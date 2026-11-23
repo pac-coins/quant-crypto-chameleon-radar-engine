@@ -1030,3 +1030,550 @@ def test_audit_a1_07_time_stop_get_order_list_has_no_order_reports_and_oversells
     assert row["exit_avg_price"] == "112"
     assert row["realized_pnl_usdt"] == "120"
 
+
+# =============================================================================
+# Commit 4 — StateReconciler (A1-01, A1-03a, A1-06, A1-10, A2-01, A2-02)
+# =============================================================================
+
+
+def test_audit_a1_01_reconciler_heals_closing_and_never_returns_clean_for_halt_review(
+    tmp_path: Path,
+) -> None:
+    from src.core.state_reconciler import ReconcileAction, StateReconciler
+    from src.execution.executor_protocol import TradeStatus
+    from src.execution.oco_order_manager import OcoOrderManager
+    from src.risk.shadow_manager import ShadowManager
+
+    st, _ = _load_cfgs()
+
+    # Case 1: CLOSING with 10.00 SOL free (OCO already canceled) -> liquidates remainder and closes trade
+    db = Database(tmp_path / "a1_01_closing.db")
+    db.migrate()
+    tid = _insert_trade(db, status=TradeStatus.CLOSING.value, oco_order_list_id=5001, oco_qty="10.00")
+
+    class _ExchangeAfterCancelBeforeSell:
+        def __init__(self) -> None:
+            self.governor = WeightGovernor()
+            self.clock = MonotonicClock()
+            self.market_sells: list[Decimal] = []
+
+        def get_account(self, **_: Any) -> dict[str, Any]:
+            return {"balances": [{"asset": "SOL", "free": "10.00", "locked": "0.00"}]}
+
+        def get_order_list(self, order_list_id: int) -> dict[str, Any]:
+            return {"orderListId": order_list_id, "listOrderStatus": "ALL_DONE", "orders": []}
+
+        def get_book_ticker(self, symbol: str, **_: Any) -> BookTicker:
+            return BookTicker(symbol, Decimal("98.00"), Decimal("10"), Decimal("98.05"), Decimal("10"))
+
+        def new_market_sell(self, symbol: str, qty: Decimal, client_order_id: str) -> dict[str, Any]:
+            self.market_sells.append(qty)
+            return {"executedQty": str(qty), "cummulativeQuoteQty": str(qty * Decimal("98.00")), "fills": []}
+
+    ex = _ExchangeAfterCancelBeforeSell()
+    mgr = OcoOrderManager(
+        db=db, signed_client=ex, resilience_cfg=st.execution_and_resilience, sleep_fn=lambda _: None  # type: ignore[arg-type]
+    )
+    rec = StateReconciler(
+        db=db,
+        signed_client=ex,  # type: ignore[arg-type]
+        oco_manager=mgr,
+        execution_universe=st.universe.symbols,
+        filters_provider=_sol_filters,
+    )
+    res = rec.reconcile()
+    with db.read() as conn:
+        row = conn.execute("SELECT status FROM trades WHERE trade_id = ?", (tid,)).fetchone()
+    db.close()
+    assert res.action == ReconcileAction.RECOVERED_CLOSING_TO_CLOSED
+    assert ex.market_sells == [Decimal("10.00")]
+    assert row is not None and row["status"] == TradeStatus.CLOSED.value
+
+    # Case 2: HALT_REVIEW -> never returns CLEAN and keeps emergency_halt active
+    db2 = Database(tmp_path / "a1_01_halt.db")
+    db2.migrate()
+    _insert_trade(db2, status=TradeStatus.HALT_REVIEW.value, oco_order_list_id=5001, oco_qty="10.00")
+    sm2 = ShadowManager(st.drawdown_and_shadow_protection, st.portfolio, db=db2)
+
+    class _ExchangeEmptyForHalt:
+        governor = WeightGovernor()
+        clock = MonotonicClock()
+
+        def get_account(self, **_: Any) -> dict[str, Any]:
+            return {"balances": [{"asset": "SOL", "free": "0.00", "locked": "10.00"}]}
+
+    ex2 = _ExchangeEmptyForHalt()
+    mgr2 = OcoOrderManager(
+        db=db2, signed_client=ex2, resilience_cfg=st.execution_and_resilience, sleep_fn=lambda _: None  # type: ignore[arg-type]
+    )
+    rec2 = StateReconciler(
+        db=db2,
+        signed_client=ex2,  # type: ignore[arg-type]
+        oco_manager=mgr2,
+        execution_universe=st.universe.symbols,
+        filters_provider=_sol_filters,
+        shadow_manager=sm2,
+    )
+    res2 = rec2.reconcile()
+    assert res2.action == ReconcileAction.HALT_REVIEW_PERSISTENT
+    assert sm2.evaluate_defense(current_equity_usdt="300.00").emergency_halt is True
+    db2.close()
+
+
+def test_audit_a1_03_reconciler_heals_after_c1e_when_oco_already_exists_on_exchange(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import sqlite3
+
+    from src.core.state_reconciler import ReconcileAction, StateReconciler
+    from src.execution.executor_protocol import ExecutionRequest, TradeStatus
+    from src.execution.oco_order_manager import OcoOrderManager
+    from src.risk.position_sizer import PositionSizer
+
+    st, _ = _load_cfgs()
+    db = Database(tmp_path / "a1_03.db")
+    db.migrate()
+
+    class _RealisticOcoExchange:
+        def __init__(self) -> None:
+            self.governor = WeightGovernor()
+            self.clock = MonotonicClock()
+            self.free_sol = Decimal("10.00")
+            self.locked_sol = Decimal("0.00")
+            self.open_order_lists: list[dict[str, Any]] = []
+
+        def get_book_ticker(self, symbol: str, **_: Any) -> BookTicker:
+            return BookTicker(symbol, Decimal("100.00"), Decimal("100"), Decimal("100.05"), Decimal("100"))
+
+        def get_account(self, **_: Any) -> dict[str, Any]:
+            return {"balances": [{"asset": "SOL", "free": str(self.free_sol), "locked": str(self.locked_sol)}]}
+
+        def new_market_buy_quote(self, symbol: str, quote_qty: Decimal, client_order_id: str) -> dict[str, Any]:
+            return {
+                "symbol": symbol,
+                "orderId": 1001,
+                "clientOrderId": client_order_id,
+                "status": "FILLED",
+                "executedQty": "10.00",
+                "cummulativeQuoteQty": "1000.00",
+                "fills": [{"price": "100.00", "qty": "10.00", "commission": "0", "commissionAsset": "BNB"}],
+            }
+
+        def get_order(self, symbol: str, *, orig_client_order_id: str) -> dict[str, Any]:
+            return {
+                "symbol": symbol,
+                "orderId": 1001,
+                "clientOrderId": orig_client_order_id,
+                "status": "FILLED",
+                "executedQty": "10.00",
+                "cummulativeQuoteQty": "1000.00",
+            }
+
+        def new_oco_sell(
+            self,
+            symbol: str,
+            qty: Decimal,
+            take_profit: Decimal,
+            stop_price: Decimal,
+            stop_limit_price: Decimal | None,
+            list_client_order_id: str,
+        ) -> dict[str, Any]:
+            if qty <= Decimal("0") or qty > self.free_sol:
+                raise BinanceAPIError(400, -1013, "Filter failure: LOT_SIZE", "POST /api/v3/orderList/oco")
+            self.free_sol -= qty
+            self.locked_sol += qty
+            ol = {
+                "orderListId": 5001,
+                "listClientOrderId": list_client_order_id,
+                "listOrderStatus": "EXECUTING",
+                "symbol": symbol,
+            }
+            self.open_order_lists.append(ol)
+            return ol
+
+        def get_open_order_lists(self) -> list[dict[str, Any]]:
+            return list(self.open_order_lists)
+
+    ex = _RealisticOcoExchange()
+    mgr = OcoOrderManager(
+        db=db, signed_client=ex, resilience_cfg=st.execution_and_resilience, sleep_fn=lambda _: None  # type: ignore[arg-type]
+    )
+    flt = _sol_filters()
+    sizing = PositionSizer(st.position_sizing, st.portfolio).evaluate_and_size(
+        symbol="SOLUSDT",
+        entry_price="100.00",
+        stop_price="94.00",
+        target_price="112.00",
+        free_usdt="6210.00",
+        symbol_filters=flt,
+    )
+    req = ExecutionRequest(
+        symbol="SOLUSDT",
+        strategy="bull_trend_pullback",
+        regime="BULL",
+        signal_close_time_ms=1_700_000_000_000,
+        atr_at_signal=2.0,
+        time_barrier_end_ms=1_700_259_200_000,
+        sizing=sizing,
+        symbol_filters=flt,
+    )
+
+    orig_write_tx = db.write_tx
+    writes = 0
+
+    def _flaky_write_tx():
+        nonlocal writes
+        writes += 1
+        if writes >= 2:
+            raise sqlite3.OperationalError("Simulated post-fill disk error (C1-E)")
+        return orig_write_tx()
+
+    monkeypatch.setattr(db, "write_tx", _flaky_write_tx)
+    rep = mgr.execute_entry(req)
+    assert rep.status == TradeStatus.PROTECTED.value
+    assert ex.locked_sol == Decimal("10.00")
+
+    # SQLite recovers while still stuck in PENDING_ENTRY; StateReconciler MUST attach OCO #5001 cleanly!
+    monkeypatch.setattr(db, "write_tx", orig_write_tx)
+    rec = StateReconciler(
+        db=db,
+        signed_client=ex,  # type: ignore[arg-type]
+        oco_manager=mgr,
+        execution_universe=st.universe.symbols,
+        filters_provider=_sol_filters,
+    )
+    res = rec.reconcile()
+    with db.read() as conn:
+        row = conn.execute(
+            "SELECT status, oco_order_list_id, oco_qty FROM trades WHERE trade_id = 1"
+        ).fetchone()
+    db.close()
+    assert res.action == ReconcileAction.HEALED_EXISTING_OCO
+    assert row is not None
+    assert row["status"] == TradeStatus.PROTECTED.value
+    assert row["oco_order_list_id"] == 5001
+    assert row["oco_qty"] == "10"
+
+
+def test_audit_a1_06_reconciler_protected_canceling_executing_oco_must_protect_unlocked_qty_too(
+    tmp_path: Path,
+) -> None:
+    from src.core.state_reconciler import ReconcileAction, StateReconciler
+    from src.execution.executor_protocol import TradeStatus
+    from src.execution.oco_order_manager import OcoOrderManager
+
+    st, _ = _load_cfgs()
+    db = Database(tmp_path / "a1_06.db")
+    db.migrate()
+    _insert_trade(db, status=TradeStatus.PROTECTED.value, oco_order_list_id=5001, oco_qty="10.00")
+
+    class _SplitBalanceExchange:
+        def __init__(self) -> None:
+            self.governor = WeightGovernor()
+            self.clock = MonotonicClock()
+            self.free_sol = Decimal("4.00")
+            self.locked_sol = Decimal("6.00")
+            self.oco_qtys: list[Decimal] = []
+
+        def get_account(self, **_: Any) -> dict[str, Any]:
+            return {"balances": [{"asset": "SOL", "free": str(self.free_sol), "locked": str(self.locked_sol)}]}
+
+        def get_order_list(self, order_list_id: int) -> dict[str, Any]:
+            return {"orderListId": order_list_id, "listOrderStatus": "EXECUTING"}
+
+        def cancel_order_list(self, symbol: str, order_list_id: int) -> dict[str, Any]:
+            self.free_sol += self.locked_sol
+            self.locked_sol = Decimal("0.00")
+            return {"orderListId": order_list_id, "listOrderStatus": "ALL_DONE"}
+
+        def get_book_ticker(self, symbol: str, **_: Any) -> BookTicker:
+            return BookTicker(symbol, Decimal("100.00"), Decimal("10"), Decimal("100.05"), Decimal("10"))
+
+        def new_oco_sell(self, symbol: str, qty: Decimal, **_: Any) -> dict[str, Any]:
+            self.oco_qtys.append(qty)
+            self.free_sol -= qty
+            self.locked_sol += qty
+            return {"orderListId": 5002, "listOrderStatus": "EXECUTING"}
+
+    ex = _SplitBalanceExchange()
+    mgr = OcoOrderManager(
+        db=db, signed_client=ex, resilience_cfg=st.execution_and_resilience, sleep_fn=lambda _: None  # type: ignore[arg-type]
+    )
+    rec = StateReconciler(
+        db=db,
+        signed_client=ex,  # type: ignore[arg-type]
+        oco_manager=mgr,
+        execution_universe=st.universe.symbols,
+        filters_provider=_sol_filters,
+    )
+    res1 = rec.reconcile()
+    assert res1.action == ReconcileAction.REPROTECTED_PARTIAL_OCO_RESIDUAL
+    assert ex.oco_qtys == [Decimal("10.00")]
+    assert res1.protected_qty == Decimal("10.00")
+    res2 = rec.reconcile()
+    db.close()
+    assert res2.action == ReconcileAction.CLEAN
+
+
+def test_audit_a1_10_reconciler_c1d_must_fail_closed_when_book_ticker_errors(
+    tmp_path: Path,
+) -> None:
+    from src.core.state_reconciler import ReconcileAction, StateReconciler
+    from src.execution.oco_order_manager import OcoOrderManager
+    from src.risk.shadow_manager import ShadowManager
+
+    st, _ = _load_cfgs()
+    db = Database(tmp_path / "a1_10.db")
+    db.migrate()
+    sm = ShadowManager(st.drawdown_and_shadow_protection, st.portfolio, db=db)
+
+    class _ExchangeManualBalanceTickerError:
+        governor = WeightGovernor()
+        clock = MonotonicClock()
+
+        def get_account(self, **_: Any) -> dict[str, Any]:
+            return {"balances": [{"asset": "SOL", "free": "5.00", "locked": "0.00"}]}
+
+        def get_book_ticker(self, symbol: str, **_: Any) -> BookTicker:
+            raise BinanceAPIError(503, -1001, "Ticker temporarily unavailable", "GET /api/v3/ticker/bookTicker")
+
+    ex = _ExchangeManualBalanceTickerError()
+    mgr = OcoOrderManager(
+        db=db, signed_client=ex, resilience_cfg=st.execution_and_resilience, sleep_fn=lambda _: None  # type: ignore[arg-type]
+    )
+    rec = StateReconciler(
+        db=db,
+        signed_client=ex,  # type: ignore[arg-type]
+        oco_manager=mgr,
+        execution_universe=st.universe.symbols,
+        filters_provider=_sol_filters,
+        shadow_manager=sm,
+    )
+    res = rec.reconcile()
+    assert res.action == ReconcileAction.HALT_REVIEW_UNTRACKED_BALANCE
+    assert sm.evaluate_defense(current_equity_usdt="300.00").emergency_halt is True
+    db.close()
+
+
+def test_audit_a2_01_reconciler_auth_error_2015_and_3_failures_trigger_emergency_halt(
+    tmp_path: Path,
+) -> None:
+    from src.core.state_reconciler import StateReconciler
+    from src.execution.executor_protocol import TradeStatus
+    from src.execution.oco_order_manager import OcoOrderManager
+    from src.risk.shadow_manager import ShadowManager
+
+    st, _ = _load_cfgs()
+
+    # Case 1: Immediate halt on -2015 in get_order_list (no longer swallowed!)
+    db = Database(tmp_path / "a2_01_auth.db")
+    db.migrate()
+    _insert_trade(db, status=TradeStatus.PROTECTED.value, oco_order_list_id=5001, oco_qty="10.00")
+    sm = ShadowManager(st.drawdown_and_shadow_protection, st.portfolio, db=db)
+
+    class _ExchangeAuthErrorOnOrderList:
+        governor = WeightGovernor()
+        clock = MonotonicClock()
+
+        def get_account(self, **_: Any) -> dict[str, Any]:
+            return {"balances": [{"asset": "SOL", "free": "0.00", "locked": "10.00"}]}
+
+        def get_order_list(self, order_list_id: int) -> dict[str, Any]:
+            raise BinanceAPIError(401, -2015, "Invalid API-key, IP, or permissions for action.", "GET /api/v3/orderList")
+
+    ex = _ExchangeAuthErrorOnOrderList()
+    mgr = OcoOrderManager(
+        db=db, signed_client=ex, resilience_cfg=st.execution_and_resilience, sleep_fn=lambda _: None  # type: ignore[arg-type]
+    )
+    rec = StateReconciler(
+        db=db,
+        signed_client=ex,  # type: ignore[arg-type]
+        oco_manager=mgr,
+        execution_universe=st.universe.symbols,
+        filters_provider=_sol_filters,
+        shadow_manager=sm,
+    )
+    with pytest.raises(BinanceAPIError):
+        rec.reconcile()
+    assert sm.evaluate_defense(current_equity_usdt="300.00").emergency_halt is True
+    db.close()
+
+    # Case 2: 3 consecutive transient 503 failures trigger halt on the 3rd failure
+    db2 = Database(tmp_path / "a2_01_streak.db")
+    db2.migrate()
+    sm2 = ShadowManager(st.drawdown_and_shadow_protection, st.portfolio, db=db2)
+
+    class _ExchangeTransient503:
+        governor = WeightGovernor()
+        clock = MonotonicClock()
+
+        def get_account(self, **_: Any) -> dict[str, Any]:
+            raise BinanceAPIError(503, -1001, "Internal error", "GET /api/v3/account")
+
+    ex2 = _ExchangeTransient503()
+    mgr2 = OcoOrderManager(
+        db=db2, signed_client=ex2, resilience_cfg=st.execution_and_resilience, sleep_fn=lambda _: None  # type: ignore[arg-type]
+    )
+    rec2 = StateReconciler(
+        db=db2,
+        signed_client=ex2,  # type: ignore[arg-type]
+        oco_manager=mgr2,
+        execution_universe=st.universe.symbols,
+        filters_provider=_sol_filters,
+        shadow_manager=sm2,
+    )
+    for i in range(3):
+        with pytest.raises(BinanceAPIError):
+            rec2.reconcile()
+        expected_halt = i == 2
+        assert sm2.evaluate_defense(current_equity_usdt="300.00").emergency_halt is expected_halt
+    db2.close()
+
+
+def test_audit_a2_02_completed_oco_records_real_exit_reason_pnl_and_shadow_outcome(
+    tmp_path: Path,
+) -> None:
+    from src.core.state_reconciler import ReconcileAction, StateReconciler
+    from src.execution.executor_protocol import ExitReason, TradeStatus
+    from src.execution.oco_order_manager import OcoOrderManager
+    from src.risk.shadow_manager import ShadowManager
+
+    st, _ = _load_cfgs()
+    db = Database(tmp_path / "a2_02.db")
+    db.migrate()
+    _insert_trade(
+        db,
+        status=TradeStatus.PROTECTED.value,
+        oco_order_list_id=5001,
+        oco_qty="10.00",
+        planned_entry_price="100.00",
+        planned_stop_price="94.00",
+        planned_target_price="112.00",
+    )
+    sm = ShadowManager(st.drawdown_and_shadow_protection, st.portfolio, db=db)
+
+    class _ExchangeCompletedTargetOco:
+        governor = WeightGovernor()
+        clock = MonotonicClock()
+
+        def get_account(self, **_: Any) -> dict[str, Any]:
+            return {"balances": [{"asset": "SOL", "free": "0.00", "locked": "0.00"}]}
+
+        def get_order_list(self, order_list_id: int) -> dict[str, Any]:
+            return {
+                "orderListId": order_list_id,
+                "listOrderStatus": "ALL_DONE",
+                "orders": [
+                    {"symbol": "SOLUSDT", "orderId": 11, "clientOrderId": "tp_leg"},
+                    {"symbol": "SOLUSDT", "orderId": 12, "clientOrderId": "sl_leg"},
+                ],
+            }
+
+        def get_order(self, symbol: str, *, orig_client_order_id: str) -> dict[str, Any]:
+            if orig_client_order_id == "tp_leg":
+                return {
+                    "symbol": symbol,
+                    "orderId": 11,
+                    "type": "LIMIT_MAKER",
+                    "status": "FILLED",
+                    "executedQty": "10.00",
+                    "cummulativeQuoteQty": "1120.00",
+                }
+            return {
+                "symbol": symbol,
+                "orderId": 12,
+                "type": "STOP_LOSS_LIMIT",
+                "status": "EXPIRED",
+                "executedQty": "0.00",
+                "cummulativeQuoteQty": "0.00",
+            }
+
+        def get_book_ticker(self, symbol: str, **_: Any) -> BookTicker:
+            return BookTicker(symbol, Decimal("112.50"), Decimal("10"), Decimal("112.55"), Decimal("10"))
+
+    ex = _ExchangeCompletedTargetOco()
+    mgr = OcoOrderManager(
+        db=db, signed_client=ex, resilience_cfg=st.execution_and_resilience, sleep_fn=lambda _: None  # type: ignore[arg-type]
+    )
+    rec = StateReconciler(
+        db=db,
+        signed_client=ex,  # type: ignore[arg-type]
+        oco_manager=mgr,
+        execution_universe=st.universe.symbols,
+        filters_provider=_sol_filters,
+        shadow_manager=sm,
+    )
+    res = rec.reconcile()
+    assert res.action == ReconcileAction.CLOSED_COMPLETED_OCO
+    with db.read() as conn:
+        row = conn.execute(
+            "SELECT exit_reason, exit_avg_price, exit_quote_received, realized_pnl_usdt, realized_r "
+            "FROM trades WHERE trade_id = 1"
+        ).fetchone()
+    db.close()
+    assert row is not None
+    assert row["exit_reason"] == ExitReason.TARGET.value
+    assert row["exit_avg_price"] == "112"
+    assert row["exit_quote_received"] == "1120"
+    assert row["realized_pnl_usdt"] == "120"
+    assert abs(float(row["realized_r"]) - 2.0) < 1e-6
+
+
+def test_audit_a2_02b_completed_oco_dust_revalued_at_bid_avoids_false_halt(
+    tmp_path: Path,
+) -> None:
+    from src.core.state_reconciler import ReconcileAction, StateReconciler
+    from src.execution.executor_protocol import TradeStatus
+    from src.execution.oco_order_manager import OcoOrderManager
+
+    st, _ = _load_cfgs()
+    db = Database(tmp_path / "a2_02b.db")
+    db.migrate()
+    _insert_trade(
+        db,
+        status=TradeStatus.PROTECTED.value,
+        oco_order_list_id=5001,
+        oco_qty="10.00",
+        planned_entry_price="100.00",
+    )
+
+    class _ExchangeCompletedWithPumpedDust:
+        def __init__(self) -> None:
+            self.governor = WeightGovernor()
+            self.clock = MonotonicClock()
+            self.free_sol = Decimal("0.04")
+            self.market_sells: list[Decimal] = []
+
+        def get_account(self, **_: Any) -> dict[str, Any]:
+            return {"balances": [{"asset": "SOL", "free": str(self.free_sol), "locked": "0.00"}]}
+
+        def get_order_list(self, order_list_id: int) -> dict[str, Any]:
+            return {"orderListId": order_list_id, "listOrderStatus": "ALL_DONE"}
+
+        def get_book_ticker(self, symbol: str, **_: Any) -> BookTicker:
+            return BookTicker(symbol, Decimal("150.00"), Decimal("10"), Decimal("150.10"), Decimal("10"))
+
+        def new_market_sell(self, symbol: str, qty: Decimal, client_order_id: str) -> dict[str, Any]:
+            self.market_sells.append(qty)
+            self.free_sol -= qty
+            return {"executedQty": str(qty), "cummulativeQuoteQty": str(qty * Decimal("150.00")), "fills": []}
+
+    ex = _ExchangeCompletedWithPumpedDust()
+    mgr = OcoOrderManager(
+        db=db, signed_client=ex, resilience_cfg=st.execution_and_resilience, sleep_fn=lambda _: None  # type: ignore[arg-type]
+    )
+    rec = StateReconciler(
+        db=db,
+        signed_client=ex,  # type: ignore[arg-type]
+        oco_manager=mgr,
+        execution_universe=st.universe.symbols,
+        filters_provider=_sol_filters,
+    )
+    res1 = rec.reconcile()
+    assert res1.action == ReconcileAction.CLOSED_COMPLETED_OCO
+    assert ex.market_sells == [Decimal("0.04")]
+    res2 = rec.reconcile()
+    db.close()
+    assert res2.action == ReconcileAction.CLEAN
+
+
