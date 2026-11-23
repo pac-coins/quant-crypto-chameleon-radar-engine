@@ -262,6 +262,55 @@ def test_prepare_offsite_artifact_enforces_50mb_limit(tmp_path: Path) -> None:
     assert not bkp.with_suffix(".db.gz").exists()
 
 
+def test_prepare_offsite_artifact_cleans_up_partial_gz_on_disk_full(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import errno
+
+    db = Database(tmp_path / "diskfull.db")
+    db.connect()
+    db.migrate()
+    db.set_state("canary", "intact")
+    bkp = db.backup_to(tmp_path / "backups")
+    db.close()
+
+    gz_path = bkp.with_suffix(".db.gz")
+    enc_path = bkp.with_suffix(".db.gz.enc")
+
+    # Case 1: Disk full (ENOSPC) midway through shutil.copyfileobj -> partial .gz MUST be removed
+    def _enospc_copyfileobj(fsrc: Any, fdst: Any, length: int = 0) -> None:
+        fdst.write(fsrc.read(64))
+        fdst.flush()
+        assert gz_path.exists()  # Partial .gz was created on disk
+        raise OSError(errno.ENOSPC, "No space left on device")
+
+    monkeypatch.setattr("src.core.offsite_backup.shutil.copyfileobj", _enospc_copyfileobj)
+    with pytest.raises(OSError) as exc_info:
+        prepare_offsite_artifact(bkp, encryption_key=Fernet.generate_key().decode("ascii"))
+    assert exc_info.value.errno == errno.ENOSPC
+    assert not gz_path.exists()
+    assert not enc_path.exists()
+    assert bkp.is_file() and Database.verify_backup(bkp) is True
+
+    # Case 2: Disk full (ENOSPC) while writing .gz.enc -> neither .gz nor partial .gz.enc left behind
+    monkeypatch.undo()
+    orig_write_bytes = Path.write_bytes
+
+    def _enospc_write_bytes(self: Path, data: bytes) -> int:
+        if self == enc_path:
+            orig_write_bytes(self, data[:32])
+            raise OSError(errno.ENOSPC, "No space left on device")
+        return orig_write_bytes(self, data)
+
+    monkeypatch.setattr(Path, "write_bytes", _enospc_write_bytes)
+    with pytest.raises(OSError) as exc_info2:
+        prepare_offsite_artifact(bkp, encryption_key=Fernet.generate_key().decode("ascii"))
+    assert exc_info2.value.errno == errno.ENOSPC
+    assert not gz_path.exists()
+    assert not enc_path.exists()
+    assert bkp.is_file() and Database.verify_backup(bkp) is True
+
+
 def test_run_once_offsite_upload_failure_logs_and_alerts_without_crashing_cycle(
     tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:

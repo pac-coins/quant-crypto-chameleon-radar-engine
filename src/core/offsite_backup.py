@@ -59,22 +59,40 @@ def prepare_offsite_artifact(
         raise OffsiteBackupError(f"Backup failed Database.verify_backup(): {src.name}")
 
     gz_path = src.with_suffix(src.suffix + ".gz")
-    with src.open("rb") as f_in, gzip.open(gz_path, "wb", compresslevel=6) as f_out:
-        shutil.copyfileobj(f_in, f_out)
+    try:
+        with src.open("rb") as f_in, gzip.open(gz_path, "wb", compresslevel=6) as f_out:
+            shutil.copyfileobj(f_in, f_out)
+    except BaseException:
+        if gz_path.exists():
+            try:
+                gz_path.unlink()
+            except OSError:
+                pass
+        raise
 
     artifact_path = gz_path
     encrypted = False
     if encryption_key is not None and encryption_key.strip():
+        enc_path = src.with_suffix(src.suffix + ".gz.enc")
         try:
             fernet = Fernet(encryption_key.strip().encode("ascii"))
-            enc_path = src.with_suffix(src.suffix + ".gz.enc")
             enc_bytes = fernet.encrypt(gz_path.read_bytes())
             enc_path.write_bytes(enc_bytes)
             artifact_path = enc_path
             encrypted = True
+        except BaseException:
+            if enc_path.exists():
+                try:
+                    enc_path.unlink()
+                except OSError:
+                    pass
+            raise
         finally:
             if gz_path.exists():
-                gz_path.unlink()
+                try:
+                    gz_path.unlink()
+                except OSError:
+                    pass
     else:
         logger.warning(
             "BACKUP_ENCRYPTION_KEY is empty; exporting gzip-only SQLite backup (%s) without encryption.",
