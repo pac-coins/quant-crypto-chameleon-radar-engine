@@ -57,6 +57,9 @@ class RuntimeSettings(BaseSettings):
     db_path: Path = Path("data/quant.db")
     backup_dir: Path = Path("data/backups")
     healthcheck_url: SecretStr | None = None
+    offsite_backup_enabled: bool = False
+    backup_telegram_chat_id: str | None = None
+    backup_encryption_key: SecretStr | None = None
 
     @field_validator(
         "binance_api_key",
@@ -64,6 +67,8 @@ class RuntimeSettings(BaseSettings):
         "live_confirmation",
         "approved_strategies_sha256",
         "healthcheck_url",
+        "backup_telegram_chat_id",
+        "backup_encryption_key",
         mode="before",
     )
     @classmethod
@@ -78,6 +83,21 @@ class RuntimeSettings(BaseSettings):
         raw = v.get_secret_value().strip()
         if not (raw.startswith("http://") or raw.startswith("https://")):
             raise ValueError("HEALTHCHECK_URL must start with http:// or https://")
+        return v
+
+    @field_validator("backup_encryption_key")
+    @classmethod
+    def _validate_backup_encryption_key(cls, v: SecretStr | None) -> SecretStr | None:
+        if v is None:
+            return None
+        from cryptography.fernet import Fernet
+
+        try:
+            Fernet(v.get_secret_value().strip().encode("ascii"))
+        except Exception as exc:
+            raise ValueError(
+                "BACKUP_ENCRYPTION_KEY must be a valid URL-safe base64 32-byte Fernet key"
+            ) from exc
         return v
 
 

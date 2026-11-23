@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Protocol
 
 import requests
@@ -47,6 +48,31 @@ class HttpTelegramTransport:
         data = resp.json()
         if not data.get("ok"):
             raise RuntimeError(f"Telegram API error: {data}")
+        return int(data["result"]["message_id"])
+
+    def send_document(
+        self,
+        *,
+        chat_id: str,
+        file_path: Path,
+        caption: str | None = None,
+        timeout_s: float = 30.0,
+    ) -> int:
+        path = Path(file_path)
+        form_data: dict[str, str] = {"chat_id": str(chat_id)}
+        if caption:
+            form_data["caption"] = caption
+        with path.open("rb") as fh:
+            resp = self._session.post(
+                f"{self._base}/sendDocument",
+                data=form_data,
+                files={"document": (path.name, fh, "application/octet-stream")},
+                timeout=float(timeout_s),
+            )
+        resp.raise_for_status()
+        data = resp.json()
+        if not data.get("ok"):
+            raise RuntimeError(f"Telegram API sendDocument error: {data}")
         return int(data["result"]["message_id"])
 
 
