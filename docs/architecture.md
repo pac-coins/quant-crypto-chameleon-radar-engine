@@ -233,7 +233,7 @@ $$Q_{\text{oco}} = \text{floor\_step}\left( \min\left( Q_{\text{executed}} - \su
 
 
 6. **Backup Automático do SQLite e Disjuntor de Segurança:**
-* Como discos de VPS gratuitas podem ser reciclados pelo provedor, um *cronjob* diário envia cópia criptografada do arquivo SQLite (`.db` + `.wal`) para armazenamento externo (Object Storage / Telegram privado).
+* Como discos de VPS gratuitas podem ser reciclados pelo provedor, o orquestrador executa diariamente um backup local nativo e autocontido via `sqlite3.backup()` (`Database.backup_to()` + `Database.verify_backup()`, gerando um arquivo `.db` único em texto claro, sem precisar do `-wal`). O envio fora da VM é opcional (`OFFSITE_BACKUP_ENABLED=false` por padrão) via Telegram (`sendDocument`, limite de 50 MB conforme C2-8), compactado em `gzip` e obrigatoriamente criptografado com Fernet (`BACKUP_ENCRYPTION_KEY`, artefato `.db.gz.enc`; ver `docs/backup-and-restore.md`), sem incluir `.env` ou `secrets/`.
 * O cliente possui travas rígidas no código (`max_single_order_usdt`, `max_daily_trades`) e verificação de manutenção programada da corretora (`/sapi/v1/system/status`) para bloquear novas entradas antes de janelas de manutenção.
 
 
@@ -309,7 +309,7 @@ quant-crypto-chameleon/
 ├── src/                                    # Motor Modular de Produção
 │   ├── core/
 │   │   ├── config.py                       # Validador de schema (Pydantic) para .env e strategies.yaml
-│   │   ├── database.py                     # SQLite em modo WAL + synchronous=FULL + rotina de backup externo
+│   │   ├── database.py                     # SQLite em modo WAL + synchronous=FULL + backup local nativo (sqlite3.backup())
 │   │   ├── binance_client.py               # Ed25519, Clock Monotônico (RTT/2), cache exchangeInfo e Decimal
 │   │   └── state_reconciler.py             # Cura no boot: origClientOrderId, OCO parcial e fallback MARKET
 │   ├── data/
@@ -383,7 +383,7 @@ execution_and_resilience:
   oco_stop_limit_buffer_pct: 0.025          # 2.5% abaixo do stopPrice para mitigar salto de livro em flash-crashes
   fallback_to_market_on_stop_breach: true   # Vende a MARKET no mesmo segundo se preço atual <= stopPrice (-2010)
   sqlite_wal_mode: true                     # PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;
-  daily_sqlite_backup_enabled: true         # Backup criptografado diário contra perda de disco em VPS efêmera
+  daily_sqlite_backup_enabled: true         # Backup local diário via sqlite3.backup() (texto claro em disco; envio offsite criptografado via OFFSITE_BACKUP_ENABLED + BACKUP_ENCRYPTION_KEY)
 
 position_sizing:                            # Dimensionamento Fracionário Fixo com Teto Duplo e Trava de Expectância
   mode: "FIXED_FRACTIONAL_DUAL_CAP"         # Substitui o antigo rótulo impreciso de "Kelly"
