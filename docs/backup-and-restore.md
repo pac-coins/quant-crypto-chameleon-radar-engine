@@ -5,7 +5,7 @@
 Embora o comentário em `config/strategies.yaml:31` (e `docs/architecture.md:386`) descreva `daily_sqlite_backup_enabled: true` como *"Backup criptografado diário contra perda de disco em VPS efêmera"*, a implementação de `Database.backup_to()` em `src/core/database.py:713-724` executa apenas `sqlite3.connect(str(dest_path))` + `conn.backup(dst_conn, pages=-1)`.
 
 * **O backup local gravado em `BACKUP_DIR` (`*.db`) NÃO é criptografado** (é um arquivo SQLite padrão com cabeçalho `SQLite format 3\0`).
-* Para o envio fora da VM (`src/core/offsite_backup.py`), foi adicionada compressão `gzip` e **criptografia autenticada opcional via Fernet (AES-128-CBC + HMAC-SHA256, usando `cryptography` já presente em `requirements.txt:7`)** controlada pela variável `BACKUP_ENCRYPTION_KEY`.
+* Para o envio fora da VM (`src/core/offsite_backup.py`), foi adicionada compressão `gzip` e **criptografia autenticada obrigatória via Fernet (AES-128-CBC + HMAC-SHA256, usando `cryptography` já presente em `requirements.txt:7`)** controlada pela variável `BACKUP_ENCRYPTION_KEY`. Se `OFFSITE_BACKUP_ENABLED=true` e `BACKUP_ENCRYPTION_KEY` estiver vazia, o boot falha explicitamente (`src/core/config.py`).
 
 ---
 
@@ -14,7 +14,7 @@ Embora o comentário em `config/strategies.yaml:31` (e `docs/architecture.md:386
 Alinhado ao requisito **C2-8** (`docs/integration-audit.md:147`), que limita o banco para caber no teto gratuito de **50 MB** da Telegram Bot API:
 
 * **Desligado por padrão:** `OFFSITE_BACKUP_ENABLED=false` no `.env`.
-* **O que é enviado:** exclusivamente o arquivo `.db` único retornado por `Database.backup_to()`, **somente após** `Database.verify_backup()` retornar `True` (`src/main.py:913-916`), compactado em `.db.gz` (ou criptografado em `.db.gz.enc` se `BACKUP_ENCRYPTION_KEY` estiver preenchida).
+* **O que é enviado:** exclusivamente o arquivo `.db` único retornado por `Database.backup_to()`, **somente após** `Database.verify_backup()` retornar `True` (`src/main.py:913-916`), compactado em `gzip` e criptografado com Fernet (`.db.gz.enc`, exigido no boot quando `OFFSITE_BACKUP_ENABLED=true`).
 * **O que NUNCA é incluído:** `.env`, `secrets/`, chaves privadas `.pem`/`.key` ou qualquer outro arquivo de diretório (`src/core/offsite_backup.py:29-39`).
 * **Isolamento de falhas:** erros de rede/API ou limite de 50 MB geram apenas `logger.error` + alerta `BACKUP_ERROR` na fila `telegram_outbox` (`src/main.py:937-946`), nunca derrubam o ciclo horário e preservam o backup local verificado. O artefato temporário `.gz`/`.enc` é removido no bloco `finally`.
 
@@ -29,7 +29,7 @@ Alinhado ao requisito **C2-8** (`docs/integration-audit.md:147`), que limita o b
    OFFSITE_BACKUP_ENABLED=true
    # Opcional: ID de um canal/grupo privado dedicado a backups (vazio = usa TELEGRAM_CHAT_ID)
    BACKUP_TELEGRAM_CHAT_ID=
-   # Recomendado: chave Fernet gerada no passo 1 (vazio = envia .db.gz sem criptografia)
+   # Obrigatório quando OFFSITE_BACKUP_ENABLED=true (falha no boot se vazia)
    BACKUP_ENCRYPTION_KEY=<sua_chave_fernet_aqui>
    ```
 

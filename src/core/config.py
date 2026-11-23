@@ -7,7 +7,15 @@ from pathlib import Path
 from typing import Any, Final, Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SecretStr,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 FORBIDDEN_EXECUTION_SYMBOLS: Final[frozenset[str]] = frozenset({"BNBUSDT"})
@@ -99,6 +107,16 @@ class RuntimeSettings(BaseSettings):
                 "BACKUP_ENCRYPTION_KEY must be a valid URL-safe base64 32-byte Fernet key"
             ) from exc
         return v
+
+    @model_validator(mode="after")
+    def _require_encryption_key_when_offsite_enabled(self) -> RuntimeSettings:
+        if self.offsite_backup_enabled and self.backup_encryption_key is None:
+            raise ValueError(
+                "OFFSITE_BACKUP_ENABLED=true requires a non-empty BACKUP_ENCRYPTION_KEY "
+                "(generate a Fernet key with: python -c \"from cryptography.fernet import Fernet; "
+                "print(Fernet.generate_key().decode())\")"
+            )
+        return self
 
 
 # ---- Espelhos estritos dos YAMLs (extra="forbid": chave desconhecida = erro de boot) ----

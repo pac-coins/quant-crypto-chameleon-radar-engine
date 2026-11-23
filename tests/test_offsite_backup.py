@@ -99,6 +99,63 @@ def test_offsite_backup_disabled_by_default_and_invalid_key_rejected(tmp_path: P
         )
 
 
+def test_offsite_backup_enabled_without_encryption_key_fails_boot(tmp_path: Path) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+
+    # Empty BACKUP_ENCRYPTION_KEY with OFFSITE_BACKUP_ENABLED=true -> boot fails with clear error
+    env_empty_key = tmp_path / ".env.offsite_empty_key"
+    env_empty_key.write_text(
+        "MODE=ANALYST_ONLY\n"
+        "TELEGRAM_BOT_TOKEN=123:ABC\n"
+        "TELEGRAM_CHAT_ID=1\n"
+        "OFFSITE_BACKUP_ENABLED=true\n"
+        "BACKUP_ENCRYPTION_KEY=\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ConfigError, match=r"OFFSITE_BACKUP_ENABLED=true.*BACKUP_ENCRYPTION_KEY"):
+        load_config(
+            env_file=env_empty_key,
+            strategies_path=repo_root / "config" / "strategies.yaml",
+            analyst_path=repo_root / "config" / "analyst.yaml",
+        )
+
+    # Omitted BACKUP_ENCRYPTION_KEY with OFFSITE_BACKUP_ENABLED=true -> boot fails with clear error
+    env_missing_key = tmp_path / ".env.offsite_missing_key"
+    env_missing_key.write_text(
+        "MODE=ANALYST_ONLY\n"
+        "TELEGRAM_BOT_TOKEN=123:ABC\n"
+        "TELEGRAM_CHAT_ID=1\n"
+        "OFFSITE_BACKUP_ENABLED=true\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ConfigError, match=r"OFFSITE_BACKUP_ENABLED=true.*BACKUP_ENCRYPTION_KEY"):
+        load_config(
+            env_file=env_missing_key,
+            strategies_path=repo_root / "config" / "strategies.yaml",
+            analyst_path=repo_root / "config" / "analyst.yaml",
+        )
+
+    # Valid Fernet key with OFFSITE_BACKUP_ENABLED=true -> boot succeeds
+    valid_key = Fernet.generate_key().decode("ascii")
+    env_ok = tmp_path / ".env.offsite_ok"
+    env_ok.write_text(
+        "MODE=ANALYST_ONLY\n"
+        "TELEGRAM_BOT_TOKEN=123:ABC\n"
+        "TELEGRAM_CHAT_ID=1\n"
+        "OFFSITE_BACKUP_ENABLED=true\n"
+        f"BACKUP_ENCRYPTION_KEY={valid_key}\n",
+        encoding="utf-8",
+    )
+    cfg = load_config(
+        env_file=env_ok,
+        strategies_path=repo_root / "config" / "strategies.yaml",
+        analyst_path=repo_root / "config" / "analyst.yaml",
+    )
+    assert cfg.runtime.offsite_backup_enabled is True
+    assert cfg.runtime.backup_encryption_key is not None
+    assert cfg.runtime.backup_encryption_key.get_secret_value() == valid_key
+
+
 def test_prepare_upload_and_restore_encrypted_and_gzip_backups_never_bundle_secrets(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
