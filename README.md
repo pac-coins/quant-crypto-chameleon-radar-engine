@@ -1,46 +1,79 @@
 # QuantCrypto Chameleon & Radar Engine
 
-Repositório unificado para o ecossistema **QuantCrypto** na Binance Spot (1h/4h, sem alavancagem), integrando em **um único processo Python** e **um único banco SQLite (WAL)** dois subsistemas complementares:
+> Bot quantitativo **Binance Spot** (`1h`/`4h`, sem alavancagem) em **1 processo Python** e **1 banco SQLite (WAL)**, unificando execução blindada (**Chameleon v6.0**) e inteligência de mercado somente-leitura (**Radar v1.1 + Auditor Virtual**).
 
-1. **QuantCrypto Chameleon Engine (v6.0 — Braço Executor):** motor de execução Spot blindado (Single-Slot, OCO, Reconciliador de Boot, Teto Duplo de Risco e segregação via carteira `FUNDING`).
-2. **QuantCrypto Radar & Analyst Engine (v1.1 — Cérebro Analítico):** scanner multi-ativo (15 a 20 moedas) com funil de 5 camadas (EMA 9/50/200, Price Action, Order Flow e Order Book anti-spoofing) e Auditor Virtual no SQLite.
+[![Docs](https://img.shields.io/badge/docs-MkDocs%20Material-blue)](https://pac-coins.github.io/quant-crypto-chameleon-radar-engine/)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue)](#inicio-rapido)
+[![Runtime](https://img.shields.io/badge/docker-mem__limit%20512m-informational)](docker-compose.yml)
 
-## Modos de operação
+---
 
-O sistema roda em três modos selecionáveis via `MODE` no `.env`:
+## Arquitetura Resumida
 
-- `ANALYST_ONLY` — roda apenas o Radar, a leitura do livro de ofertas, o Auditor Virtual e os alertas no Telegram (chaves privadas da Binance são proibidas no boot).
-- `SHADOW_CHAMELEON` — adiciona o simulador do Chameleon (`paper_executor`) em dados reais de mercado, sem chaves privadas.
-- `LIVE_CHAMELEON_PHASE_1` — execução real blindada na Binance Spot (Testnet ou Produção), restrita na Fase 1 ao sinal `bull_trend_pullback` e travada por `LIVE_CONFIRMATION` + hash SHA-256 do `strategies.yaml`.
+| Subsistema | Papel | Universo | Impacto em Ordens (Fase 1) |
+| --- | --- | --- | --- |
+| **Chameleon v6.0** | Motor executor Spot (Single-Slot, OCO obrigatória, Watchdog sub-horário `<= 20 s`, Reconciliador de Boot, Teto Duplo `1%`/`50%`, CPPI `-4%`, Hard Stop `-12%`) | 7 pares (`BTC`, `ETH`, `SOL`, `XRP`, `ADA`, `LINK`, `AVAX`; `BNBUSDT` proibido) | **Executor único** (`bull_trend_pullback` em `BULL`) |
+| **Radar v1.1 + Auditor** | Scanner de 5 camadas (EMA 9/50/200, Price Action, Order Flow, Order Book L2 anti-spoofing) + resolução automática em `virtual_signals` | 15 pares (`config/analyst.yaml`) | **Nenhum** (`affects_execution: false`, ADR-004) |
 
-## O que existe na documentação
+### Modos de Operação (`MODE` no `.env`)
 
-- **Arquitetura Unificada:** papéis, fronteiras (`Radar` nunca envia ordens na Fase 1), os 3 modos, processo único (`mem_limit: 512m`, ADR-015), contrato de concorrência SQLite WAL, orçamento de `REQUEST_WEIGHT` da Binance, `FeatureStore` compartilhado e árvore de diretórios.
-- **Executor (Chameleon v6.0):** separação Core/Satellite, regimes MECE, gestão de risco, execução OCO e resiliência operacional.
-- **Radar & Auditor (v1.1):** funil de 5 camadas, banda efetiva simétrica no `/api/v3/depth`, grade ancorada para *Whale Walls* e Auditor Virtual.
-- **Auditoria de Integração:** 5 falhas inéditas de Categoria 1 (C1-A a C1-E) e 9 refinamentos de Categoria 2 (C2-1 a C2-9) descobertos na unificação, com suas correções.
-- **Contrato de Dados:** schema SQL completo (v1) validado em SQLite WAL, uso de tabelas por modo e máquina de estados de `trades`.
-- **Especificações dos Blocos 1 a 6:** contratos congelados do [Bloco 1](docs/block-1-spec.md) (fundação/SQLite/Binance), [Bloco 2](docs/block-2-spec.md) (`FeatureStore`/MECE), [Bloco 3](docs/block-3-spec.md) (simulador causal/DSR/`K9.3`), [Bloco 4](docs/block-4-spec.md) (sizing/CPPI/kill-switches), [Bloco 5](docs/block-5-spec.md) (OCO/reconciliador) e [Bloco 6](docs/block-6-spec.md) (Radar/Auditor/orquestrador).
-- **Decisões (ADR):** registro vinculante ADR-001 a ADR-015.
-- **Metodologia, Roadmap e TODO:** construção em 6 blocos, gates `PASS`/`FAIL`, transições de fase, kill-switches e quadro de triagem atualizado.
-- **Operação:** [Runbook Operacional](docs/runbook.md) (`HALT_REVIEW`, `EMERGENCY_HALT`, rotação Ed25519, BNB, manutenção) e [Backup e Restauração](docs/backup-and-restore.md).
+| `MODE` | Chaves Binance | O que executa |
+| --- | --- | --- |
+| `ANALYST_ONLY` | **Proibidas** (falha no boot, ADR-010) | Radar L1–L5, Auditor Virtual e alertas Telegram |
+| `SHADOW_CHAMELEON` | **Proibidas** (falha no boot, ADR-010) | Radar + `PaperExecutor` com slippage VWAP L2 real (Gate 6B) |
+| `LIVE_CHAMELEON_PHASE_1` | Ed25519 obrigatória | Execução real Spot restrita à Fase 1 (Testnet Gate 6A ou Produção travada por `LIVE_CONFIRMATION` + SHA-256) |
+| `LIVE_CHAMELEON_PHASE_2` | Ed25519 + `ML_JUDGE_ARTIFACT_PATH` | Fase 2 (`ProfitSplitter`, filtro Nota C, escada `1,5% -> 2,0%` + `CVaR 99%`, auto-downgrade; travada por `PHASE_2_F1_TO_F2_PASSED`) |
 
-## Documentação online
+---
 
-A documentação completa é publicada via MkDocs Material em
-[pac-coins.github.io/quant-crypto-chameleon-radar-engine](https://pac-coins.github.io/quant-crypto-chameleon-radar-engine/).
-
-Para visualizar localmente:
+## Início Rápido
 
 ```bash
-python -m pip install -r requirements-docs.txt
-mkdocs serve
+# 1. Ambiente e dependências
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+
+# 2. Rodar suíte completa de testes (113 passed)
+.venv/bin/python -m pytest -q
+
+# 3. Configurar .env e validar pré-requisitos em modo somente-leitura
+cp .env.example .env
+.venv/bin/python tools/preflight_check.py --env-file .env --target-gate 6a
 ```
 
-## Renomeação do repositório
+### Ferramentas Operacionais Somente-Leitura (`tools/`)
 
-O repositório foi renomeado para **`quant-crypto-chameleon-radar-engine`** (ADR-014) para refletir a unificação dos dois motores no mesmo código-fonte.
+```bash
+# Relatório de Gates 6A / 6B / Fase 1->2 e Kill-Switches (URI mode=ro)
+.venv/bin/python tools/gate_report.py --db data/quant.db --log-file /tmp/bot.log
 
-## Estado do projeto
+# Teste isolado de restauração de backup em /tmp (modo seguro ANALYST_ONLY)
+tools/restore_drill.sh data/backups/quant_backup_....db --report-json /tmp/drill.json
 
-Os **Blocos 1 a 6** estão especificados, implementados e aprovados em seus respectivos Gates unitários (`pytest`: 94 passed; ver [Metodologia e Roadmap §6](docs/methodology-and-roadmap.md#6-registro-historico-de-triagem-homologada-blocos-1-a-6-e-itens-cosmeticos-descartados)). O projeto encontra-se na etapa de validação operacional (**Gate 6A** — 7 dias na Testnet, seguido do **Gate 6B** — Shadow Live) e não deve operar com capital real antes da aprovação desses gates.
+# Treino offline do MLJudge (somente Treino/Validação; Holdout estritamente excluído)
+.venv/bin/python tools/train_ml_judge.py --db data/quant.db --output models/ml_judge_bull_v1.json
+
+# Auditoria da Camada 4 do Radar e convergência Chameleon x Radar (URI mode=ro)
+.venv/bin/python tools/radar_ai_audit.py --db data/quant.db
+```
+
+---
+
+## Documentação
+
+A documentação completa está publicada em **[pac-coins.github.io/quant-crypto-chameleon-radar-engine](https://pac-coins.github.io/quant-crypto-chameleon-radar-engine/)** (ou localmente via `pip install -r requirements-docs.txt && mkdocs serve`):
+
+* **Operação:** [Guia Rápido e Transição de Gates](docs/quickstart.md) · [Runbook de Incidentes](docs/runbook.md) · [Backup e Restauração](docs/backup-and-restore.md)
+* **Arquitetura:** [Arquitetura Unificada](docs/unified-architecture.md) · [Contrato de Dados (SQLite WAL)](docs/data-contract.md) · [Chameleon v6.0](docs/architecture.md) · [Radar v1.1](docs/radar.md)
+* **Governança & Auditorias:** [Metodologia e Roadmap](docs/methodology-and-roadmap.md) · [Decisões (ADR-001..015)](docs/decisions.md) · [Auditoria do Backtest e Edge (K9.3)](docs/backtest-edge-audit.md) · [Próximos Passos e Pré-mortem](docs/next-steps.md)
+* **Guia rápido para IA / Contribuidores:** [AGENTS.md](AGENTS.md)
+
+---
+
+## Governança e Segurança
+
+* **Estratégia congelada (ADR-009):** `config/strategies.yaml` está congelado na configuração `K9.3` e protegido por verificação automática de SHA-256 no boot de produção e no CI (`.github/workflows/ci.yml`).
+* **Escritor único (ADR-002):** apenas a thread principal do bot escreve no SQLite WAL; todas as ferramentas em `tools/` e o `HEALTHCHECK` abrem o banco em `URI mode=ro` + `PRAGMA query_only=ON`.
+* **Estado atual:** **Blocos 1–6 + Backlog `B1`–`B7`** implementados (`pytest`: 113 passed). O projeto encontra-se em validação operacional (**Gate 6A** → **Gate 6B**) e não deve operar capital real sem aprovação formal dos gates e correção dos achados críticos listados em [docs/backtest-edge-audit.md](docs/backtest-edge-audit.md).
+
+> **Aviso:** este software é um projeto de engenharia quantitativa. Não constitui recomendação financeira.

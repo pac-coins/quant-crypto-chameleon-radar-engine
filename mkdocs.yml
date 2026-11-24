@@ -1,5 +1,5 @@
 site_name: QuantCrypto Chameleon & Radar Engine
-site_description: Arquitetura unificada, auditoria de integração, contrato de dados e metodologia do QuantCrypto Chameleon & Radar Engine
+site_description: Arquitetura, operação, governança quantitativa e auditorias do QuantCrypto Chameleon & Radar Engine
 site_url: https://pac-coins.github.io/quant-crypto-chameleon-radar-engine/
 repo_url: https://github.com/pac-coins/quant-crypto-chameleon-radar-engine
 repo_name: pac-coins/quant-crypto-chameleon-radar-engine
@@ -8,8 +8,12 @@ theme:
   name: material
   language: pt
   features:
+    - navigation.tabs
     - navigation.sections
+    - navigation.path
     - navigation.top
+    - search.suggest
+    - search.highlight
     - content.code.copy
   palette:
     - media: "(prefers-color-scheme: light)"
@@ -45,24 +49,33 @@ extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 nav:
-  - Início: index.md
-  - Arquitetura Unificada: unified-architecture.md
-  - Executor (Chameleon v6): architecture.md
-  - Radar & Auditor (v1.1): radar.md
-  - Auditoria de Integração: integration-audit.md
-  - Contrato de Dados (SQLite): data-contract.md
-  - Especificação do Bloco 1: block-1-spec.md
-  - Especificação do Bloco 2: block-2-spec.md
-  - Especificação do Bloco 3: block-3-spec.md
-  - Especificação do Bloco 4: block-4-spec.md
-  - Especificação do Bloco 5: block-5-spec.md
-  - Especificação do Bloco 6: block-6-spec.md
-  - Decisões (ADR): decisions.md
-  - Metodologia e roadmap: methodology-and-roadmap.md
-  - Próximos Passos e Pré-mortem: next-steps.md
-  - Runbook Operacional: runbook.md
-  - Backup e Restauração: backup-and-restore.md
-  - TODO: todo.md
-  - Histórico:
+  - Início:
+      - Visão Geral: index.md
+      - Guia Rápido e Transição de Gates: quickstart.md
+  - Operação:
+      - Runbook de Incidentes: runbook.md
+      - Backup e Restauração: backup-and-restore.md
+  - Arquitetura & Referência:
+      - Arquitetura Unificada (Canônica): unified-architecture.md
+      - Contrato de Dados (SQLite WAL): data-contract.md
+      - Executor (Chameleon v6.0): architecture.md
+      - Radar & Auditor Virtual (v1.1): radar.md
+  - Governança & Pesquisa:
+      - Metodologia e Roadmap: methodology-and-roadmap.md
+      - Decisões Arquiteturais (ADR): decisions.md
+      - Próximos Passos e Pré-mortem: next-steps.md
+      - Auditoria do Backtest e Edge (K9.3): backtest-edge-audit.md
+  - Auditorias & Histórico:
+      - Auditoria de Integração (C1/C2): integration-audit.md
+      - Auditoria Adversarial (2026-11-23): audit-2026-11-23.md
+      - Remediação da Auditoria (2026-11-23): audit-2026-11-23-remediation.md
+      - Especificações dos Blocos 1–6:
+          - Bloco 1 — Fundação & Dados: block-1-spec.md
+          - Bloco 2 — Features & MECE: block-2-spec.md
+          - Bloco 3 — Backtest, DSR & K9.3: block-3-spec.md
+          - Bloco 4 — Risco, CPPI & MLJudge: block-4-spec.md
+          - Bloco 5 — OCO & Reconciliador: block-5-spec.md
+          - Bloco 6 — Radar, Auditor & Main: block-6-spec.md
+      - Quadro TODO (Histórico): todo.md
       - Migração v5 → v6: v5-to-v6.md
-      - v5: v5.md
+      - Arquitetura v5 (Legado): v5.md

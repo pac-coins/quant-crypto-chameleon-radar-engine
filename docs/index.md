@@ -1,50 +1,64 @@
 # QuantCrypto Chameleon & Radar Engine
 
-## Visão geral
+Bot quantitativo Spot para a Binance (`1h`/`4h`, sem alavancagem) executado em **1 processo Python** e **1 banco SQLite (WAL)**, unificando dois subsistemas com fronteira rígida de responsabilidade:
 
-O **QuantCrypto Chameleon & Radar Engine** consolida em **um único repositório e
-um único processo Python** dois sistemas projetados para operar juntos na
-Binance Spot (1h/4h, sem alavancagem):
+* **Chameleon Engine (v6.0 — Braço Executor):** executa capital tático em 7 pares líquidos (`BTC`, `ETH`, `SOL`, `XRP`, `ADA`, `LINK`, `AVAX`; `BNBUSDT` estritamente proibido), com Single-Slot (`1` posição por vez), proteção OCO obrigatória, watchdog sub-horário, reconciliador de boot, teto duplo de risco (`1%` / `50%` caixa), CPPI (`-4%`) e Hard Stop (`-12%`).
+* **Radar & Analyst Engine (v1.1 — Cérebro Analítico):** monitora 15 pares com funil de 5 camadas (EMA 9/50/200, Price Action, Order Flow e Order Book L2 anti-spoofing) + Auditor Virtual (`virtual_signals`). Na Fase 1 é **100% analítico** (`affects_execution: false`, ADR-004).
 
-* **Chameleon Engine (v6.0 — Braço Executor):** execução Spot blindada
-  (Single-Slot, OCO, Reconciliador de Boot, Teto Duplo de Risco e segregação
-  via carteira `FUNDING`).
-* **Radar & Analyst Engine (v1.1 — Cérebro Analítico):** scanner multi-ativo
-  (15 a 20 moedas) com funil de 5 camadas (EMA 9/50/200, Price Action, Order
-  Flow e Order Book anti-spoofing) e Auditor Virtual no SQLite.
+---
 
-As decisões centrais da arquitetura unificada são:
+## Arquitetura em 30 Segundos
 
-* **fronteira estrita:** na Fase 1, o Radar é 100% analítico (anotação
-  silenciosa) e apenas `bull_trend_pullback` emite sinais executáveis;
-* **três modos via `.env`:** `ANALYST_ONLY`, `SHADOW_CHAMELEON` e
-  `LIVE_CHAMELEON_PHASE_1`, com chaves Binance proibidas nos dois primeiros;
-* **processo único e SQLite WAL:** opera em container único com teto de **512 MB** de RAM (`mem_limit: 512m`, ADR-015) e elimina contenção de escrita via `BEGIN IMMEDIATE`;
-* **governador de peso compartilhado:** prioridades `CRITICAL > HIGH > LOW` e
-  `critical_section()` protegem a criação da OCO contra `429`/`418` do `depth`;
-* **causalidade e rigor estatístico:** alinhamento por `close_time_utc`,
-  `FeatureStore` único, `outcome_resolver` compartilhado e validação por
-  gates `PASS`/`FAIL`.
+```mermaid
+flowchart LR
+    B["Binance Spot API<br/>(REST Publico + Ed25519)"] --> C["CandleCollector<br/>(XX:00:03 UTC, 1h/4h)"]
+    C --> FS["FeatureStore + RegimeDetector<br/>(MECE 4h: BEAR/BULL/SIDEWAYS/TRANSITION)"]
+    FS --> CH["Chameleon Executor (7 pares)<br/>K9.3 bull_trend_pullback<br/>PositionSizer + ShadowManager"]
+    FS --> RD["Radar L1-L5 (15 pares)<br/>affects_execution: false"]
+    CH -->|"LIVE: OCO + Watchdog <=20s"| EX["OcoOrderManager / StateReconciler"]
+    CH -->|"SHADOW: L2 VWAP"| PE["PaperExecutor"]
+    RD --> VA["VirtualAuditor<br/>(virtual_signals + L4)"]
+    EX --> DB[("SQLite WAL<br/>(Single-Writer, ADR-002)")]
+    PE --> DB
+    VA --> DB
+    DB --> TG["TelegramOutbox +<br/>Offsite Backup (Fernet)"]
+    DB -.->|"URI mode=ro"| CLI["CLIs Read-Only<br/>gate_report / radar_ai_audit /<br/>train_ml_judge / healthcheck"]
+```
 
-## Navegação rápida
+---
 
-1. **[Arquitetura Unificada](unified-architecture.md):** papéis, modos, processo
-   único, SQLite WAL, orçamento de rate limit, `FeatureStore` e árvore de arquivos.
-2. **[Auditoria de Integração](integration-audit.md):** 5 falhas inéditas de
-   Categoria 1 (C1-A a C1-E) e 9 refinamentos de Categoria 2 (C2-1 a C2-9).
-3. **[Contrato de Dados](data-contract.md):** schema SQL completo (v1) e
-   máquina de estados de `trades`.
-4. **Especificações dos Blocos 1 a 6:** [Bloco 1](block-1-spec.md), [Bloco 2](block-2-spec.md),
-   [Bloco 3](block-3-spec.md), [Bloco 4](block-4-spec.md), [Bloco 5](block-5-spec.md) e
-   [Bloco 6](block-6-spec.md), cobrindo da fundação (`config.py`, `database.py`, `binance_client.py`)
-   até execução OCO, Radar L1–L5, Auditor Virtual e orquestração em `src/main.py`.
-5. **[Executor (Chameleon v6)](architecture.md)** e **[Radar & Auditor (v1.1)](radar.md):**
-   especificações matemáticas e operacionais de cada subsistema.
-6. **[Runbook Operacional](runbook.md)** e **[Backup e Restauração](backup-and-restore.md):**
-   procedimentos de incidente (`HALT_REVIEW`, `EMERGENCY_HALT`, rotação Ed25519, BNB, manutenção) e disaster recovery.
-7. **[Decisões (ADR)](decisions.md)**, **[Metodologia e roadmap](methodology-and-roadmap.md)**
-   e **[TODO](todo.md):** governança e lista de triagem atualizada.
+## Estado Atual do Projeto
 
-> **Aviso:** este material é uma especificação técnica. Não constitui
-> recomendação financeira e não autoriza operação real sem a validação dos
-> gates descritos na metodologia.
+| Dimensão | Situação verificada | Referência |
+| --- | --- | --- |
+| **Código implementado** | Blocos 1–6 + Backlog `B1`–`B7` + CI + Preflight | [Próximos Passos e Pré-mortem](next-steps.md) |
+| **Suíte de testes** | `pytest`: **113 passed** (Gates 1–6, fault injection, `B1`–`B7`, `preflight`) | [Guia Rápido](quickstart.md) |
+| **Estratégia congelada** | `K9.3` (`bull_trend_pullback` em `config/strategies.yaml`, travada por SHA-256) | [Auditoria do Backtest e Edge](backtest-edge-audit.md) |
+| **Etapa operacional** | Transição de **Gate 6A** (Testnet) → **Gate 6B** (Shadow Live) | [Metodologia e Roadmap](methodology-and-roadmap.md) |
+| **Runtime** | Container único `mem_limit: 512m` (ADR-015) + `HEALTHCHECK` read-only | [Arquitetura Unificada](unified-architecture.md) |
+
+!!! important "Achado crítico da auditoria de backtest e paridade"
+    Antes de iniciar um novo ciclo de Gate 6A ou Gate 6B, consulte o achado **AUD-01** na [Auditoria do Backtest e Edge (`K9.3`)](backtest-edge-audit.md) (paridade do warmup 4h no `RegimeDetector` em `src/main.py` e sensibilidade do `DSR`).
+
+---
+
+## Mapa de Leitura por Perfil
+
+### Operador (Deploy, Gates e Incidentes)
+1. **[Guia Rápido e Transição de Gates](quickstart.md):** instalação, `preflight_check.py`, comandos de `6A`, `6B`, Fase 1 e Fase 2.
+2. **[Runbook de Incidentes](runbook.md):** `HALT_REVIEW`, `EMERGENCY_HALT`, rotação de chaves Ed25519, reserva BNB, manutenção e mudança de API.
+3. **[Backup e Restauração](backup-and-restore.md):** backup local rotacionado, backup offsite Fernet via Telegram e `restore_drill.sh`.
+
+### Engenheiro (Arquitetura e Contrato de Dados)
+1. **[Arquitetura Unificada (Canônica)](unified-architecture.md):** fronteira Chameleon/Radar, modos `.env`, processo único, SQLite WAL e `WeightGovernor`.
+2. **[Contrato de Dados (SQLite WAL)](data-contract.md):** schema SQL v1, tabelas por modo e máquina de estados de `trades`.
+3. **[Executor (Chameleon v6.0)](architecture.md)** e **[Radar & Auditor Virtual (v1.1)](radar.md):** especificação detalhada de cada subsistema.
+
+### Auditor Quant & Governança
+1. **[Metodologia e Roadmap](methodology-and-roadmap.md):** regras anti-overfitting, critérios `PASS`/`FAIL` dos gates e kill-switches.
+2. **[Auditoria do Backtest e Edge (`K9.3`)](backtest-edge-audit.md):** revisão cética de causalidade, paridade produção × backtest, custos e sensibilidade do DSR.
+3. **[Próximos Passos e Pré-mortem](next-steps.md):** backlog `B1`–`B10` e os 10 modos mais prováveis de perda de capital na Fase 1.
+4. **[Decisões Arquiteturais (ADR)](decisions.md):** registro vinculante `ADR-001` a `ADR-015`.
+
+!!! note "Aviso"
+    Esta documentação é uma especificação técnica e operacional. Não constitui recomendação financeira e não autoriza operação com capital real sem aprovação explícita nos gates descritos na [Metodologia e Roadmap](methodology-and-roadmap.md).
