@@ -167,6 +167,8 @@ CREATE TABLE IF NOT EXISTS shadow_trades (
     signal_close_time_ms  INTEGER NOT NULL,
     status                TEXT    NOT NULL CHECK (status IN ('OPEN','CLOSED')),
     decision_ask_price    REAL    NOT NULL,
+    depth_vwap_ask        REAL,
+    book_impact_bps       REAL,
     sim_entry_price       REAL    NOT NULL,
     stop_price            REAL    NOT NULL,
     target_price          REAL    NOT NULL,
@@ -180,6 +182,7 @@ CREATE TABLE IF NOT EXISTS shadow_trades (
     r_gross               REAL,
     r_net                 REAL,
     ml_grade_silent       TEXT CHECK (ml_grade_silent IN ('A+','B','C') OR ml_grade_silent IS NULL),
+    ml_p_cal_silent       REAL,
     radar_signal_id       TEXT REFERENCES virtual_signals(signal_id),
     created_at_ms         INTEGER NOT NULL,
     closed_at_ms          INTEGER,
@@ -444,6 +447,16 @@ class Database:
         with self.write_tx() as tx:
             for stmt in statements:
                 tx.execute(stmt)
+            existing_shadow_cols = {
+                str(r[1]) for r in tx.execute("PRAGMA table_info(shadow_trades)").fetchall()
+            }
+            for col_name, col_def in (
+                ("depth_vwap_ask", "REAL"),
+                ("book_impact_bps", "REAL"),
+                ("ml_p_cal_silent", "REAL"),
+            ):
+                if col_name not in existing_shadow_cols:
+                    tx.execute(f"ALTER TABLE shadow_trades ADD COLUMN {col_name} {col_def}")
             tx.execute(
                 "INSERT INTO schema_meta(key, value) VALUES ('version', ?) "
                 "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
@@ -709,6 +722,48 @@ class Database:
                 ),
             )
 
+    def upsert_regime_history(
+        self,
+        *,
+        symbol: str,
+        close_time_4h_ms: int,
+        regime: str,
+        close_4h: float | None,
+        ema100_4h: float | None,
+        ema100_slope_4h: float | None,
+        chop14_4h: float | None,
+        adx14_4h: float | None,
+        fallback_reason: str | None = None,
+    ) -> None:
+        with self.write_tx() as tx:
+            tx.execute(
+                """
+                INSERT INTO regime_history (
+                    symbol, close_time_4h_ms, regime, close_4h, ema100_4h,
+                    ema100_slope_4h, chop14_4h, adx14_4h, fallback_reason
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(symbol, close_time_4h_ms) DO UPDATE SET
+                    regime          = excluded.regime,
+                    close_4h        = excluded.close_4h,
+                    ema100_4h       = excluded.ema100_4h,
+                    ema100_slope_4h = excluded.ema100_slope_4h,
+                    chop14_4h       = excluded.chop14_4h,
+                    adx14_4h        = excluded.adx14_4h,
+                    fallback_reason = excluded.fallback_reason
+                """,
+                (
+                    str(symbol),
+                    int(close_time_4h_ms),
+                    str(regime),
+                    close_4h,
+                    ema100_4h,
+                    ema100_slope_4h,
+                    chop14_4h,
+                    adx14_4h,
+                    fallback_reason,
+                ),
+            )
+
     # --- backup (TODO Cat.1) ---
     def backup_to(self, dest_dir: Path) -> Path:
         conn = self._ensure_connected()
@@ -722,6 +777,30 @@ class Database:
         finally:
             dst_conn.close()
         return dest_path
+
+    @staticmethod
+    def prune_old_backups(
+        dest_dir: Path,
+        *,
+        keep_latest: int = 14,
+        prefix: str | None = None,
+    ) -> list[Path]:
+        """Remove local `*_backup_*.db` files beyond `keep_latest` newest entries (B1)."""
+        keep = max(1, int(keep_latest))
+        base = Path(dest_dir)
+        if not base.is_dir():
+            return []
+        pattern = f"{prefix}_backup_*.db" if prefix else "*_backup_*.db"
+        candidates = [p for p in base.glob(pattern) if p.is_file()]
+        candidates.sort(key=lambda p: (p.stat().st_mtime_ns, p.name), reverse=True)
+        removed: list[Path] = []
+        for old_path in candidates[keep:]:
+            try:
+                old_path.unlink()
+                removed.append(old_path)
+            except OSError:
+                continue
+        return removed
 
     @staticmethod
     def verify_backup(path: Path) -> bool:

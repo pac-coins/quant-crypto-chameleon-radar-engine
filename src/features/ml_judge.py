@@ -2,15 +2,29 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import math
 from dataclasses import dataclass
-from typing import Optional, Sequence
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Final, Optional, Sequence
 
 import numpy as np
 import pandas as pd
 
 from src.core.config import MlJudgeValidationCfg, PositionSizingCfg
 from src.risk.position_sizer import SignalGrade
+
+ML_ARTIFACT_SCHEMA_VERSION: Final[int] = 1
+ML_FEATURE_NAMES: Final[tuple[str, ...]] = (
+    "atr_pct",
+    "dist_ema100_atr",
+    "rvol_20",
+    "chop_14",
+    "btc_regime_ret",
+    "rs_vol_adjusted_12h",
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,6 +51,147 @@ class MLVerdict:
     ece_out_of_sample: float
 
 
+@dataclass(frozen=True, slots=True)
+class MLJudgeArtifact:
+    """Artefato serializável e assinado por SHA-256 do classificador linear + Platt Scaling (B4)."""
+
+    schema_version: int
+    regime: str
+    feature_names: tuple[str, ...]
+    feature_means: tuple[float, ...]
+    feature_stds: tuple[float, ...]
+    weights: tuple[float, ...]
+    intercept: float
+    platt_a: float
+    platt_b: float
+    ece_out_of_sample: float
+    net_r_q33_threshold: float
+    net_r_q70_threshold: float
+    trained_samples: int
+    validation_samples: int
+    created_at_utc: str
+    sha256: str = ""
+
+    def canonical_payload(self) -> dict[str, Any]:
+        return {
+            "schema_version": int(self.schema_version),
+            "regime": str(self.regime),
+            "feature_names": list(self.feature_names),
+            "feature_means": [float(x) for x in self.feature_means],
+            "feature_stds": [float(x) for x in self.feature_stds],
+            "weights": [float(x) for x in self.weights],
+            "intercept": float(self.intercept),
+            "platt_a": float(self.platt_a),
+            "platt_b": float(self.platt_b),
+            "ece_out_of_sample": float(self.ece_out_of_sample),
+            "net_r_q33_threshold": float(self.net_r_q33_threshold),
+            "net_r_q70_threshold": float(self.net_r_q70_threshold),
+            "trained_samples": int(self.trained_samples),
+            "validation_samples": int(self.validation_samples),
+            "created_at_utc": str(self.created_at_utc),
+        }
+
+    def compute_sha256(self) -> str:
+        raw = json.dumps(self.canonical_payload(), sort_keys=True, separators=(",", ":")).encode("utf-8")
+        return hashlib.sha256(raw).hexdigest()
+
+    def with_computed_sha256(self) -> MLJudgeArtifact:
+        return MLJudgeArtifact(
+            schema_version=self.schema_version,
+            regime=self.regime,
+            feature_names=self.feature_names,
+            feature_means=self.feature_means,
+            feature_stds=self.feature_stds,
+            weights=self.weights,
+            intercept=self.intercept,
+            platt_a=self.platt_a,
+            platt_b=self.platt_b,
+            ece_out_of_sample=self.ece_out_of_sample,
+            net_r_q33_threshold=self.net_r_q33_threshold,
+            net_r_q70_threshold=self.net_r_q70_threshold,
+            trained_samples=self.trained_samples,
+            validation_samples=self.validation_samples,
+            created_at_utc=self.created_at_utc,
+            sha256=self.compute_sha256(),
+        )
+
+    def score_vector(self, vec: Sequence[float]) -> float:
+        if len(vec) != len(self.weights):
+            raise ValueError(f"Expected {len(self.weights)} features, got {len(vec)}")
+        total = float(self.intercept)
+        for x, mu, sd, w in zip(vec, self.feature_means, self.feature_stds, self.weights):
+            denom = sd if sd > 1e-12 else 1.0
+            z = (float(x) - mu) / denom
+            total += w * z
+        return float(total)
+
+    def save(self, path: Path) -> Path:
+        signed = self.with_computed_sha256()
+        out = Path(path)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        payload = signed.canonical_payload()
+        payload["sha256"] = signed.sha256
+        out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        return out
+
+    @classmethod
+    def load(cls, path: Path, *, verify_sha256: bool = True) -> MLJudgeArtifact:
+        src = Path(path)
+        if not src.is_file():
+            raise FileNotFoundError(f"MLJudge artifact not found: {src}")
+        data = json.loads(src.read_text(encoding="utf-8"))
+        art = cls(
+            schema_version=int(data["schema_version"]),
+            regime=str(data["regime"]),
+            feature_names=tuple(str(x) for x in data["feature_names"]),
+            feature_means=tuple(float(x) for x in data["feature_means"]),
+            feature_stds=tuple(float(x) for x in data["feature_stds"]),
+            weights=tuple(float(x) for x in data["weights"]),
+            intercept=float(data["intercept"]),
+            platt_a=float(data["platt_a"]),
+            platt_b=float(data["platt_b"]),
+            ece_out_of_sample=float(data["ece_out_of_sample"]),
+            net_r_q33_threshold=float(data["net_r_q33_threshold"]),
+            net_r_q70_threshold=float(data["net_r_q70_threshold"]),
+            trained_samples=int(data["trained_samples"]),
+            validation_samples=int(data["validation_samples"]),
+            created_at_utc=str(data["created_at_utc"]),
+            sha256=str(data.get("sha256", "")),
+        )
+        if art.schema_version != ML_ARTIFACT_SCHEMA_VERSION:
+            raise ValueError(f"Unsupported MLJudgeArtifact schema_version={art.schema_version}")
+        if not (
+            len(art.feature_names)
+            == len(art.feature_means)
+            == len(art.feature_stds)
+            == len(art.weights)
+        ):
+            raise ValueError("Inconsistent feature dimensions in MLJudgeArtifact.")
+        if verify_sha256:
+            expected = art.compute_sha256()
+            if not art.sha256 or art.sha256.lower() != expected.lower():
+                raise ValueError(
+                    f"MLJudgeArtifact SHA-256 mismatch for {src.name}: "
+                    f"stored={art.sha256!r}, computed={expected!r}"
+                )
+        return art
+
+
+def features_to_vector(
+    features: StationaryFeatures,
+    rs_vol_adjusted_12h: float = 0.0,
+) -> tuple[float, ...]:
+    rs_val = float(rs_vol_adjusted_12h) if math.isfinite(float(rs_vol_adjusted_12h)) else 0.0
+    return (
+        float(features.atr_pct),
+        float(features.dist_ema100_atr),
+        float(features.rvol_20),
+        float(features.chop_14),
+        float(features.btc_regime_ret),
+        rs_val,
+    )
+
+
 def extract_stationary_features(row: pd.Series) -> StationaryFeatures:
     """Extrai as 5 features estacionárias causais de uma linha alinhada 1h/4h/BTC."""
     close_p = float(row.get("close", float("nan")))
@@ -44,7 +199,7 @@ def extract_stationary_features(row: pd.Series) -> StationaryFeatures:
     ema_100 = float(row.get("ema_100", row.get("ema_100_1h", float("nan"))))
     rvol_20 = float(row.get("rvol_20", row.get("rvol_20_1h", 1.0)))
     chop_14 = float(row.get("chop_14_4h", row.get("chop_14", 50.0)))
-    btc_ret = float(row.get("btc_ret_12h", row.get("btc_regime_ret", 0.0)))
+    btc_ret = float(row.get("btc_ret_12h", row.get("btc_regime_ret", row.get("btc_rs_12h", 0.0))))
 
     if math.isfinite(close_p) and close_p > 0.0 and math.isfinite(atr_14) and atr_14 > 0.0:
         atr_pct = atr_14 / close_p
@@ -163,6 +318,118 @@ class PlattCalibrator:
         return 1.0 / (1.0 + math.exp(z))
 
 
+def fit_l2_logistic_and_platt(
+    *,
+    train_x: np.ndarray,
+    train_y: Sequence[int],
+    val_x: np.ndarray,
+    val_y: Sequence[int],
+    val_stop_distances_pct: Sequence[float],
+    val_gross_rr_ratios: Sequence[float],
+    sizing_cfg: PositionSizingCfg,
+    ml_cfg: MlJudgeValidationCfg,
+    train_weights: Optional[Sequence[float]] = None,
+    val_weights: Optional[Sequence[float]] = None,
+    regime: str = "BULL",
+    l2_reg: float = 1.0,
+    max_iter: int = 100,
+) -> MLJudgeArtifact:
+    """
+    Treina regressão logística L2 ponderada por AFML uniqueness no conjunto de Treino,
+    ajusta PlattCalibrator exclusivamente na Validação (OOS) e deriva quantis q33/q70 (B4).
+    """
+    x_tr = np.asarray(train_x, dtype=np.float64)
+    y_tr = np.asarray(train_y, dtype=np.float64)
+    x_va = np.asarray(val_x, dtype=np.float64)
+    y_va = np.asarray(val_y, dtype=np.float64)
+    if x_tr.ndim != 2 or x_va.ndim != 2 or x_tr.shape[1] != x_va.shape[1]:
+        raise ValueError("train_x and val_x must be 2D arrays with equal feature count.")
+    if len(x_tr) < 5 or len(x_va) < 5:
+        raise ValueError("Insufficient train/validation samples to fit and calibrate MLJudge.")
+
+    n_feat = x_tr.shape[1]
+    means = np.mean(x_tr, axis=0)
+    stds = np.std(x_tr, axis=0)
+    safe_stds = np.where(stds > 1e-12, stds, 1.0)
+
+    z_tr = (x_tr - means) / safe_stds
+    z_va = (x_va - means) / safe_stds
+
+    w_tr = (
+        np.asarray(train_weights, dtype=np.float64)
+        if train_weights is not None
+        else np.ones(len(y_tr), dtype=np.float64)
+    )
+    w_tr = w_tr / np.maximum(np.sum(w_tr), 1e-12) * float(len(y_tr))
+
+    # Augmented design matrix [1, z_tr] for Newton-Raphson / IRLS with L2 penalty on weights only
+    x_aug = np.column_stack([np.ones(len(z_tr), dtype=np.float64), z_tr])
+    theta = np.zeros(n_feat + 1, dtype=np.float64)
+    reg_mat = np.diag([0.0] + [float(l2_reg)] * n_feat)
+
+    for _ in range(max_iter):
+        logits = np.clip(x_aug @ theta, -30.0, 30.0)
+        probs = 1.0 / (1.0 + np.exp(-logits))
+        grad = x_aug.T @ (w_tr * (probs - y_tr)) + reg_mat @ theta
+        pq = w_tr * probs * (1.0 - probs)
+        hess = (x_aug.T * pq) @ x_aug + reg_mat + 1e-6 * np.eye(n_feat + 1)
+        try:
+            step = np.linalg.solve(hess, grad)
+        except np.linalg.LinAlgError:
+            break
+        theta -= step
+        if float(np.linalg.norm(step)) < 1e-7:
+            break
+
+    intercept = float(theta[0])
+    weights = tuple(float(v) for v in theta[1:])
+
+    val_raw_scores = z_va @ theta[1:] + intercept
+    calibrator = PlattCalibrator().fit(
+        val_raw_scores.tolist(),
+        [int(v > 0.5) for v in y_va],
+        sample_weights=val_weights,
+    )
+    val_p_cal = [calibrator.predict_proba(float(s)) for s in val_raw_scores]
+    ece_oos = compute_expected_calibration_error(val_p_cal, [int(v > 0.5) for v in y_va], n_bins=10)
+
+    friction_pct = (
+        sizing_cfg.roundtrip_fee_assumption_pct + sizing_cfg.stress_slippage_assumption_pct
+    )
+    val_net_rs: list[float] = []
+    for p_c, d_s, r_g in zip(val_p_cal, val_stop_distances_pct, val_gross_rr_ratios):
+        cost_r = friction_pct / max(float(d_s), 1e-9)
+        val_net_rs.append(float(p_c) * max(float(r_g), 1e-9) - (1.0 - float(p_c)) - cost_r)
+
+    q33 = float(np.quantile(val_net_rs, float(ml_cfg.reject_bottom_quantile)))
+    q70 = float(np.quantile(val_net_rs, float(ml_cfg.grade_a_plus_top_quantile)))
+    if q70 <= q33:
+        q70 = q33 + 1e-4
+
+    feat_names = (
+        ML_FEATURE_NAMES
+        if n_feat == len(ML_FEATURE_NAMES)
+        else tuple(f"f_{i}" for i in range(n_feat))
+    )
+    return MLJudgeArtifact(
+        schema_version=ML_ARTIFACT_SCHEMA_VERSION,
+        regime=str(regime),
+        feature_names=feat_names,
+        feature_means=tuple(float(v) for v in means),
+        feature_stds=tuple(float(v) for v in safe_stds),
+        weights=weights,
+        intercept=intercept,
+        platt_a=float(calibrator.a),
+        platt_b=float(calibrator.b),
+        ece_out_of_sample=float(ece_oos),
+        net_r_q33_threshold=q33,
+        net_r_q70_threshold=q70,
+        trained_samples=int(len(y_tr)),
+        validation_samples=int(len(y_va)),
+        created_at_utc=datetime.now(timezone.utc).isoformat(),
+    ).with_computed_sha256()
+
+
 class MLJudge:
     """
     Avaliador secundário segregado por regime:
@@ -182,13 +449,47 @@ class MLJudge:
         ece_out_of_sample: float = 0.02,
         net_r_q33_threshold: float = 0.05,
         net_r_q70_threshold: float = 0.25,
+        artifact: Optional[MLJudgeArtifact] = None,
     ) -> None:
         self.ml_cfg = ml_cfg
         self.sizing_cfg = sizing_cfg
+        self.artifact = artifact
         self.calibrator = calibrator if calibrator is not None else PlattCalibrator()
         self.ece_out_of_sample = float(ece_out_of_sample)
         self.net_r_q33_threshold = float(net_r_q33_threshold)
         self.net_r_q70_threshold = float(net_r_q70_threshold)
+
+    @classmethod
+    def from_artifact(
+        cls,
+        artifact_path: Path,
+        ml_cfg: MlJudgeValidationCfg,
+        sizing_cfg: PositionSizingCfg,
+        *,
+        verify_sha256: bool = True,
+    ) -> MLJudge:
+        art = MLJudgeArtifact.load(artifact_path, verify_sha256=verify_sha256)
+        return cls(
+            ml_cfg=ml_cfg,
+            sizing_cfg=sizing_cfg,
+            calibrator=PlattCalibrator(a=art.platt_a, b=art.platt_b),
+            ece_out_of_sample=art.ece_out_of_sample,
+            net_r_q33_threshold=art.net_r_q33_threshold,
+            net_r_q70_threshold=art.net_r_q70_threshold,
+            artifact=art,
+        )
+
+    def score_features(
+        self,
+        features: StationaryFeatures,
+        *,
+        rs_vol_adjusted_12h: float = 0.0,
+    ) -> float:
+        """Compute linear model raw_score when a calibrated artifact is loaded, else fallback to RS."""
+        if self.artifact is not None:
+            vec = features_to_vector(features, rs_vol_adjusted_12h=rs_vol_adjusted_12h)
+            return self.artifact.score_vector(vec)
+        return float(rs_vol_adjusted_12h)
 
     def evaluate_signal(
         self,

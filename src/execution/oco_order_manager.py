@@ -8,7 +8,7 @@ import sqlite3
 import time
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Sequence
 
 from src.core.binance_client import (
     BinanceAPIError,
@@ -86,6 +86,47 @@ def extract_fill_summary(
                 comm_base += to_decimal(str(f.get("commission", "0")))
 
     return exec_qty, avg_price, cum_quote, comm_base
+
+
+def compute_fills_fee_usdt(
+    fills_or_trades: Sequence[dict[str, Any]],
+    *,
+    base_asset: str,
+    quote_asset: str = "USDT",
+    base_price_usdt: Decimal,
+    bnb_price_usdt: Optional[Decimal] = None,
+    exclude_base_asset: bool = False,
+) -> Decimal:
+    """
+    Convert Binance fills/myTrades commissions into USDT equivalent (B2).
+    When `exclude_base_asset=True` (entry BUY), skips commission paid in `base_asset`
+    because base-asset deductions already reduce the quantity sold on exit (no double counting).
+    """
+    total = Decimal("0")
+    base_u = base_asset.upper()
+    quote_u = quote_asset.upper()
+    for f in fills_or_trades:
+        if not isinstance(f, dict):
+            continue
+        raw_comm = f.get("commission")
+        if raw_comm is None:
+            continue
+        try:
+            amt = to_decimal(str(raw_comm))
+        except Exception:
+            continue
+        if amt <= Decimal("0"):
+            continue
+        asset = str(f.get("commissionAsset", "")).upper()
+        if asset == quote_u:
+            total += amt
+        elif asset == base_u:
+            if not exclude_base_asset and base_price_usdt > Decimal("0"):
+                total += amt * base_price_usdt
+        elif asset == "BNB":
+            if bnb_price_usdt is not None and bnb_price_usdt > Decimal("0"):
+                total += amt * bnb_price_usdt
+    return total.quantize(Decimal("0.00000001"))
 
 
 def compute_net_oco_quantity(
@@ -363,6 +404,111 @@ class OcoOrderManager:
                     continue
 
         return Decimal("0"), False
+
+    def _resolve_bnb_price_usdt(self, *, allow_network: bool = False) -> Optional[Decimal]:
+        if allow_network:
+            get_bt = getattr(self.signed_client, "get_book_ticker", None)
+            if callable(get_bt):
+                try:
+                    bt = get_bt("BNBUSDT", priority=Priority.HIGH)
+                    if bt is not None and bt.bid > Decimal("0"):
+                        return to_decimal(bt.bid)
+                except Exception:
+                    pass
+        try:
+            with self.db.read() as conn:
+                row = conn.execute(
+                    "SELECT close FROM candles WHERE symbol = 'BNBUSDT' ORDER BY close_time_ms DESC LIMIT 1"
+                ).fetchone()
+            if row is not None and row["close"] is not None:
+                px = to_decimal(str(row["close"]))
+                if px > Decimal("0"):
+                    return px
+        except Exception:
+            pass
+        return None
+
+    def resolve_order_fee_usdt(
+        self,
+        symbol: str,
+        order_payload: Optional[dict[str, Any]],
+        *,
+        order_id: Optional[int] = None,
+        base_asset: str,
+        base_price_usdt: Decimal,
+        exclude_base_asset: bool = False,
+        allow_network: bool = False,
+    ) -> Decimal:
+        fills: list[dict[str, Any]] = []
+        if isinstance(order_payload, dict):
+            raw_fills = order_payload.get("fills")
+            if isinstance(raw_fills, list) and raw_fills:
+                fills = [f for f in raw_fills if isinstance(f, dict)]
+            if order_id is None and order_payload.get("orderId") is not None:
+                try:
+                    order_id = int(order_payload["orderId"])
+                except (TypeError, ValueError):
+                    order_id = None
+
+        if not fills and allow_network and order_id is not None:
+            my_trades_fn = getattr(self.signed_client, "get_my_trades", None)
+            if callable(my_trades_fn):
+                try:
+                    fetched = my_trades_fn(symbol, order_id=int(order_id))
+                    if isinstance(fetched, list):
+                        fills = [t for t in fetched if isinstance(t, dict)]
+                except Exception:
+                    fills = []
+
+        if not fills:
+            return Decimal("0")
+
+        needs_bnb = any(str(f.get("commissionAsset", "")).upper() == "BNB" for f in fills)
+        bnb_px = self._resolve_bnb_price_usdt(allow_network=allow_network) if needs_bnb else None
+        return compute_fills_fee_usdt(
+            fills,
+            base_asset=base_asset,
+            base_price_usdt=base_price_usdt,
+            bnb_price_usdt=bnb_px,
+            exclude_base_asset=exclude_base_asset,
+        )
+
+    def _load_existing_trade_fee_usdt(
+        self,
+        trade_id: int,
+        *,
+        symbol: str,
+        base_asset: str,
+        entry_order_id: Optional[int],
+        entry_avg_price: Decimal,
+        allow_network: bool = True,
+    ) -> Decimal:
+        try:
+            with self.db.read() as conn:
+                row = conn.execute(
+                    "SELECT fees_usdt_equiv, entry_order_id FROM trades WHERE trade_id = ?",
+                    (trade_id,),
+                ).fetchone()
+            if row is not None:
+                if row["fees_usdt_equiv"] is not None:
+                    val = to_decimal(str(row["fees_usdt_equiv"]))
+                    if val > Decimal("0"):
+                        return val
+                if entry_order_id is None and row["entry_order_id"] is not None:
+                    entry_order_id = int(row["entry_order_id"])
+        except Exception:
+            pass
+        if allow_network and entry_order_id is not None:
+            return self.resolve_order_fee_usdt(
+                symbol,
+                None,
+                order_id=entry_order_id,
+                base_asset=base_asset,
+                base_price_usdt=entry_avg_price,
+                exclude_base_asset=True,
+                allow_network=True,
+            )
+        return Decimal("0")
 
     def execute_entry(self, req: ExecutionRequest) -> ExecutionReport:
         """
@@ -655,6 +801,15 @@ class OcoOrderManager:
             slip_bps = float(
                 ((avg_price - req.sizing.entry_price) / req.sizing.entry_price) * Decimal("10000")
             )
+            entry_fee_usdt = self.resolve_order_fee_usdt(
+                req.symbol,
+                order_resp,
+                order_id=entry_order_id,
+                base_asset=req.symbol_filters.base_asset,
+                base_price_usdt=avg_price,
+                exclude_base_asset=True,
+                allow_network=False,
+            )
             self._best_effort_db_write(
                 lambda tx: tx.execute(
                     """
@@ -665,6 +820,7 @@ class OcoOrderManager:
                         entry_avg_price = ?,
                         entry_quote_spent = ?,
                         commission_base_asset = ?,
+                        fees_usdt_equiv = ?,
                         slippage_entry_bps = ?,
                         updated_at_ms = ?
                     WHERE trade_id = ?
@@ -676,6 +832,7 @@ class OcoOrderManager:
                         to_api_str(avg_price),
                         to_api_str(cum_quote),
                         to_api_str(comm_base),
+                        to_api_str(entry_fee_usdt) if entry_fee_usdt > Decimal("0") else None,
                         slip_bps,
                         self._now_ms(),
                         trade_id,
@@ -1204,7 +1361,28 @@ class OcoOrderManager:
         now_ms = self._now_ms()
         pnl_usdt = quote_received - ctx.quote_spent
         risk_unit = max(Decimal("0.00000001"), ctx.avg_entry_price - ctx.planned_stop_price)
-        realized_r = float((sell_avg_price - ctx.avg_entry_price) / risk_unit)
+        entry_fee_usdt = self._load_existing_trade_fee_usdt(
+            ctx.trade_id,
+            symbol=ctx.symbol,
+            base_asset=ctx.base_asset,
+            entry_order_id=ctx.entry_order_id,
+            entry_avg_price=ctx.avg_entry_price,
+            allow_network=True,
+        )
+        exit_fee_usdt = self.resolve_order_fee_usdt(
+            ctx.symbol,
+            sell_resp,
+            base_asset=ctx.base_asset,
+            base_price_usdt=sell_avg_price,
+            exclude_base_asset=False,
+            allow_network=True,
+        )
+        total_fees_usdt = (entry_fee_usdt + exit_fee_usdt).quantize(Decimal("0.00000001"))
+        if total_fees_usdt > Decimal("0") and sold_qty > Decimal("0"):
+            risk_total_usdt = max(Decimal("0.00000001"), risk_unit * sold_qty)
+            realized_r = float((pnl_usdt - total_fees_usdt) / risk_total_usdt)
+        else:
+            realized_r = float((sell_avg_price - ctx.avg_entry_price) / risk_unit)
 
         self._best_effort_db_write(
             lambda tx: tx.execute(
@@ -1214,6 +1392,7 @@ class OcoOrderManager:
                     exit_reason = ?,
                     exit_avg_price = ?,
                     exit_quote_received = ?,
+                    fees_usdt_equiv = ?,
                     realized_pnl_usdt = ?,
                     realized_r = ?,
                     updated_at_ms = ?,
@@ -1225,6 +1404,7 @@ class OcoOrderManager:
                     reason.value,
                     to_api_str(sell_avg_price),
                     to_api_str(quote_received),
+                    to_api_str(total_fees_usdt),
                     to_api_str(pnl_usdt),
                     realized_r,
                     now_ms,
@@ -1771,13 +1951,44 @@ class OcoOrderManager:
                 exit_avg = quote_from_oco / executed_on_oco
                 pnl_usdt = quote_from_oco - quote_spent
                 risk_unit = max(Decimal("0.00000001"), avg_entry - planned_stop)
-                realized_r = float((exit_avg - avg_entry) / risk_unit)
+                entry_fee_usdt = self._load_existing_trade_fee_usdt(
+                    trade_id,
+                    symbol=symbol,
+                    base_asset=base_asset,
+                    entry_order_id=(
+                        int(row["entry_order_id"])
+                        if row and row["entry_order_id"] is not None
+                        else None
+                    ),
+                    entry_avg_price=avg_entry,
+                    allow_network=True,
+                )
+                exit_fee_usdt = Decimal("0")
+                legs = cancel_resp.get("orderReports") or cancel_resp.get("orders") or []
+                if isinstance(legs, list):
+                    for leg in legs:
+                        if isinstance(leg, dict):
+                            exit_fee_usdt += self.resolve_order_fee_usdt(
+                                symbol,
+                                leg,
+                                base_asset=base_asset,
+                                base_price_usdt=exit_avg,
+                                exclude_base_asset=False,
+                                allow_network=True,
+                            )
+                total_fees_usdt = (entry_fee_usdt + exit_fee_usdt).quantize(Decimal("0.00000001"))
+                if total_fees_usdt > Decimal("0"):
+                    risk_total_usdt = max(Decimal("0.00000001"), risk_unit * executed_on_oco)
+                    realized_r = float((pnl_usdt - total_fees_usdt) / risk_total_usdt)
+                else:
+                    realized_r = float((exit_avg - avg_entry) / risk_unit)
                 self._best_effort_db_write(
                     lambda tx: tx.execute(
                         """
                         UPDATE trades
                         SET status = ?, exit_reason = ?,
                             exit_avg_price = ?, exit_quote_received = ?,
+                            fees_usdt_equiv = ?,
                             realized_pnl_usdt = ?, realized_r = ?,
                             updated_at_ms = ?, closed_at_ms = ?
                         WHERE trade_id = ?
@@ -1787,6 +1998,7 @@ class OcoOrderManager:
                             ExitReason.TIME.value,
                             to_api_str(exit_avg),
                             to_api_str(quote_from_oco),
+                            to_api_str(total_fees_usdt),
                             to_api_str(pnl_usdt),
                             realized_r,
                             now_ms,

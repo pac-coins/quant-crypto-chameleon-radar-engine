@@ -14,10 +14,41 @@ from src.execution.executor_protocol import ExecutionReport, ExecutionRequest
 from src.risk.shadow_manager import ShadowManager
 
 
+def compute_depth_vwap_ask(
+    asks: Sequence[tuple[float, float]],
+    qty: Decimal,
+) -> Optional[Decimal]:
+    """
+    Compute volume-weighted average ask price to buy `qty` base units across L2 ask levels (B2).
+    Returns None if the book is empty or lacks sufficient liquidity.
+    """
+    target_qty = to_decimal(qty)
+    if target_qty <= Decimal("0") or not asks:
+        return None
+    remaining = target_qty
+    total_cost = Decimal("0")
+    ordered = sorted(
+        ((to_decimal(str(p)), to_decimal(str(q))) for p, q in asks),
+        key=lambda lvl: lvl[0],
+    )
+    for price, level_qty in ordered:
+        if price <= Decimal("0") or level_qty <= Decimal("0"):
+            continue
+        take = min(remaining, level_qty)
+        total_cost += take * price
+        remaining -= take
+        if remaining <= Decimal("0"):
+            break
+    if remaining > Decimal("0"):
+        return None
+    return total_cost / target_qty
+
+
 class PaperExecutor:
     """
     Executa operações em modo SHADOW_CHAMELEON (Gate 6B):
-    - Lê o melhor ask real da corretora via /api/v3/ticker/bookTicker no instante da decisão;
+    - Lê o melhor ask real da corretora via /api/v3/ticker/bookTicker e, quando disponível,
+      estima o preço médio ponderado por profundidade (VWAP L2) para `base_qty` (B2);
     - Aplica o modelo de slippage parametrizado em strategies.yaml;
     - Grava na tabela shadow_trades (protegida pelo índice único parcial ux_shadow_single_slot);
     - Resolve o desfecho nas velas subsequentes usando resolve_single_target_horizon (C2-3).
@@ -76,8 +107,30 @@ class PaperExecutor:
 
         ticker = self.public_client.get_book_ticker(req.symbol, priority=Priority.HIGH)
         ask_dec = ticker.ask
+
+        depth_vwap_ask: Optional[Decimal] = None
+        book_impact_bps: Optional[float] = None
+        get_depth = getattr(self.public_client, "get_depth", None)
+        if callable(get_depth):
+            try:
+                snap = get_depth(req.symbol, limit=20)
+                if snap is not None and getattr(snap, "asks", None):
+                    vwap = compute_depth_vwap_ask(snap.asks, req.sizing.base_qty)
+                    if vwap is not None and vwap > Decimal("0"):
+                        depth_vwap_ask = vwap
+                        if ask_dec > Decimal("0"):
+                            book_impact_bps = float(((vwap - ask_dec) / ask_dec) * Decimal("10000"))
+            except Exception:
+                depth_vwap_ask = None
+                book_impact_bps = None
+
+        effective_ask = (
+            depth_vwap_ask
+            if (depth_vwap_ask is not None and depth_vwap_ask >= ask_dec)
+            else ask_dec
+        )
         slip_half = Decimal(str(self.sizing_cfg.stress_slippage_assumption_pct)) / Decimal("2")
-        sim_entry_dec = ask_dec * (Decimal("1") + slip_half)
+        sim_entry_dec = max(effective_ask, ask_dec * (Decimal("1") + slip_half))
 
         entry_flt = float(sim_entry_dec)
         stop_flt = float(req.sizing.stop_price)
@@ -103,17 +156,20 @@ class PaperExecutor:
                 """
                 INSERT INTO shadow_trades (
                     symbol, strategy, regime, signal_close_time_ms, status,
-                    decision_ask_price, sim_entry_price, stop_price, target_price,
+                    decision_ask_price, depth_vwap_ask, book_impact_bps,
+                    sim_entry_price, stop_price, target_price,
                     qty, risk_pct, risk_usdt, virtual_equity_before,
-                    time_barrier_end_ms, ml_grade_silent, radar_signal_id, created_at_ms
-                ) VALUES (?, ?, ?, ?, 'OPEN', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    time_barrier_end_ms, ml_grade_silent, ml_p_cal_silent, radar_signal_id, created_at_ms
+                ) VALUES (?, ?, ?, ?, 'OPEN', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     req.symbol,
                     req.strategy,
                     req.regime,
                     int(req.signal_close_time_ms),
-                    float(ask_dec),
+                    float(effective_ask),
+                    float(depth_vwap_ask) if depth_vwap_ask is not None else None,
+                    book_impact_bps,
                     entry_flt,
                     stop_flt,
                     target_flt,
@@ -123,6 +179,7 @@ class PaperExecutor:
                     format(to_decimal(virtual_equity_before), "f"),
                     int(req.time_barrier_end_ms),
                     req.sizing.ml_grade_silent,
+                    req.sizing.ml_p_cal_silent,
                     req.radar_signal_id,
                     created_ms,
                 ),
@@ -170,6 +227,16 @@ class PaperExecutor:
             roundtrip_cost_pct=roundtrip_cost,
         )
         if res.status in ("TARGET", "STOP", "SAME_CANDLE_STOP", "TIME"):
+            now_ms = int(res.resolved_at_ms if res.resolved_at_ms is not None else time.time() * 1000)
+            eq_before = to_decimal(str(row["virtual_equity_before"]))
+            risk_usdt = to_decimal(str(row["risk_usdt"]))
+            if res.r_net is not None:
+                pnl_usdt = (risk_usdt * Decimal(str(round(float(res.r_net), 6)))).quantize(
+                    Decimal("0.01")
+                )
+                new_eq = max(Decimal("0.01"), eq_before + pnl_usdt)
+            else:
+                new_eq = eq_before
             with self.db.write_tx() as tx:
                 tx.execute(
                     """
@@ -190,6 +257,23 @@ class PaperExecutor:
                         res.resolved_at_ms,
                         int(row["shadow_id"]),
                     ),
+                )
+                tx.execute(
+                    """
+                    INSERT OR IGNORE INTO system_state(key, value, updated_at_ms)
+                    VALUES ('initial_shadow_equity_usdt', ?, ?)
+                    """,
+                    (format(eq_before, "f"), now_ms),
+                )
+                tx.execute(
+                    """
+                    INSERT INTO system_state(key, value, updated_at_ms)
+                    VALUES ('shadow_virtual_equity_usdt', ?, ?)
+                    ON CONFLICT(key) DO UPDATE SET
+                        value = excluded.value,
+                        updated_at_ms = excluded.updated_at_ms
+                    """,
+                    (format(new_eq, "f"), now_ms),
                 )
             if self.shadow_manager is not None and res.r_net is not None:
                 self.shadow_manager.record_trade_outcome(

@@ -20,6 +20,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 FORBIDDEN_EXECUTION_SYMBOLS: Final[frozenset[str]] = frozenset({"BNBUSDT"})
 PHASE_1_LIVE_CONFIRMATION: Final[str] = "PHASE_1_GATES_6A_6B_PASSED"
+PHASE_2_LIVE_CONFIRMATION: Final[str] = "PHASE_2_F1_TO_F2_PASSED"
 PUBLIC_MARKET_DATA_URL: Final[str] = "https://data-api.binance.vision"
 TESTNET_TRADING_URL: Final[str] = "https://testnet.binance.vision"
 PRODUCTION_TRADING_URL: Final[str] = "https://api.binance.com"
@@ -35,6 +36,7 @@ class RunMode(StrEnum):
     ANALYST_ONLY = "ANALYST_ONLY"
     SHADOW_CHAMELEON = "SHADOW_CHAMELEON"
     LIVE_CHAMELEON_PHASE_1 = "LIVE_CHAMELEON_PHASE_1"
+    LIVE_CHAMELEON_PHASE_2 = "LIVE_CHAMELEON_PHASE_2"
 
 
 class BinanceEnv(StrEnum):
@@ -64,10 +66,13 @@ class RuntimeSettings(BaseSettings):
     telegram_chat_id: str
     db_path: Path = Path("data/quant.db")
     backup_dir: Path = Path("data/backups")
+    backup_retention_days: int = Field(default=14, ge=1)
+    watchdog_poll_interval_seconds: float = Field(default=20.0, ge=1.0, le=300.0)
     healthcheck_url: SecretStr | None = None
     offsite_backup_enabled: bool = False
     backup_telegram_chat_id: str | None = None
     backup_encryption_key: SecretStr | None = None
+    ml_judge_artifact_path: Path | None = None
 
     @field_validator(
         "binance_api_key",
@@ -77,6 +82,7 @@ class RuntimeSettings(BaseSettings):
         "healthcheck_url",
         "backup_telegram_chat_id",
         "backup_encryption_key",
+        "ml_judge_artifact_path",
         mode="before",
     )
     @classmethod
@@ -402,7 +408,10 @@ class AppConfig(_Strict):
 
     @property
     def is_live(self) -> bool:
-        return self.runtime.mode == RunMode.LIVE_CHAMELEON_PHASE_1
+        return self.runtime.mode in (
+            RunMode.LIVE_CHAMELEON_PHASE_1,
+            RunMode.LIVE_CHAMELEON_PHASE_2,
+        )
 
     @property
     def total_roundtrip_cost_pct(self) -> float:
@@ -531,6 +540,57 @@ def validate_mode_invariants(cfg: AppConfig) -> None:
             ):
                 raise ConfigError(
                     "LIVE + PRODUCTION requires APPROVED_STRATEGIES_SHA256 matching "
+                    "the exact SHA-256 of config/strategies.yaml."
+                )
+
+    # 5. LIVE_CHAMELEON_PHASE_2 strict checks (B7).
+    if rt.mode == RunMode.LIVE_CHAMELEON_PHASE_2:
+        if not has_api_key:
+            raise ConfigError("LIVE_CHAMELEON_PHASE_2 requires BINANCE_API_KEY.")
+        if (
+            rt.binance_ed25519_private_key_path is None
+            or not rt.binance_ed25519_private_key_path.is_file()
+        ):
+            raise ConfigError(
+                "LIVE_CHAMELEON_PHASE_2 requires an existing readable "
+                "BINANCE_ED25519_PRIVATE_KEY_PATH."
+            )
+        try:
+            key_text = rt.binance_ed25519_private_key_path.read_text(encoding="utf-8").strip()
+        except OSError as exc:
+            raise ConfigError(f"Cannot read Ed25519 private key file: {exc}") from exc
+        if not key_text:
+            raise ConfigError("Ed25519 private key file is empty.")
+
+        if st.portfolio.max_concurrent_positions != 1:
+            raise ConfigError("Phase 2 requires max_concurrent_positions == 1 (Single-Slot).")
+        if st.mid_trade_management.breakeven_enabled:
+            raise ConfigError("Phase 2 requires mid_trade_management.breakeven_enabled == false (Phase 3 gate).")
+        rs = st.regimes_and_strategies
+        if not rs.bull_trend_pullback.enabled:
+            raise ConfigError("Phase 2 requires bull_trend_pullback.enabled == true.")
+        if rs.sideways_pingpong.enabled or rs.bear_capitulation_snap.enabled:
+            raise ConfigError(
+                "Phase 2 forbids enabling sideways_pingpong or bear_capitulation_snap (Phase 3 gate)."
+            )
+        if st.ml_judge_and_validation.use_ml_filter:
+            if rt.ml_judge_artifact_path is None or not rt.ml_judge_artifact_path.is_file():
+                raise ConfigError(
+                    "LIVE_CHAMELEON_PHASE_2 with use_ml_filter=true requires an existing "
+                    "calibrated ML_JUDGE_ARTIFACT_PATH."
+                )
+
+        if rt.binance_env == BinanceEnv.PRODUCTION:
+            if rt.live_confirmation != PHASE_2_LIVE_CONFIRMATION:
+                raise ConfigError(
+                    f"LIVE Phase 2 + PRODUCTION requires LIVE_CONFIRMATION={PHASE_2_LIVE_CONFIRMATION!r}."
+                )
+            if (
+                not rt.approved_strategies_sha256
+                or rt.approved_strategies_sha256.lower() != cfg.strategies_sha256.lower()
+            ):
+                raise ConfigError(
+                    "LIVE Phase 2 + PRODUCTION requires APPROVED_STRATEGIES_SHA256 matching "
                     "the exact SHA-256 of config/strategies.yaml."
                 )
 

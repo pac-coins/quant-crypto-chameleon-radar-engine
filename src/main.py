@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import shutil
 import signal
 import time
 from dataclasses import dataclass
@@ -11,6 +12,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Sequence
 import pandas as pd
 
 from src.auditing.virtual_auditor import VirtualAuditor
+from src.backtest.ablation_and_dsr import compute_cvar_99
 from src.core.binance_client import (
     BinanceAPIError,
     ExchangeInfoCache,
@@ -35,7 +37,11 @@ from src.data.candle_collector import CandleCollector, align_4h_to_1h, align_btc
 from src.execution.executor_protocol import ExecutionReport, ExecutionRequest, NoOpExecutor
 from src.execution.paper_executor import PaperExecutor
 from src.features.feature_store import FeatureRequest, FeatureStore
-from src.features.ml_judge import MLJudge
+from src.features.ml_judge import (
+    MLJudge,
+    compute_expected_calibration_error,
+    extract_stationary_features,
+)
 
 if TYPE_CHECKING:
     from src.core.state_reconciler import StateReconciler
@@ -51,13 +57,16 @@ from src.radar.confluence_scorer import RadarSignal, score_and_build_signal
 from src.radar.orderbook_inspector import OrderbookInspector
 from src.radar.structure_ema import Layer123Score, score_layers_1_to_3
 from src.regimes.regime_detector import MarketRegime, RegimeDetector
-from src.risk.position_sizer import PositionSizer
+from src.risk.position_sizer import PositionSizer, SignalGrade
+from src.risk.profit_splitter import ProfitSplitter
 from src.risk.shadow_manager import ShadowManager
 from src.strategies.bull_trend_pullback import BullTrendPullbackStrategy
 
 logger = logging.getLogger("quant_orchestrator")
 ONE_HOUR_MS = 3_600_000
 ONE_DAY_MS = 86_400_000
+ONE_WEEK_MS = 7 * ONE_DAY_MS
+_LIVE_MODES = (RunMode.LIVE_CHAMELEON_PHASE_1, RunMode.LIVE_CHAMELEON_PHASE_2)
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,6 +102,7 @@ class QuantOrchestrator:
         orderbook_inspector: OrderbookInspector | None = None,
         ml_judge: MLJudge | None = None,
         sleep_fn: Callable[[float], None] = time.sleep,
+        disk_usage_fn: Callable[[Path], Any] = shutil.disk_usage,
     ) -> None:
         self.settings = settings
         self.strategies_cfg = strategies_cfg
@@ -104,6 +114,7 @@ class QuantOrchestrator:
         self.exchange_cache = exchange_cache
         self.outbox = outbox
         self._sleep = sleep_fn
+        self._disk_usage = disk_usage_fn
 
         self.collector = collector or CandleCollector(
             client=public_client,
@@ -129,18 +140,41 @@ class QuantOrchestrator:
                 FeatureRequest("sweep", analyst_cfg.layer_2_price_action.liquidity_sweep_lookback_candles, "1h"),
             ),
         )
-        self.position_sizer = PositionSizer(
-            strategies_cfg.position_sizing,
-            strategies_cfg.portfolio,
-        )
         self.shadow_manager = ShadowManager(
             strategies_cfg.drawdown_and_shadow_protection,
             strategies_cfg.portfolio,
             db=db,
         )
-        self.ml_judge = ml_judge or MLJudge(
-            strategies_cfg.ml_judge_and_validation,
+        if ml_judge is not None:
+            self.ml_judge = ml_judge
+        elif settings.ml_judge_artifact_path is not None:
+            self.ml_judge = MLJudge.from_artifact(
+                settings.ml_judge_artifact_path,
+                strategies_cfg.ml_judge_and_validation,
+                strategies_cfg.position_sizing,
+            )
+            logger.info(
+                "Loaded calibrated MLJudge artifact from %s (ECE=%.4f, q33=%.4f, q70=%.4f)",
+                settings.ml_judge_artifact_path,
+                self.ml_judge.ece_out_of_sample,
+                self.ml_judge.net_r_q33_threshold,
+                self.ml_judge.net_r_q70_threshold,
+            )
+        else:
+            self.ml_judge = MLJudge(
+                strategies_cfg.ml_judge_and_validation,
+                strategies_cfg.position_sizing,
+            )
+
+        phase2_ml_filter_active = bool(
+            settings.mode == RunMode.LIVE_CHAMELEON_PHASE_2
+            and strategies_cfg.ml_judge_and_validation.use_ml_filter
+            and self.ml_judge.ece_out_of_sample <= strategies_cfg.ml_judge_and_validation.max_allowed_ece
+        )
+        self.position_sizer = PositionSizer(
             strategies_cfg.position_sizing,
+            strategies_cfg.portfolio,
+            use_ml_filter=phase2_ml_filter_active,
         )
         self.virtual_auditor = VirtualAuditor(db)
         self.orderbook_inspector = orderbook_inspector or OrderbookInspector(
@@ -158,7 +192,8 @@ class QuantOrchestrator:
         )
         self.oco_manager: OcoOrderManager | None = None
         self.reconciler: StateReconciler | None = None
-        if settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1 and signed_client is not None:
+        self.profit_splitter: ProfitSplitter | None = None
+        if settings.mode in _LIVE_MODES and signed_client is not None:
             from src.core.state_reconciler import StateReconciler as _StateReconciler
             from src.execution.oco_order_manager import OcoOrderManager as _OcoOrderManager
 
@@ -185,10 +220,181 @@ class QuantOrchestrator:
                 filters_provider=exchange_cache.get,
                 shadow_manager=self.shadow_manager,
             )
+            self.profit_splitter = ProfitSplitter(
+                strategies_cfg.profit_splitter,
+                db=db,
+                signed_client=signed_client,
+            )
 
         self._last_clock_sync_ms: int = 0
         self._last_backup_day_utc: int = -1
         self._last_emitted_radar_signals: dict[str, str] = {}
+
+    @property
+    def _is_live_mode(self) -> bool:
+        return self.settings.mode in _LIVE_MODES
+
+    def _process_newly_closed_live_trades(self, now_ms: int) -> int:
+        """
+        Idempotently process newly closed LIVE trades (B7):
+        1. Runs ShadowManager.evaluate_phase_downgrade() over the trailing 30 live trades + ECE_30;
+        2. In Phase 2 with profit_splitter.enabled, invokes ProfitSplitter.on_trade_closed()
+           at most once per trade_id (guarded by `last_post_close_processed_trade_id`).
+        """
+        if not self._is_live_mode:
+            return 0
+        raw_last = self.db.get_state("last_post_close_processed_trade_id")
+        try:
+            last_id = int(raw_last) if raw_last is not None else 0
+        except ValueError:
+            last_id = 0
+
+        env_val = self.settings.binance_env.value
+        with self.db.read() as conn:
+            new_rows = conn.execute(
+                """
+                SELECT trade_id, realized_r, ml_p_cal_silent
+                FROM trades
+                WHERE environment = ? AND status = 'CLOSED' AND trade_id > ?
+                ORDER BY trade_id ASC
+                """,
+                (env_val, last_id),
+            ).fetchall()
+
+        if not new_rows:
+            return 0
+
+        processed = 0
+        prev_downgraded = self.db.get_state("conviction_downgraded") == "1"
+
+        for r in new_rows:
+            tid = int(r["trade_id"])
+
+            # 1. Rolling 30-trade auto-downgrade evaluation (Roadmap §5.1)
+            with self.db.read() as conn:
+                tail_rows = conn.execute(
+                    """
+                    SELECT realized_r, ml_p_cal_silent
+                    FROM trades
+                    WHERE environment = ? AND status = 'CLOSED' AND trade_id <= ?
+                      AND realized_r IS NOT NULL
+                    ORDER BY trade_id DESC
+                    LIMIT 30
+                    """,
+                    (env_val, tid),
+                ).fetchall()
+            tail_rows = list(reversed(tail_rows))
+            r_30 = [float(tr["realized_r"]) for tr in tail_rows]
+            probs_30: list[float] = []
+            outcomes_30: list[int] = []
+            for tr in tail_rows:
+                if tr["ml_p_cal_silent"] is not None:
+                    probs_30.append(float(tr["ml_p_cal_silent"]))
+                    outcomes_30.append(1 if float(tr["realized_r"]) > 0.0 else 0)
+            ece_30 = (
+                compute_expected_calibration_error(probs_30, outcomes_30, n_bins=10)
+                if len(probs_30) >= 30
+                else None
+            )
+            conv_down, _ = self.shadow_manager.evaluate_phase_downgrade(
+                recent_live_r_30=r_30,
+                recent_ece_30=ece_30,
+            )
+            if conv_down and not prev_downgraded:
+                mean_30 = (sum(r_30) / len(r_30)) if r_30 else 0.0
+                ece_txt = f"{ece_30:.4f}" if ece_30 is not None else "N/A"
+                self.outbox.enqueue(
+                    "PHASE_DOWNGRADE",
+                    (
+                        f"⚠️ Auto-Downgrade Fase 2 -> Fase 1 acionado ({self.settings.mode.value}): "
+                        f"mean(R_30)={mean_30:+.3f}R, ECE_30={ece_txt}. "
+                        "Alocação extra Nota A+ desarmada (risco base restaurado)."
+                    ),
+                    now_ms=now_ms,
+                )
+            prev_downgraded = conv_down
+
+            # 2. Idempotent ProfitSplitter (Phase 2 only, when enabled)
+            if (
+                self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_2
+                and self.profit_splitter is not None
+                and self.strategies_cfg.profit_splitter.enabled
+                and self._has_open_live_trade() is None
+            ):
+                try:
+                    _free_u, eq_after, bnb_u = self._get_live_balances()
+                    prev_eq_str = self.db.get_state("current_equity_usdt")
+                    eq_before = Decimal(prev_eq_str) if prev_eq_str else eq_after
+                    def_check = self.shadow_manager.evaluate_defense(
+                        current_equity_usdt=eq_after,
+                        bnb_free_usdt_equiv=bnb_u,
+                        trades_last_24h=self._count_trades_last_24h(now_ms),
+                    )
+                    split_res = self.profit_splitter.on_trade_closed(
+                        equity_before_usdt=eq_before,
+                        equity_after_usdt=eq_after,
+                        cppi_drawdown_active=def_check.cppi_active,
+                    )
+                    if split_res.transferred_to_funding_usdt > Decimal("0"):
+                        self.outbox.enqueue(
+                            "PROFIT_SPLIT",
+                            (
+                                f"🏦 Cofre de Lucros MAIN_FUNDING ({self.settings.mode.value}): "
+                                f"transferidos {split_res.transferred_to_funding_usdt:.2f} USDT "
+                                f"(tranId={split_res.transfer_tx_id}, HWM={split_res.new_hwm_usdt:.2f} USDT)."
+                            ),
+                            now_ms=now_ms,
+                        )
+                except Exception as exc:
+                    logger.warning("ProfitSplitter processing failed for trade #%s: %s", tid, exc)
+
+            if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_2:
+                prev_cnt = int(self.db.get_state("phase2_closed_trades_count") or "0")
+                self.db.set_state("phase2_closed_trades_count", str(prev_cnt + 1))
+
+            self.db.set_state("last_post_close_processed_trade_id", str(tid))
+            processed += 1
+
+        return processed
+
+    def _compute_phase2_sizing_guards(
+        self,
+        *,
+        conviction_downgraded: bool,
+    ) -> tuple[Optional[float], int]:
+        """
+        Compute (portfolio_cvar99_loss_pct, phase2b_graduation_stage) for Phase 2 sizing (B7):
+        - Empirical CVaR 99% from realized live trade equity returns (when >= 10 closed trades);
+        - Stage 1 (<= 1.5% on A+) until >= 30 Phase 2 closed trades maintain mean(R_30) > +0.15R
+          without auto-downgrade, then Stage 2 (<= 2.0%).
+        """
+        env_val = self.settings.binance_env.value
+        with self.db.read() as conn:
+            rows = conn.execute(
+                """
+                SELECT realized_r, risk_pct
+                FROM trades
+                WHERE environment = ? AND status = 'CLOSED' AND realized_r IS NOT NULL
+                ORDER BY trade_id ASC
+                """,
+                (env_val,),
+            ).fetchall()
+
+        cvar99_loss_pct: Optional[float] = None
+        if len(rows) >= 10:
+            eq_returns = [float(r["realized_r"]) * float(r["risk_pct"]) for r in rows]
+            cvar_val = compute_cvar_99(eq_returns)
+            cvar99_loss_pct = abs(min(0.0, float(cvar_val)))
+
+        if conviction_downgraded:
+            return cvar99_loss_pct, 1
+
+        p2_count = int(self.db.get_state("phase2_closed_trades_count") or "0")
+        if p2_count >= 30 and len(rows) >= 30:
+            last_30_r = [float(r["realized_r"]) for r in rows[-30:]]
+            if (sum(last_30_r) / len(last_30_r)) > 0.15:
+                return cvar99_loss_pct, 2
+        return cvar99_loss_pct, 1
 
     def _all_universe_symbols(self) -> tuple[str, ...]:
         return tuple(
@@ -229,7 +435,7 @@ class QuantOrchestrator:
         if need_4h:
             self.collector.backfill(need_4h, "4h", lookback_candles=250)
 
-        if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1 and self.reconciler is not None:
+        if self._is_live_mode and self.reconciler is not None:
             from src.core.state_reconciler import ReconcileAction as _ReconcileAction
 
             try:
@@ -283,6 +489,81 @@ class QuantOrchestrator:
         except Exception as exc:
             logger.warning("sapi_system_status error (%s); assuming maintenance block.", exc)
             return True
+
+    def _should_emit_rate_limited_alert(
+        self,
+        state_key: str,
+        now_ms: int,
+        *,
+        interval_ms: int = ONE_DAY_MS,
+    ) -> bool:
+        raw = self.db.get_state(state_key)
+        if raw is not None:
+            try:
+                if (int(now_ms) - int(raw)) < int(interval_ms):
+                    return False
+            except ValueError:
+                pass
+        self.db.set_state(state_key, str(int(now_ms)))
+        return True
+
+    def _maybe_emit_weekly_radar_scorecard(self, now_ms: int) -> bool:
+        """Send VirtualAuditor weekly scorecard via TelegramOutbox once per 7 days (B3)."""
+        if not self.analyst_cfg.virtual_auditor.send_weekly_scorecard_telegram:
+            return False
+        raw_last = self.db.get_state("last_weekly_scorecard_ms")
+        if raw_last is None:
+            # Check if DB already has history >= 7 days old; otherwise seed baseline now.
+            with self.db.read() as conn:
+                row = conn.execute("SELECT MIN(cycle_close_time_ms) FROM cycle_health").fetchone()
+            first_ts = int(row[0]) if (row is not None and row[0] is not None) else None
+            if first_ts is None or (int(now_ms) - first_ts) < ONE_WEEK_MS:
+                self.db.set_state("last_weekly_scorecard_ms", str(int(now_ms)))
+                return False
+            since_ms = int(now_ms) - ONE_WEEK_MS
+        else:
+            try:
+                since_ms = int(raw_last)
+            except ValueError:
+                since_ms = int(now_ms) - ONE_WEEK_MS
+            if (int(now_ms) - since_ms) < ONE_WEEK_MS:
+                return False
+
+        md = self.virtual_auditor.generate_weekly_scorecard_markdown(since_ms, int(now_ms))
+        self.outbox.enqueue("RADAR_WEEKLY_SCORECARD", md, now_ms=int(now_ms))
+        self.db.set_state("last_weekly_scorecard_ms", str(int(now_ms)))
+        return True
+
+    def _check_disk_usage(self, now_ms: int, *, warn_pct: float = 70.0) -> Optional[float]:
+        """Monitor VPS disk usage around DB path and alert when >= warn_pct (B3)."""
+        try:
+            target = self.settings.db_path.parent
+            if not target.exists():
+                target = Path(".")
+            usage = self._disk_usage(target)
+            total = int(usage.total)
+            used = int(usage.used)
+            if total <= 0:
+                return None
+            used_pct = (used / total) * 100.0
+            self.db.set_state("disk_usage_pct", f"{used_pct:.2f}")
+            if used_pct >= float(warn_pct) and self._should_emit_rate_limited_alert(
+                "last_disk_warn_alert_ms", now_ms
+            ):
+                free_gb = int(usage.free) / (1024**3)
+                self.outbox.enqueue(
+                    "DISK_USAGE_WARNING",
+                    (
+                        f"⚠️ Uso de disco elevado na VPS ({self.settings.mode.value}): "
+                        f"{used_pct:.1f}% utilizado (limite preventivo {warn_pct:.0f}%, "
+                        f"livre: {free_gb:.2f} GB). Verifique logs e backups."
+                    ),
+                    now_ms=int(now_ms),
+                )
+            return used_pct
+        except Exception as exc:
+            logger.warning("Disk usage check failed: %s", exc)
+            return None
 
     def _count_trades_last_24h(self, now_ms: int) -> int:
         cutoff = now_ms - ONE_DAY_MS
@@ -401,7 +682,7 @@ class QuantOrchestrator:
         isolado de erros em exchangeInfo ou velas exclusivas do Radar (A1-09, A2-01).
         Retorna (entries_blocked, unhandled_errors).
         """
-        if self.settings.mode != RunMode.LIVE_CHAMELEON_PHASE_1 or self.oco_manager is None:
+        if not self._is_live_mode or self.oco_manager is None:
             return False, 0
 
         errors = 0
@@ -484,7 +765,7 @@ class QuantOrchestrator:
         if self.settings.mode == RunMode.SHADOW_CHAMELEON:
             self._manage_shadow_open_positions()
             return
-        if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1:
+        if self._is_live_mode:
             self._manage_live_open_positions(now_ms)
 
     def _execute_chameleon_step(
@@ -500,22 +781,29 @@ class QuantOrchestrator:
         """Run Chameleon execution path FIRST (C2-9) before Radar L4."""
         if self.settings.mode == RunMode.SHADOW_CHAMELEON:
             self._manage_shadow_open_positions()
-        elif self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1 and not live_already_managed:
+        elif self._is_live_mode and not live_already_managed:
             mgmt_blocked, _ = self._manage_live_open_positions(now_ms)
             if mgmt_blocked:
                 entries_blocked = True
+
+        if self._is_live_mode:
+            self._process_newly_closed_live_trades(now_ms)
 
         if entries_blocked or self.settings.mode == RunMode.ANALYST_ONLY:
             return False, None
 
         if self.settings.mode == RunMode.SHADOW_CHAMELEON and self.paper_executor.has_open_shadow_trade():
             return False, None
-        if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1 and self._has_open_live_trade() is not None:
+        if self._is_live_mode and self._has_open_live_trade() is not None:
             return False, None
 
         commission_payload: Optional[dict[str, Any]] = None
-        if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1:
+        if self._is_live_mode:
             free_usdt, eq_usdt, bnb_usdt = self._get_live_balances()
+            self.db.set_state("current_equity_usdt", eq_usdt)
+            self.db.set_state("bnb_free_usdt_equiv", bnb_usdt)
+            if eq_usdt > Decimal("0") and self.db.get_state("initial_tactical_equity_usdt") is None:
+                self.db.set_state("initial_tactical_equity_usdt", eq_usdt)
             get_comm = getattr(self.signed_client, "get_account_commission", None)
             if callable(get_comm) and self.strategies_cfg.universe.symbols:
                 try:
@@ -532,7 +820,11 @@ class QuantOrchestrator:
                     logger.warning("get_account_commission unavailable (%s); continuing with defaults", exc)
         else:
             stored_eq = self.db.get_state("shadow_virtual_equity_usdt")
-            eq_usdt = Decimal(stored_eq) if stored_eq else Decimal(str(self.settings.shadow_initial_usdt))
+            if stored_eq is not None:
+                eq_usdt = Decimal(stored_eq)
+            else:
+                eq_usdt = Decimal(str(self.settings.shadow_initial_usdt))
+                self.db.set_state("shadow_virtual_equity_usdt", eq_usdt)
             free_usdt = eq_usdt
             bnb_usdt = Decimal("10.00")
 
@@ -549,10 +841,39 @@ class QuantOrchestrator:
                 now_ms=now_ms,
             )
             return False, None
-        if defense.shadow_mode_active and self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1:
+        if (
+            self._is_live_mode
+            and defense.bnb_below_recommended_reserve
+            and self._should_emit_rate_limited_alert("last_bnb_warn_alert_ms", now_ms)
+        ):
+            rec_bnb = self.strategies_cfg.portfolio.min_bnb_fee_reserve_usdt_equiv
+            self.outbox.enqueue(
+                "BNB_LOW_WARNING",
+                (
+                    f"⚠️ Reserva preventiva de BNB baixa ({self.settings.mode.value}): "
+                    f"{bnb_usdt:.2f} USDT < {rec_bnb:.2f} USDT recomendados "
+                    "(hard stop em 2,00 USDT). Recarregue BNB na conta Spot."
+                ),
+                now_ms=now_ms,
+            )
+        if (
+            self._is_live_mode
+            and not defense.commission_rate_valid
+            and self._should_emit_rate_limited_alert("last_commission_warn_alert_ms", now_ms)
+        ):
+            self.outbox.enqueue(
+                "COMMISSION_WARNING",
+                (
+                    f"⚠️ Alerta de taxa de comissão ({self.settings.mode.value}): "
+                    "taxa taker efetiva reportada pela Binance excede 0,10%. "
+                    "Verifique se o desconto BNB ('Use BNB to pay fees') está ativo."
+                ),
+                now_ms=now_ms,
+            )
+        if defense.shadow_mode_active and self._is_live_mode:
             return False, None
 
-        candidates: list[tuple[float, str, Any]] = []
+        candidates: list[tuple[float, str, Any, pd.Series]] = []
         for sym in self.strategies_cfg.universe.symbols:
             if sym in FORBIDDEN_EXECUTION_SYMBOLS:  # C1-C
                 continue
@@ -563,24 +884,39 @@ class QuantOrchestrator:
             reg = regimes.get(sym, MarketRegime.TRANSITION)
             sig = self.strategy.evaluate_row(sym, row, reg)
             if sig is not None:
-                candidates.append((float(sig.rs_vol_adjusted_12h), sym, sig))
+                candidates.append((float(sig.rs_vol_adjusted_12h), sym, sig, row))
 
         if not candidates:
             return False, None
 
         candidates.sort(key=lambda item: (-item[0], item[1]))
-        _, sym, best_sig = candidates[0]
+        _, sym, best_sig, best_row = candidates[0]
 
         filters = self.exchange_cache.get(sym)
         bt = self.public_client.get_book_ticker(sym)
         entry_ref = bt.ask
 
+        stationary_feats = extract_stationary_features(best_row)
+        ml_raw_score = self.ml_judge.score_features(
+            stationary_feats,
+            rs_vol_adjusted_12h=float(best_sig.rs_vol_adjusted_12h),
+        )
         ml_eval = self.ml_judge.evaluate_signal(
-            raw_score=float(best_sig.rs_vol_adjusted_12h),
+            raw_score=ml_raw_score,
             stop_distance_pct=float(best_sig.stop_distance_pct),
             gross_rr_ratio=float(best_sig.gross_rr_ratio),
         )
         pending_hodl = Decimal(self.db.get_state("pending_hodl_bucket_usdt") or "0")
+
+        proposed_grade = ml_eval.grade
+        cvar99_loss_pct: Optional[float] = None
+        phase2b_stage = 1
+        if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_2:
+            cvar99_loss_pct, phase2b_stage = self._compute_phase2_sizing_guards(
+                conviction_downgraded=defense.conviction_downgraded,
+            )
+            if defense.conviction_downgraded and proposed_grade == SignalGrade.A_PLUS:
+                proposed_grade = SignalGrade.B
 
         sizing = self.position_sizer.evaluate_and_size(
             symbol=sym,
@@ -593,7 +929,9 @@ class QuantOrchestrator:
             symbol_filters=filters,
             drawdown_risk_multiplier=defense.risk_multiplier,
             ml_calibrated_prob=ml_eval.calibrated_prob,
-            ml_proposed_grade=ml_eval.grade,
+            ml_proposed_grade=proposed_grade,
+            portfolio_cvar99_loss_pct=cvar99_loss_pct,
+            phase2b_graduation_stage=phase2b_stage,
         )
         if not sizing.approved:
             return False, None
@@ -620,7 +958,7 @@ class QuantOrchestrator:
                 virtual_equity_before=eq_usdt,
                 now_ms=now_ms,
             )
-        elif self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1 and self.oco_manager is not None:
+        elif self._is_live_mode and self.oco_manager is not None:
             report = self.oco_manager.execute_entry(req)
         else:
             report = self.noop_executor.execute_entry(req)
@@ -699,7 +1037,7 @@ class QuantOrchestrator:
                 emitted += 1
                 self._last_emitted_radar_signals[sig.symbol] = sig.signal_id
                 is_live_managed = (
-                    self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1
+                    self._is_live_mode
                     and sig.symbol in execution_set
                 )
                 self.outbox.enqueue(
@@ -731,7 +1069,7 @@ class QuantOrchestrator:
         Anota silenciosamente trades.radar_signal_id / shadow_trades.radar_signal_id após o Radar
         persistir virtual_signals (preserva C2-9 sem atrasar a entrada e respeita a FK).
         """
-        if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1:
+        if self._is_live_mode:
             table = "trades"
         elif self.settings.mode == RunMode.SHADOW_CHAMELEON:
             table = "shadow_trades"
@@ -786,13 +1124,25 @@ class QuantOrchestrator:
         # CRITICAL — antes de exchangeInfo (HIGH) e coleta de velas de símbolos exclusivos do Radar!
         live_mgmt_blocked = False
         live_already_managed = False
-        if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1:
+        if self._is_live_mode:
             live_mgmt_blocked, live_mgmt_errors = self._manage_live_open_positions(cur_ms)
             unhandled += live_mgmt_errors
             live_already_managed = True
 
         try:
             self.exchange_cache.refresh_if_stale(cur_ms)
+            invalid_syms = getattr(self.exchange_cache, "last_invalid_symbols", ())
+            if invalid_syms and self._should_emit_rate_limited_alert(
+                "last_exchange_info_warn_ms", cur_ms
+            ):
+                self.outbox.enqueue(
+                    "EXCHANGE_INFO_WARNING",
+                    (
+                        f"⚠️ Símbolo(s) inválido(s)/deslistado(s) isolado(s) em exchangeInfo "
+                        f"(-1121): {', '.join(invalid_syms)}. Pares do Chameleon preservados."
+                    ),
+                    now_ms=cur_ms,
+                )
         except Exception as exc:
             if self._has_cached_execution_filters():
                 logger.warning(
@@ -852,6 +1202,21 @@ class QuantOrchestrator:
             aligned_frames[sym] = df_al
             snap = self.regime_detector.detect_from_aligned_frame(df_al)
             regimes[sym] = snap.regime
+            try:
+                close_4h_ms = int(df_4h["close_time_ms"].iloc[-1])
+                self.db.upsert_regime_history(
+                    symbol=sym,
+                    close_time_4h_ms=close_4h_ms,
+                    regime=snap.regime.value,
+                    close_4h=snap.close_4h,
+                    ema100_4h=snap.ema100_4h,
+                    ema100_slope_4h=snap.ema100_slope_4h,
+                    chop14_4h=snap.chop14_4h,
+                    adx14_4h=snap.adx14_4h,
+                    fallback_reason=snap.fallback_reason,
+                )
+            except Exception as exc:
+                logger.warning("Failed to persist regime_history for %s: %s", sym, exc)
             observed_closes.append(int(df_al["close_time_ms"].iloc[-1]))
 
         cycle_close_ms = (
@@ -901,6 +1266,8 @@ class QuantOrchestrator:
                     radar_signal_id=matched_sig_id,
                 )
 
+        self._maybe_emit_weekly_radar_scorecard(cur_ms)
+        self._check_disk_usage(cur_ms)
         self.outbox.flush(now_ms=cur_ms)
 
         backup_path: Optional[Path] = None
@@ -915,6 +1282,11 @@ class QuantOrchestrator:
                     raise RuntimeError(f"Database.verify_backup failed for {candidate_backup}")
                 backup_path = candidate_backup
                 self._last_backup_day_utc = day_utc
+                Database.prune_old_backups(
+                    self.settings.backup_dir,
+                    keep_latest=self.settings.backup_retention_days,
+                    prefix=self.settings.db_path.stem,
+                )
             except Exception as exc:
                 logger.error("Daily SQLite backup failed: %s", exc)
                 unhandled += 1
@@ -988,6 +1360,128 @@ class QuantOrchestrator:
             unhandled_errors=unhandled,
         )
 
+    def run_subhourly_watchdog_tick(self, *, now_ms: int | None = None) -> bool:
+        """
+        Single-thread sub-hourly check for hanging STOP_LOSS_LIMIT orders while a LIVE trade is
+        PROTECTED (B6, respects ADR-002 single-writer). Returns True if a liquidation occurred.
+        Makes zero network calls when flat.
+        """
+        if self.oco_manager is None:
+            return False
+        open_t = self._has_open_live_trade()
+        if open_t is None or open_t["status"] != "PROTECTED":
+            return False
+
+        cur_ms = int(now_ms if now_ms is not None else self.clock.server_now_ms())
+        trade_id = int(open_t["trade_id"])
+        sym = str(open_t["symbol"])
+        try:
+            filters = self.exchange_cache.get(sym)
+            if cur_ms >= int(open_t["time_barrier_end_ms"]):
+                rep = self.oco_manager.close_on_time_barrier(
+                    trade_id=trade_id,
+                    symbol=sym,
+                    base_asset=filters.base_asset,
+                    oco_order_list_id=int(open_t["oco_order_list_id"]),
+                    oco_qty=Decimal(str(open_t["oco_qty"] or "0")),
+                    symbol_filters=filters,
+                )
+                if rep.executed:
+                    self.outbox.enqueue(
+                        "TIME_STOP",
+                        f"⏱️ Time-Stop executado em {sym} (trade #{trade_id}, status={rep.status}).",
+                        now_ms=cur_ms,
+                    )
+                    self.outbox.flush(now_ms=cur_ms)
+                    return True
+                return False
+
+            if open_t["oco_stop_limit_price"] is None:
+                return False
+            wd_rep = self.oco_manager.check_hanging_stop_watchdog(
+                trade_id=trade_id,
+                symbol=sym,
+                base_asset=filters.base_asset,
+                oco_order_list_id=int(open_t["oco_order_list_id"]),
+                oco_stop_price=Decimal(str(open_t["oco_stop_price"] or "0")),
+                oco_stop_limit_price=Decimal(str(open_t["oco_stop_limit_price"])),
+                symbol_filters=filters,
+                oco_qty=(
+                    Decimal(str(open_t["oco_qty"]))
+                    if open_t["oco_qty"] is not None
+                    else None
+                ),
+            )
+            if wd_rep is not None and wd_rep.executed:
+                self.outbox.enqueue(
+                    "STOP_WATCHDOG",
+                    (
+                        f"🚨 STOP_WATCHDOG sub-horário acionado em {sym} (trade #{trade_id}): "
+                        f"OCO cancelada e vendida a MARKET ({wd_rep.filled_qty})."
+                    ),
+                    now_ms=cur_ms,
+                )
+                self.outbox.flush(now_ms=cur_ms)
+                return True
+            return False
+        except Exception as exc:
+            logger.warning(
+                "Sub-hourly watchdog check failed for %s trade #%s: %s",
+                sym,
+                trade_id,
+                exc,
+            )
+            if self.db.get_state("emergency_halt") == "1":
+                try:
+                    self.outbox.enqueue(
+                        "KILL_SWITCH",
+                        format_kill_switch_alert(self.settings.mode.value, str(exc)),
+                        now_ms=cur_ms,
+                    )
+                    self.outbox.flush(now_ms=cur_ms)
+                except Exception:
+                    pass
+            return False
+
+    def wait_for_next_cycle_with_watchdog(
+        self,
+        *,
+        stop_requested_fn: Callable[[], bool] = lambda: False,
+        poll_interval_s: float = 20.0,
+    ) -> int:
+        """
+        Wait until next hourly boundary + fetch_delay_s while polling sub-hourly watchdog
+        whenever a LIVE trade is PROTECTED and honoring SIGTERM promptly (B6).
+        """
+        start_ms = self.clock.server_now_ms()
+        delay_ms = int(round(self.collector.fetch_delay_s * 1000.0))
+        current_boundary_ms = (start_ms // ONE_HOUR_MS) * ONE_HOUR_MS
+        if start_ms < current_boundary_ms + delay_ms:
+            target_boundary_ms = current_boundary_ms
+        else:
+            target_boundary_ms = current_boundary_ms + ONE_HOUR_MS
+        wake_ms = target_boundary_ms + delay_ms
+
+        interval = max(1.0, float(poll_interval_s))
+        while not stop_requested_fn():
+            now_ms = self.clock.server_now_ms()
+            if now_ms >= wake_ms:
+                break
+            has_open_live = self.oco_manager is not None and self._has_open_live_trade() is not None
+            if has_open_live:
+                self.run_subhourly_watchdog_tick(now_ms=now_ms)
+                now_ms = self.clock.server_now_ms()
+                if now_ms >= wake_ms:
+                    break
+                step_s = interval
+            else:
+                step_s = min(interval, 5.0)
+            remaining_s = max(0.0, (wake_ms - now_ms) / 1000.0)
+            sleep_s = min(step_s, remaining_s)
+            if sleep_s > 0.0:
+                self._sleep(sleep_s)
+        return target_boundary_ms
+
 
 def main() -> None:
     logging.basicConfig(
@@ -1003,7 +1497,12 @@ def main() -> None:
     db.migrate()
 
     public_client, signed_client, _governor, clock = build_clients(cfg)
-    exchange_cache = ExchangeInfoCache(public_client, db, cfg.market_data_universe)
+    exchange_cache = ExchangeInfoCache(
+        public_client,
+        db,
+        cfg.market_data_universe,
+        priority_symbols=cfg.execution_universe,
+    )
     transport = HttpTelegramTransport(settings.telegram_bot_token.get_secret_value())
     outbox = TelegramOutbox(db, settings.telegram_chat_id, transport=transport)
 
@@ -1031,7 +1530,10 @@ def main() -> None:
 
     try:
         while not stop_requested:
-            orch.collector.wait_for_cycle()
+            orch.wait_for_next_cycle_with_watchdog(
+                stop_requested_fn=lambda: stop_requested,
+                poll_interval_s=settings.watchdog_poll_interval_seconds,
+            )
             if stop_requested:
                 break
             try:

@@ -634,13 +634,17 @@ class ExchangeInfoCache:
         db: Database,
         symbols: Sequence[str],
         max_age_s: int = 3600,
+        *,
+        priority_symbols: Sequence[str] = (),
     ) -> None:
         self._client = client
         self._db = db
         self._symbols = tuple(dict.fromkeys(symbols))
+        self._priority_symbols = tuple(dict.fromkeys(priority_symbols))
         self._max_age_ms = int(max_age_s) * 1000
         self._cache: dict[str, SymbolFilters] = {}
         self._last_refresh_ms: int | None = None
+        self._last_invalid_symbols: tuple[str, ...] = ()
         for sym in self._symbols:
             persisted = self._db.get_exchange_filters(sym)
             if persisted is not None:
@@ -651,15 +655,51 @@ class ExchangeInfoCache:
                 ):
                     self._last_refresh_ms = persisted.fetched_at_ms
 
+    @property
+    def last_invalid_symbols(self) -> tuple[str, ...]:
+        return self._last_invalid_symbols
+
     def refresh_if_stale(self, now_ms: int) -> bool:
-        missing = any(sym not in self._cache for sym in self._symbols)
+        missing = any(
+            sym not in self._cache and sym not in self._last_invalid_symbols
+            for sym in self._symbols
+        )
         stale = (
             self._last_refresh_ms is None
             or (int(now_ms) - self._last_refresh_ms) >= self._max_age_ms
         )
         if not missing and not stale:
             return False
-        fresh = self._client.get_exchange_info(self._symbols)
+        try:
+            fresh = self._client.get_exchange_info(self._symbols)
+            self._last_invalid_symbols = ()
+        except BinanceAPIError as exc:
+            if exc.code != -1121 or len(self._symbols) <= 1:
+                raise
+            # B3: isolate delisted/invalid Radar symbol so Chameleon execution universe refreshes cleanly
+            ordered = tuple(
+                dict.fromkeys(list(self._priority_symbols) + list(self._symbols))
+            )
+            fresh = {}
+            invalid: list[str] = []
+            priority_set = set(self._priority_symbols)
+            for sym in ordered:
+                if sym not in self._symbols:
+                    continue
+                try:
+                    part = self._client.get_exchange_info([sym])
+                    fresh.update(part)
+                except BinanceAPIError as sym_exc:
+                    if sym_exc.code == -1121:
+                        invalid.append(sym)
+                        if sym in priority_set:
+                            raise
+                        continue
+                    raise
+            if not fresh:
+                raise
+            self._last_invalid_symbols = tuple(invalid)
+
         self._db.upsert_exchange_filters(list(fresh.values()))
         self._cache.update(fresh)
         self._last_refresh_ms = int(now_ms)

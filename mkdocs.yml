@@ -59,6 +59,7 @@ nav:
   - Especificação do Bloco 6: block-6-spec.md
   - Decisões (ADR): decisions.md
   - Metodologia e roadmap: methodology-and-roadmap.md
+  - Próximos Passos e Pré-mortem: next-steps.md
   - Runbook Operacional: runbook.md
   - Backup e Restauração: backup-and-restore.md
   - TODO: todo.md
