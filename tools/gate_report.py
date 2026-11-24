@@ -542,9 +542,22 @@ def _evaluate_gate_6b(
         slip_samples_pct = prod_slips
         slip_source = "trades.slippage_entry_bps (PRODUCTION)"
     elif shadow_rows and "candles" in tables:
+        st_cols = {
+            str(r[1])
+            for r in conn.execute("PRAGMA table_info(shadow_trades)").fetchall()
+        }
+        has_vwap = "depth_vwap_ask" in st_cols
+        price_expr = (
+            "COALESCE(s.depth_vwap_ask, s.decision_ask_price)"
+            if has_vwap
+            else "s.decision_ask_price"
+        )
+        vwap_select = "s.depth_vwap_ask" if has_vwap else "NULL AS depth_vwap_ask"
         joined = conn.execute(
-            """
-            SELECT s.decision_ask_price, c.close AS candle_close
+            f"""
+            SELECT {price_expr} AS exec_ask_price,
+                   {vwap_select},
+                   c.close AS candle_close
             FROM shadow_trades s
             INNER JOIN candles c
                 ON c.symbol = s.symbol
@@ -553,13 +566,21 @@ def _evaluate_gate_6b(
             WHERE c.close > 0
             """
         ).fetchall()
+        used_vwap_count = 0
         for jr in joined:
-            ask = float(jr["decision_ask_price"])
+            ask = float(jr["exec_ask_price"])
             close_p = float(jr["candle_close"])
             if math.isfinite(ask) and math.isfinite(close_p) and close_p > 0.0:
                 slip_samples_pct.append(((ask - close_p) / close_p) * 100.0)
+                if jr["depth_vwap_ask"] is not None:
+                    used_vwap_count += 1
         if slip_samples_pct:
-            slip_source = "shadow_trades.decision_ask_price vs candles(1h).close"
+            slip_source = (
+                f"shadow_trades.depth_vwap_ask/decision_ask_price vs candles(1h).close "
+                f"(vwap_l2={used_vwap_count}/{len(slip_samples_pct)})"
+                if used_vwap_count > 0
+                else "shadow_trades.decision_ask_price vs candles(1h).close"
+            )
 
     if not slip_samples_pct:
         results.append(
