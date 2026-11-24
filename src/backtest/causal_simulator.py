@@ -355,7 +355,7 @@ class CausalSingleSlotSimulator:
             if self.cppi_enabled and drawdown_pct >= self.cppi_drawdown_threshold_pct:
                 eff_risk = self.risk_per_trade_pct * self.cppi_reduction_factor
 
-            future_1h = aligned_frames[winner.symbol]
+            future_1h = indexed_frames[winner.symbol]
             bars_1m = (
                 intracandle_1m_map.get(winner.symbol)
                 if intracandle_1m_map is not None

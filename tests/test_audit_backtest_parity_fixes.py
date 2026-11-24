@@ -416,3 +416,169 @@ def test_aud06_fail_closed_when_btc_context_missing_or_stale(tmp_path: Path) -> 
     db.close()
 
 
+def test_radar_layer3_reads_feature_store_tbr_column() -> None:
+    """Radar L3 MUST read FeatureStore's 'tbr' column (previously always None looking only for 'taker_buy_ratio')."""
+    from src.radar.structure_ema import score_layers_1_to_3
+
+    an_cfg = AnalystConfig.model_validate(load_yaml_strict(Path("config/analyst.yaml")))
+    base_rows = [
+        {
+            "close_time_ms": 1_700_000_000_000 + i * ONE_HOUR_MS,
+            "open": 100.0,
+            "high": 103.0,
+            "low": 99.5,
+            "close": 102.5,
+            "atr_14": 1.5,
+            "ema_9": 101.0,
+            "ema_50": 98.0,
+            "ema_200": 95.0,
+            "chop_14": 40.0,
+            "rvol_20": 2.2,
+            "tbr": 0.62,  # FeatureStore canonical column name (no 'taker_buy_ratio' column!)
+        }
+        for i in range(4)
+    ]
+    df = pd.DataFrame(base_rows)
+    hit = score_layers_1_to_3("SOLUSDT", df, MarketRegime.BULL, an_cfg)
+    assert hit is not None
+    assert hit.features_snapshot["tbr"] == 0.62
+    # High RVOL (13) + strong TBR (12) = 25 (previously capped at 13 because tbr was None!)
+    assert hit.score_l3 == 25
+
+
+def test_gate_report_6b_slippage_uses_l2_depth_vwap_ask(tmp_path: Path) -> None:
+    """Gate 6B slippage in tools/gate_report.py MUST incorporate shadow_trades.depth_vwap_ask when present."""
+    from tools.gate_report import generate_gate_report
+
+    db_path = tmp_path / "gate6b_vwap.db"
+    db = Database(db_path)
+    db.connect()
+    db.migrate()
+
+    t0 = 1_700_000_000_000
+    # Candle close = 100.00; top-of-book ask = 100.03 (3 bps <= 8 bps PASS),
+    # BUT L2 depth_vwap_ask = 100.15 (15 bps > 8 bps -> MUST FAIL Gate 6B!)
+    db.upsert_candles(
+        [
+            CandleRow(
+                symbol="SOLUSDT",
+                interval="1h",
+                open_time_ms=t0 - ONE_HOUR_MS,
+                close_time_ms=t0,
+                open=99.0,
+                high=100.5,
+                low=98.5,
+                close=100.0,
+                volume=100.0,
+                quote_volume=10_000.0,
+                number_of_trades=50,
+                taker_buy_base_volume=60.0,
+                taker_buy_quote_volume=6_000.0,
+                ingested_at_ms=t0,
+            )
+        ]
+    )
+    with db.write_tx() as tx:
+        tx.execute(
+            """
+            INSERT INTO shadow_trades (
+                symbol, strategy, regime, signal_close_time_ms, status,
+                decision_ask_price, depth_vwap_ask, book_impact_bps,
+                sim_entry_price, stop_price, target_price,
+                qty, risk_pct, risk_usdt, virtual_equity_before,
+                time_barrier_end_ms, exit_reason, exit_price, r_gross, r_net,
+                created_at_ms, closed_at_ms
+            ) VALUES (
+                'SOLUSDT', 'bull_trend_pullback', 'BULL', ?, 'CLOSED',
+                100.03, 100.15, 12.0,
+                100.18, 97.0, 106.0,
+                '1.5', 0.01, '3.00', '300.00',
+                ?, 'TARGET', 106.0, 2.0, 1.9,
+                ?, ?
+            )
+            """,
+            (t0, t0 + 72 * ONE_HOUR_MS, t0, t0 + 4 * ONE_HOUR_MS),
+        )
+    db.close()
+
+    report = generate_gate_report(db_path=db_path)
+    c6b = {c["id"]: c for c in report["sections"]["gate_6b"]["criteria"]}
+    slip_crit = c6b["gate_6b.mean_slippage_le_0_08pct"]
+    assert slip_crit["status"] == "FAIL"
+    assert "15.00 bps" in slip_crit["measured"]
+    assert "vwap_l2=1/1" in slip_crit["details"]
+
+
+def test_aud04_causal_simulator_respects_end_time_ms_boundary() -> None:
+    """AUD-04 regression: trades opened before end_time_ms MUST NOT read future candles beyond end_time_ms."""
+    from src.backtest.causal_simulator import CausalSingleSlotSimulator, CostScenario
+    from src.regimes.regime_detector import RegimeDetector
+    from src.strategies.base_strategy import BaseStrategy, SignalCandidate
+
+    class _SingleShotStrategy(BaseStrategy):
+        def __init__(self, target_ts: int) -> None:
+            self._target_ts = target_ts
+
+        @property
+        def name(self) -> str:
+            return "test_shot"
+
+        @property
+        def required_regime(self) -> MarketRegime:
+            return MarketRegime.BULL
+
+        def evaluate_row(
+            self,
+            symbol: str,
+            row: pd.Series,
+            regime: MarketRegime,
+            require_order_flow_filter: bool = False,
+        ) -> SignalCandidate | None:
+            ts = int(row["close_time_ms"])
+            if ts != self._target_ts:
+                return None
+            return SignalCandidate(
+                symbol=symbol,
+                close_time_ms=ts,
+                regime=MarketRegime.BULL,
+                strategy_name=self.name,
+                entry_price=100.0,
+                stop_price=95.0,
+                target_price=110.0,
+                atr_14=2.0,
+                stop_distance_pct=0.05,
+                gross_rr_ratio=2.0,
+                time_barrier_hours=24,
+                rs_vol_adjusted_12h=2.0,
+                order_flow_delta=100.0,
+                taker_buy_ratio=0.6,
+                has_liquidity_sweep=False,
+            )
+
+    t0 = 1_700_000_000_000
+    # Bars 0..3 inside end_time_ms (price flat at 101); bar 4 AFTER end_time_ms spikes to 120 (TARGET!)
+    df = pd.DataFrame(
+        [
+            {"close_time_ms": t0 + i * ONE_HOUR_MS, "open": 100.0, "high": 101.0, "low": 99.0, "close": 100.5, "atr_14": 2.0}
+            for i in range(4)
+        ]
+        + [
+            {"close_time_ms": t0 + 4 * ONE_HOUR_MS, "open": 100.5, "high": 125.0, "low": 100.0, "close": 120.0, "atr_14": 2.0}
+        ]
+    )
+    end_ms = t0 + 3 * ONE_HOUR_MS
+    sim = CausalSingleSlotSimulator(cost_scenario=CostScenario.BASE)
+    trades = sim.run_multi_asset_simulation(
+        aligned_frames={"SOLUSDT": df},
+        strategies=[_SingleShotStrategy(target_ts=t0 + 1 * ONE_HOUR_MS)],
+        regime_detector=RegimeDetector(),
+        ignore_regime_filter=True,
+        end_time_ms=end_ms,
+    )
+    assert len(trades) == 1
+    # Previously leaked bar 4 -> exit_reason == 'TARGET' & exit_time_ms == t0 + 4h!
+    assert trades[0].exit_time_ms <= end_ms
+    assert trades[0].exit_reason == "TIME_BARRIER"
+
+
+
