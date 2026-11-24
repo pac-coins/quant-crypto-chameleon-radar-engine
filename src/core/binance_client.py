@@ -502,13 +502,13 @@ class PublicBinanceClient:
         )
         return self._handle_response(resp, endpoint)
 
-    def get_server_time_ms(self) -> int:
+    def get_server_time_ms(self, *, priority: Priority = Priority.HIGH) -> int:
         data = self._request(
             "GET",
             "/api/v3/time",
             None,
             weight=ENDPOINT_WEIGHTS["GET /api/v3/time"],
-            priority=Priority.HIGH,
+            priority=priority,
         )
         return int(data["serverTime"])
 

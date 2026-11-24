@@ -29,6 +29,8 @@ from src.core.config import (
     load_config,
 )
 from src.core.database import CandleRow, CycleHealth, Database
+from src.core.healthcheck import ping_healthcheck
+from src.core.offsite_backup import upload_backup_via_telegram
 from src.data.candle_collector import CandleCollector, align_4h_to_1h, align_btc_context, load_frame
 from src.execution.executor_protocol import ExecutionReport, ExecutionRequest, NoOpExecutor
 from src.execution.paper_executor import PaperExecutor
@@ -908,12 +910,44 @@ class QuantOrchestrator:
             and day_utc > self._last_backup_day_utc
         ):
             try:
-                backup_path = self.db.backup_to(self.settings.backup_dir)
-                Database.verify_backup(backup_path)
+                candidate_backup = self.db.backup_to(self.settings.backup_dir)
+                if not Database.verify_backup(candidate_backup):
+                    raise RuntimeError(f"Database.verify_backup failed for {candidate_backup}")
+                backup_path = candidate_backup
                 self._last_backup_day_utc = day_utc
             except Exception as exc:
                 logger.error("Daily SQLite backup failed: %s", exc)
                 unhandled += 1
+
+            if backup_path is not None and self.settings.offsite_backup_enabled:
+                try:
+                    target_chat = (
+                        self.settings.backup_telegram_chat_id or self.settings.telegram_chat_id
+                    )
+                    enc_key = (
+                        self.settings.backup_encryption_key.get_secret_value()
+                        if self.settings.backup_encryption_key is not None
+                        else None
+                    )
+                    upload_backup_via_telegram(
+                        backup_path,
+                        bot_token=self.settings.telegram_bot_token.get_secret_value(),
+                        chat_id=target_chat,
+                        mode=self.settings.mode.value,
+                        encryption_key=enc_key,
+                        transport=self.outbox._transport,
+                    )
+                except Exception as exc:
+                    logger.error("Offsite SQLite backup upload failed: %s", exc)
+                    try:
+                        self.outbox.enqueue(
+                            "BACKUP_ERROR",
+                            f"⚠️ Falha no envio do backup offsite ({self.settings.mode.value}): {exc}",
+                            now_ms=cur_ms,
+                        )
+                        self.outbox.flush(now_ms=cur_ms)
+                    except Exception:
+                        pass
 
         last_sample = self.clock.last_sample
         duration_ms = int((time.monotonic() - t0) * 1000)
@@ -930,6 +964,16 @@ class QuantOrchestrator:
                 unhandled_errors=unhandled,
             )
         )
+
+        # Heartbeat externo opcional (dead-man switch): somente após ciclo bem-sucedido,
+        # garantidamente fora de transação SQLite e fora de governor.critical_section().
+        if (
+            unhandled == 0
+            and self.settings.healthcheck_url is not None
+            and not getattr(self.db, "_in_write_tx", False)
+            and getattr(self.public_client.governor, "_critical_depth", 0) == 0
+        ):
+            ping_healthcheck(self.settings.healthcheck_url.get_secret_value())
 
         return CycleReport(
             cycle_close_time_ms=cycle_close_ms,

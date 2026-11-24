@@ -7,7 +7,15 @@ from pathlib import Path
 from typing import Any, Final, Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SecretStr,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 FORBIDDEN_EXECUTION_SYMBOLS: Final[frozenset[str]] = frozenset({"BNBUSDT"})
@@ -56,17 +64,59 @@ class RuntimeSettings(BaseSettings):
     telegram_chat_id: str
     db_path: Path = Path("data/quant.db")
     backup_dir: Path = Path("data/backups")
+    healthcheck_url: SecretStr | None = None
+    offsite_backup_enabled: bool = False
+    backup_telegram_chat_id: str | None = None
+    backup_encryption_key: SecretStr | None = None
 
     @field_validator(
         "binance_api_key",
         "binance_ed25519_private_key_path",
         "live_confirmation",
         "approved_strategies_sha256",
+        "healthcheck_url",
+        "backup_telegram_chat_id",
+        "backup_encryption_key",
         mode="before",
     )
     @classmethod
     def _normalize_optional_env(cls, v: Any) -> Any:
         return _empty_to_none(v)
+
+    @field_validator("healthcheck_url")
+    @classmethod
+    def _validate_healthcheck_url(cls, v: SecretStr | None) -> SecretStr | None:
+        if v is None:
+            return None
+        raw = v.get_secret_value().strip()
+        if not (raw.startswith("http://") or raw.startswith("https://")):
+            raise ValueError("HEALTHCHECK_URL must start with http:// or https://")
+        return v
+
+    @field_validator("backup_encryption_key")
+    @classmethod
+    def _validate_backup_encryption_key(cls, v: SecretStr | None) -> SecretStr | None:
+        if v is None:
+            return None
+        from cryptography.fernet import Fernet
+
+        try:
+            Fernet(v.get_secret_value().strip().encode("ascii"))
+        except Exception as exc:
+            raise ValueError(
+                "BACKUP_ENCRYPTION_KEY must be a valid URL-safe base64 32-byte Fernet key"
+            ) from exc
+        return v
+
+    @model_validator(mode="after")
+    def _require_encryption_key_when_offsite_enabled(self) -> RuntimeSettings:
+        if self.offsite_backup_enabled and self.backup_encryption_key is None:
+            raise ValueError(
+                "OFFSITE_BACKUP_ENABLED=true requires a non-empty BACKUP_ENCRYPTION_KEY "
+                "(generate a Fernet key with: python -c \"from cryptography.fernet import Fernet; "
+                "print(Fernet.generate_key().decode())\")"
+            )
+        return self
 
 
 # ---- Espelhos estritos dos YAMLs (extra="forbid": chave desconhecida = erro de boot) ----
