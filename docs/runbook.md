@@ -279,3 +279,67 @@ O bot carrega `BINANCE_API_KEY` e `BINANCE_ED25519_PRIVATE_KEY_PATH` no boot (`s
    .venv/bin/python -m pytest -q
    ```
    Valide primeiro na **Binance Spot Testnet** (`BINANCE_ENV=TESTNET`) confirmando compra, OCO, `get_order_list` e cancelamento antes de atualizar Produção.
+
+---
+
+## 7. Operação Diária de Gates e Transição Guiada (6A → 6B)
+
+### 7.1. Resumo diário no Telegram (`tools/daily_gate_digest.py`)
+
+A ferramenta `tools/daily_gate_digest.py` executa `tools/gate_report.py` estritamente em modo somente-leitura (`URI mode=ro` + `PRAGMA query_only=ON`, ADR-002), calcula o **dia atual do gate** (`Dia X / 7` no Gate 6A, `Dia X / 30` no Gate 6B, `Dia X / 60` na Fase 1) e envia um resumo curto no Telegram com os critérios `PASS`, `FAIL` e `UNKNOWN` (além dos Kill-Switches §5.2). **Nunca imprime segredos** e sanitiza tokens mesmo em falhas HTTP.
+
+```bash
+# 1. Teste local sem enviar ao Telegram (--dry-run)
+docker compose logs --no-color --since 192h quant-chameleon > /tmp/bot_digest.log
+.venv/bin/python tools/daily_gate_digest.py \
+  --db data/quant.db \
+  --env-file .env \
+  --gate auto \
+  --log-file /tmp/bot_digest.log \
+  --dry-run
+
+# 2. Envio real do resumo diário ao Telegram
+.venv/bin/python tools/daily_gate_digest.py \
+  --db data/quant.db \
+  --env-file .env \
+  --gate auto \
+  --log-file /tmp/bot_digest.log
+
+# 3. Gerar comando pronto para agendar no cron da VM (crontab -e)
+.venv/bin/python tools/daily_gate_digest.py --print-cron --gate 6a --cron-hour 9
+```
+
+Exemplo gerado para `crontab -e` na VM (roda diariamente às `09:05 UTC` sem reiniciar o container):
+
+```cron
+5 9 * * * cd /srv/quant-crypto-chameleon-radar-engine && docker compose logs --no-color --since 192h quant-chameleon > /tmp/bot_digest.log 2>&1 && .venv/bin/python tools/daily_gate_digest.py --db data/quant.db --env-file .env --gate 6a --log-file /tmp/bot_digest.log >> /tmp/daily_gate_digest.log 2>&1
+```
+
+> **Dica:** após executar o `tools/restore_drill.sh` no Gate 6A, passe também `--restore-drill-report /tmp/restore_drill_6a.json` para que o critério `gate_6a.disaster_restore_drill` deixe de aparecer como `UNKNOWN`.
+
+### 7.2. Transição guiada exclusiva Gate 6A → Gate 6B (`tools/guided_gate_switch.py --to 6b`)
+
+Quando o Gate 6A concluir os 7 dias (168 ciclos horários consecutivos), use `tools/guided_gate_switch.py --to 6b` para auditar e alternar o `.env` para `MODE=SHADOW_CHAMELEON` com segurança:
+
+```bash
+# 1. Gere os artefatos exigidos pelo gate_report (sem parar o bot)
+docker compose logs --no-color quant-chameleon > /tmp/bot_6a.log
+LATEST_BKP=$(ls -1t data/backups/quant_backup_*.db | head -n 1)
+tools/restore_drill.sh "$LATEST_BKP" --report-json /tmp/restore_drill_6a.json
+
+# 2. Execute o assistente guiado EXCLUSIVO para 6B
+.venv/bin/python tools/guided_gate_switch.py \
+  --to 6b \
+  --db data/quant.db \
+  --env-file .env \
+  --log-file /tmp/bot_6a.log \
+  --restore-drill-report /tmp/restore_drill_6a.json
+```
+
+**Salvaguardas inegociáveis desta ferramenta:**
+
+1. **Bloqueio absoluto em `FAIL` ou `UNKNOWN`:** executa `tools/preflight_check.py --target-gate 6a` e `tools/gate_report.py`; se **qualquer** critério do Gate 6A, Kill-Switch ou Preflight estiver `FAIL` ou `UNKNOWN`, recusa prosseguir sem alterar `.env`.
+2. **Confirmação explícita obrigatória:** exibe o resumo das alterações (sem exibir segredos) e só grava o `.env` depois de o operador digitar exatamente `SWITCH TO 6B`.
+3. **Backup atômico + menor privilégio (ADR-010):** cria `.env.bak.<UTC>` (`chmod 0600`), altera `MODE=SHADOW_CHAMELEON`, **remove** `BINANCE_API_KEY`, `BINANCE_ED25519_PRIVATE_KEY_PATH`, `LIVE_CONFIRMATION` e `APPROVED_STRATEGIES_SHA256`, e revalida o `.env` final com `preflight_check --target-gate 6b` (revertendo automaticamente para o backup em caso de falha).
+4. **Sem reinício automático:** não executa `docker compose up`; o operador reinicia manualmente quando estiver pronto.
+5. **Fase 1 (dinheiro real) e Fase 2 são ESTRITAMENTE MANUAIS:** a ferramenta **recusa** qualquer alvo diferente de `6b` (ex.: `--to phase1` ou `--to phase2` encerra com código `2`). A decisão pós-Gate 6B segue a regra pré-registrada em [ADR-016](adr-016-regra-de-decisao-6b.md).

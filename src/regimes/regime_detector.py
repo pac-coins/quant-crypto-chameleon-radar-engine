@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import numbers
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Final, Literal
@@ -45,7 +46,12 @@ class RegimeSnapshot:
 
 
 def _is_valid_finite(x: float | None) -> bool:
-    return x is not None and isinstance(x, (int, float)) and math.isfinite(float(x))
+    return (
+        x is not None
+        and isinstance(x, numbers.Real)
+        and not isinstance(x, bool)
+        and math.isfinite(float(x))
+    )
 
 
 def classify_regime_values(

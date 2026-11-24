@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import numbers
 from typing import Optional
 
 import pandas as pd
@@ -17,7 +18,12 @@ def _first_finite(row: pd.Series, *candidates: str, default: float = float("nan"
     for col in candidates:
         if col in row:
             val = row[col]
-            if val is not None and isinstance(val, (int, float)) and math.isfinite(float(val)):
+            if (
+                val is not None
+                and isinstance(val, numbers.Real)
+                and not isinstance(val, bool)
+                and math.isfinite(float(val))
+            ):
                 return float(val)
     return default
 

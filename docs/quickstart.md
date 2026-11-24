@@ -80,6 +80,8 @@ O `preflight_check.py` verifica automaticamente:
 
 ### Gate 6B — Shadow Live (`>= 30 dias` ou `>= 25 trades`)
 
+* **Regra de decisão pré-registrada:** antes de avaliar os resultados, consulte [ADR-016 — Regra de Decisão do Gate 6B](adr-016-regra-de-decisao-6b.md) (`GO` Fase 1, `HOLD`/ajustar, `NO-GO`/abandonar e protocolo de amostra pequena).
+* **Transição guiada (somente `6A → 6B`):** após `PASS` sem nenhum `UNKNOWN` no Gate 6A, você pode usar `tools/guided_gate_switch.py --to 6b` ([Runbook §7.2](runbook.md)). Transições para Fase 1 e Fase 2 são **estritamente manuais**.
 * **Configuração no `.env`:** `MODE=SHADOW_CHAMELEON`, `SHADOW_INITIAL_USDT=300.00`, **remover completamente** `BINANCE_API_KEY` e `BINANCE_ED25519_PRIVATE_KEY_PATH` (ADR-010: o boot falha se existirem chaves Binance neste modo).
 * **Validação antes de subir:**
   ```bash
@@ -98,7 +100,7 @@ O `preflight_check.py` verifica automaticamente:
 
 ### Fase 1 — Capital Real (`LIVE_CHAMELEON_PHASE_1` + `PRODUCTION`)
 
-Somente após `PASS` formal nos Gates 6A e 6B (`tools/gate_report.py`):
+Somente após `PASS` formal nos Gates 6A e 6B (`tools/gate_report.py`) e cumprimento de [ADR-016](adr-016-regra-de-decisao-6b.md):
 
 1. Defina no `.env`:
    * `MODE=LIVE_CHAMELEON_PHASE_1` e `BINANCE_ENV=PRODUCTION`
@@ -122,12 +124,14 @@ Exige `PASS` simultâneo nos 5 critérios de `phase_1_to_2` em `tools/gate_repor
 
 ---
 
-## 4. Resumo das Ferramentas CLI Somente-Leitura (`tools/`)
+## 4. Resumo das Ferramentas CLI Operacionais (`tools/`)
 
 | Ferramenta | Finalidade | Acesso ao SQLite |
 | --- | --- | --- |
 | `tools/preflight_check.py` | Valida `.env`, SHA-256, permissões Ed25519, Fernet, artefato `MLJudge`, Docker mounts e disco antes de subir | Não abre SQLite |
 | `tools/gate_report.py` | Avalia Gates 6A, 6B, Fase 1→2 e kill-switches (`PASS`/`FAIL`/`UNKNOWN`) | `URI mode=ro` + `query_only=ON` |
+| `tools/daily_gate_digest.py` | Envia resumo diário curto no Telegram (critérios + dia do gate) e gera linha de `cron` (`--print-cron`) | `URI mode=ro` + `query_only=ON` |
+| `tools/guided_gate_switch.py` | Transição guiada **exclusiva `--to 6b`** (recusa `FAIL`/`UNKNOWN` e recusa Fase 1/Fase 2; exige confirmação) | `URI mode=ro` + `query_only=ON` |
 | `tools/restore_drill.sh` | Testa restauração de backup em diretório isolado `/tmp` (`ANALYST_ONLY`) | Somente cópia em `/tmp` |
 | `tools/train_ml_judge.py` | Treina e exporta artefato JSON calibrado do `MLJudge` (Treino/Validação apenas, Holdout excluído) | `URI mode=ro` + `query_only=ON` |
 | `tools/radar_ai_audit.py` | Audita Camada 4 (`virtual_signals` + `orderbook_snapshots`), convergência Chameleon×Radar e ablação offline L4 | `URI mode=ro` + `query_only=ON` |

@@ -44,11 +44,13 @@ Bot Spot na Binance (1h/4h, sem alavancagem) em **1 processo Python** e **1 SQLi
 - `src/tools/testnet_prepare.py` — Limpeza de saldos não rastreados e reset de halt só na Testnet.
 - `tools/preflight_check.py` — Validador read-only de `.env`, SHA-256, chave Ed25519, Fernet, `MLJudge` e disco antes de cada gate.
 - `tools/gate_report.py` — Relatório read-only (`mode=ro`) de Gates 6A/6B, Fase 1→2 e kill-switches.
+- `tools/daily_gate_digest.py` — Resumo diário read-only (`mode=ro`) enviado no Telegram + gerador de `cron` (`--print-cron`).
+- `tools/guided_gate_switch.py` — Transição guiada exclusiva `--to 6b` (bloqueia `FAIL`/`UNKNOWN` e recusa Fase 1/2).
 - `tools/train_ml_judge.py` — Treinador offline read-only do `MLJudge` (Treino/Validação apenas, Holdout excluído).
 - `tools/radar_ai_audit.py` — Auditoria read-only (`mode=ro`) da Camada 4, convergência Chameleon×Radar e ablação offline L4 no `MLJudge`.
 - `tools/restore_drill.sh` — Teste isolado de restauração em `/tmp` (modo seguro `ANALYST_ONLY`, sem chaves).
-- `docs/` — Diátaxis: `quickstart.md`, `runbook.md`, `backup-and-restore.md`, `unified-architecture.md`, `data-contract.md`, `methodology-and-roadmap.md`, `decisions.md`, `backtest-edge-audit.md`, `next-steps.md`.
-- `tests/` — Suíte `pytest` (Gates 1–6, auditoria, healthcheck, backup, fault injection, `gate_report`, `restore_drill`, `preflight`, B1–B7).
+- `docs/` — Diátaxis: `quickstart.md`, `runbook.md`, `backup-and-restore.md`, `unified-architecture.md`, `data-contract.md`, `methodology-and-roadmap.md`, `decisions.md`, `adr-016-regra-de-decisao-6b.md`, `backtest-edge-audit.md`, `next-steps.md`.
+- `tests/` — Suíte `pytest` (Gates 1–6, paridade orquestrador×backtest, auditoria, healthcheck, backup, fault injection, `gate_report`, `daily_gate_digest`, `guided_gate_switch`, `restore_drill`, `preflight`, B1–B7).
 
 ## 4. Comandos
 
@@ -56,6 +58,8 @@ Bot Spot na Binance (1h/4h, sem alavancagem) em **1 processo Python** e **1 SQLi
 .venv/bin/python -m pytest -q                                                    # Testes (antes e depois)
 .venv/bin/python tools/preflight_check.py --env-file .env --target-gate 6a       # Preflight read-only (6a|6b|phase1|phase2)
 .venv/bin/python tools/gate_report.py --db data/quant.db --log-file /tmp/bot.log # Relatório read-only
+.venv/bin/python tools/daily_gate_digest.py --db data/quant.db --dry-run         # Resumo Telegram (--print-cron p/ cron)
+.venv/bin/python tools/guided_gate_switch.py --to 6b --db data/quant.db --log-file /tmp/bot.log --restore-drill-report /tmp/d.json # Troca 6A->6B (só 6B)
 .venv/bin/python tools/train_ml_judge.py --db data/quant.db --output models/ml_judge_bull_v1.json # Treino MLJudge (sem Holdout)
 .venv/bin/python tools/radar_ai_audit.py --db data/quant.db                      # Auditoria L4 & Radar×Chameleon (read-only)
 tools/restore_drill.sh data/backups/quant_backup_....db --report-json /tmp/d.json # Restore drill seguro
