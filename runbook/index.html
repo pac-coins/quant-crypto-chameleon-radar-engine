@@ -1,0 +1,2413 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Arquitetura, operação, governança quantitativa e auditorias do QuantCrypto Chameleon & Radar Engine">
+      
+      
+      
+        <link rel="canonical" href="https://pac-coins.github.io/quant-crypto-chameleon-radar-engine/runbook/">
+      
+      
+        <link rel="prev" href="../quickstart/">
+      
+      
+        <link rel="next" href="../backup-and-restore/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
+    
+    
+      
+        <title>Runbook de Incidentes - QuantCrypto Chameleon & Radar Engine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#runbook-operacional-quantcrypto-chameleon-radar-engine" class="md-skip">
+          Ir para o conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href=".." title="QuantCrypto Chameleon &amp; Radar Engine" class="md-header__button md-logo" aria-label="QuantCrypto Chameleon & Radar Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            QuantCrypto Chameleon & Radar Engine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Runbook de Incidentes
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Usar modo escuro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Usar modo escuro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Usar modo claro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Usar modo claro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando a pesquisa
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/pac-coins/quant-crypto-chameleon-radar-engine" title="Ir ao repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pac-coins/quant-crypto-chameleon-radar-engine
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Abas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href=".." class="md-tabs__link">
+          
+  
+  
+  Início
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+  Operação
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../unified-architecture/" class="md-tabs__link">
+          
+  
+  
+  Arquitetura & Referência
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../methodology-and-roadmap/" class="md-tabs__link">
+          
+  
+  
+  Governança & Pesquisa
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../integration-audit/" class="md-tabs__link">
+          
+  
+  
+  Auditorias & Histórico
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="QuantCrypto Chameleon &amp; Radar Engine" class="md-nav__button md-logo" aria-label="QuantCrypto Chameleon & Radar Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    QuantCrypto Chameleon & Radar Engine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/pac-coins/quant-crypto-chameleon-radar-engine" title="Ir ao repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pac-coins/quant-crypto-chameleon-radar-engine
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Início
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Início
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão Geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guia Rápido e Transição de Gates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operação
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operação
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runbook de Incidentes
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runbook de Incidentes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-halt_review-e-emergency_halt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. HALT_REVIEW e EMERGENCY_HALT
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. HALT_REVIEW e EMERGENCY_HALT">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-causas-reais-no-codigo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1. Causas reais no código
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-diagnostico-somente-leitura-seguro-com-o-bot-rodando" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2. Diagnóstico (somente-leitura, seguro com o bot rodando)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-como-destravar-com-seguranca" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3. Como destravar com segurança
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.3. Como destravar com segurança">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#caso-a-ambiente-testnet-binance_envtestnet-ex-preparacaoincidente-no-gate-6a" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Caso A — Ambiente TESTNET (BINANCE_ENV=TESTNET, ex.: preparação/incidente no Gate 6A)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#caso-b-ambiente-production-binance_envproduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Caso B — Ambiente PRODUCTION (BINANCE_ENV=PRODUCTION)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-restauracao-de-backup-sqlite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Restauração de Backup SQLite
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Restauração de Backup SQLite">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-validar-o-backup-em-ambiente-isolado-antes-de-restaurar-obrigatorio-no-gate-6a" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1. Validar o backup em ambiente isolado antes de restaurar (obrigatório no Gate 6A)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-restauracao-real-em-dataquantdb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2. Restauração real em ./data/quant.db
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-rotacao-das-chaves-ed25519" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Rotação das Chaves Ed25519
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-bnb-abaixo-da-reserva" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. BNB Abaixo da Reserva
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. BNB Abaixo da Reserva">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#procedimento" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Procedimento
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-manutencao-da-binance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Manutenção da Binance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-o-que-fazer-se-a-api-da-binance-mudar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. O Que Fazer Se a API da Binance Mudar
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. O Que Fazer Se a API da Binance Mudar">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-pontos-de-acoplamento-com-a-binance-spot-api-no-codigo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1. Pontos de acoplamento com a Binance Spot API no código
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-protocolo-de-resposta" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2. Protocolo de resposta
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-operacao-diaria-de-gates-e-transicao-guiada-6a-6b" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Operação Diária de Gates e Transição Guiada (6A → 6B)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Operação Diária de Gates e Transição Guiada (6A → 6B)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-resumo-diario-no-telegram-toolsdaily_gate_digestpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1. Resumo diário no Telegram (tools/daily_gate_digest.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-transicao-guiada-exclusiva-gate-6a-gate-6b-toolsguided_gate_switchpy-to-6b" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2. Transição guiada exclusiva Gate 6A → Gate 6B (tools/guided_gate_switch.py --to 6b)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backup-and-restore/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup e Restauração
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura & Referência
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitetura & Referência
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../unified-architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura Unificada (Canônica)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de Dados (SQLite WAL)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Executor (Chameleon v6.0)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../radar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Radar & Auditor Virtual (v1.1)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Governança & Pesquisa
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Governança & Pesquisa
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methodology-and-roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metodologia e Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisões Arquiteturais (ADR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr-016-regra-de-decisao-6b/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-016 — Regra de Decisão do Gate 6B
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../next-steps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Próximos Passos e Pré-mortem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backtest-edge-audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditoria do Backtest e Edge (K9.3)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditorias & Histórico
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Auditorias & Histórico
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integration-audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditoria de Integração (C1/C2)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../audit-2026-11-23/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditoria Adversarial (2026-11-23)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../audit-2026-11-23-remediation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Remediação da Auditoria (2026-11-23)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_4" id="__nav_5_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificações dos Blocos 1–6
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Especificações dos Blocos 1–6
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-1-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bloco 1 — Fundação & Dados
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-2-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bloco 2 — Features & MECE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-3-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bloco 3 — Backtest, DSR & K9.3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-4-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bloco 4 — Risco, CPPI & MLJudge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-5-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bloco 5 — OCO & Reconciliador
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-6-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bloco 6 — Radar, Auditor & Main
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../todo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quadro TODO (Histórico)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v5-to-v6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migração v5 → v6
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura v5 (Legado)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-halt_review-e-emergency_halt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. HALT_REVIEW e EMERGENCY_HALT
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. HALT_REVIEW e EMERGENCY_HALT">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-causas-reais-no-codigo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1. Causas reais no código
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-diagnostico-somente-leitura-seguro-com-o-bot-rodando" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2. Diagnóstico (somente-leitura, seguro com o bot rodando)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-como-destravar-com-seguranca" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3. Como destravar com segurança
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.3. Como destravar com segurança">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#caso-a-ambiente-testnet-binance_envtestnet-ex-preparacaoincidente-no-gate-6a" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Caso A — Ambiente TESTNET (BINANCE_ENV=TESTNET, ex.: preparação/incidente no Gate 6A)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#caso-b-ambiente-production-binance_envproduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Caso B — Ambiente PRODUCTION (BINANCE_ENV=PRODUCTION)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-restauracao-de-backup-sqlite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Restauração de Backup SQLite
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Restauração de Backup SQLite">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-validar-o-backup-em-ambiente-isolado-antes-de-restaurar-obrigatorio-no-gate-6a" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1. Validar o backup em ambiente isolado antes de restaurar (obrigatório no Gate 6A)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-restauracao-real-em-dataquantdb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2. Restauração real em ./data/quant.db
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-rotacao-das-chaves-ed25519" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Rotação das Chaves Ed25519
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-bnb-abaixo-da-reserva" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. BNB Abaixo da Reserva
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. BNB Abaixo da Reserva">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#procedimento" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Procedimento
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-manutencao-da-binance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Manutenção da Binance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-o-que-fazer-se-a-api-da-binance-mudar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. O Que Fazer Se a API da Binance Mudar
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. O Que Fazer Se a API da Binance Mudar">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-pontos-de-acoplamento-com-a-binance-spot-api-no-codigo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1. Pontos de acoplamento com a Binance Spot API no código
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-protocolo-de-resposta" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2. Protocolo de resposta
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-operacao-diaria-de-gates-e-transicao-guiada-6a-6b" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Operação Diária de Gates e Transição Guiada (6A → 6B)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Operação Diária de Gates e Transição Guiada (6A → 6B)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-resumo-diario-no-telegram-toolsdaily_gate_digestpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1. Resumo diário no Telegram (tools/daily_gate_digest.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-transicao-guiada-exclusiva-gate-6a-gate-6b-toolsguided_gate_switchpy-to-6b" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2. Transição guiada exclusiva Gate 6A → Gate 6B (tools/guided_gate_switch.py --to 6b)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="runbook-operacional-quantcrypto-chameleon-radar-engine">Runbook Operacional — QuantCrypto Chameleon &amp; Radar Engine<a class="headerlink" href="#runbook-operacional-quantcrypto-chameleon-radar-engine" title="Permanent link">&para;</a></h1>
+<p>Guia passo a passo de resposta a incidentes e manutenção operacional, baseado estritamente no comportamento implementado no código.</p>
+<blockquote>
+<p>[!CAUTION]
+<strong>Regra ADR-002 (Single-Writer):</strong> nunca execute comandos de escrita no SQLite (<code>data/quant.db</code>) enquanto o container <code>quant-chameleon</code> estiver rodando. Para diagnóstico com o bot ativo, use apenas leitura (<code>URI mode=ro</code> / <code>tools/gate_report.py</code>). Para qualquer escrita no SQLite ou restauração, pare o container primeiro (<code>docker compose stop quant-chameleon</code>).</p>
+</blockquote>
+<hr />
+<h2 id="1-halt_review-e-emergency_halt">1. <code>HALT_REVIEW</code> e <code>EMERGENCY_HALT</code><a class="headerlink" href="#1-halt_review-e-emergency_halt" title="Permanent link">&para;</a></h2>
+<h3 id="11-causas-reais-no-codigo">1.1. Causas reais no código<a class="headerlink" href="#11-causas-reais-no-codigo" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Estado</th>
+<th>Gatilho</th>
+<th>Onde ocorre no código</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>HALT_REVIEW</code></strong> (na tabela <code>trades</code> + <code>emergency_halt='1'</code>)</td>
+<td>Saldo excedente não rastreado <code>&gt;= minNotional</code> em ativo da cesta, ou sem preço de referência para provar que é poeira (<strong>C1-D fail-closed</strong>)</td>
+<td><code>src/core/state_reconciler.py:572-615</code></td>
+</tr>
+<tr>
+<td><strong><code>HALT_REVIEW</code></strong> (na tabela <code>trades</code> + <code>emergency_halt='1'</code>)</td>
+<td>Watchdog de stop pendurado falhou na venda emergencial por saldo insuficiente mesmo após reler saldo e tentar 1 vez</td>
+<td><code>src/execution/oco_order_manager.py:1318-1352</code>, <code>1587-1617</code></td>
+</tr>
+<tr>
+<td><strong><code>HALT_REVIEW_PERSISTENT</code></strong></td>
+<td>Trade já estava em <code>HALT_REVIEW</code>: o reconciliador mantém o bloqueio até intervenção humana (nunca destrava sozinho)</td>
+<td><code>src/core/state_reconciler.py:625-639</code></td>
+</tr>
+<tr>
+<td><strong><code>EMERGENCY_HALT</code></strong> (<code>HARD_STOP_DRAWDOWN_12PCT</code>)</td>
+<td>Drawdown tático <code>&gt;= 12,0%</code> abaixo do HWM</td>
+<td><code>src/risk/shadow_manager.py:26,34,288-291</code></td>
+</tr>
+<tr>
+<td><strong><code>EMERGENCY_HALT</code></strong> (<code>BNB_FEE_RESERVE_DEPLETED</code>)</td>
+<td>Saldo livre de <code>BNB</code> equivalente a <code>&lt; $2,00 USDT</code> (ou falha de ticker + candle de <code>BNBUSDT</code> → fail-closed <code>0</code>)</td>
+<td><code>src/risk/shadow_manager.py:27,35,292-295</code>, <code>src/main.py:324-337</code></td>
+</tr>
+<tr>
+<td><strong><code>EMERGENCY_HALT</code></strong> (<code>RECONCILIATION_OR_AUTH_FAILURE</code>)</td>
+<td>3 falhas consecutivas de reconciliação, erro de autenticação (<code>-1002</code>, <code>-1022</code>, <code>-2015</code>, <code>-2014</code>), HTTP <code>418</code> (IP ban) ou entrada em <code>HALT_REVIEW</code></td>
+<td><code>src/risk/shadow_manager.py:25,114-126</code>, <code>src/core/state_reconciler.py:33,139-154</code>, <code>src/execution/oco_order_manager.py:258-291</code></td>
+</tr>
+<tr>
+<td><strong><code>EMERGENCY_HALT</code></strong> (<code>DAILY_TRADES_CAP_EXCEEDED</code>)</td>
+<td><code>&gt;= 6</code> entradas não-rejeitadas em 24h (<code>max_daily_trades_cap: 6</code>)</td>
+<td><code>config/strategies.yaml:18</code>, <code>src/main.py:298</code>, <code>src/risk/shadow_manager.py:296-299</code></td>
+</tr>
+</tbody>
+</table>
+<p>Quando <code>emergency_halt='1'</code>, <strong>novas entradas ficam bloqueadas</strong> (<code>src/main.py:807,887</code>), mas a gestão/proteção de posições já abertas continua rodando (<code>src/main.py:789-792</code>).</p>
+<h3 id="12-diagnostico-somente-leitura-seguro-com-o-bot-rodando">1.2. Diagnóstico (somente-leitura, seguro com o bot rodando)<a class="headerlink" href="#12-diagnostico-somente-leitura-seguro-com-o-bot-rodando" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Inspecione os logs do container (ou systemd):</strong>
+   <div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>--tail<span class="o">=</span><span class="m">200</span><span class="w"> </span>quant-chameleon
+<span class="c1"># Se rodando via systemd (deploy/quant-chameleon.service):</span>
+journalctl<span class="w"> </span>-u<span class="w"> </span>quant-chameleon<span class="w"> </span>-n<span class="w"> </span><span class="m">200</span><span class="w"> </span>--no-pager
+</code></pre></div></li>
+<li><strong>Rode o relatório read-only de gates e kill-switches:</strong>
+   <div class="highlight"><pre><span></span><code>.venv/bin/python<span class="w"> </span>tools/gate_report.py<span class="w"> </span>--db<span class="w"> </span>data/quant.db<span class="w"> </span>--format<span class="w"> </span>table
+</code></pre></div></li>
+<li><strong>Consulte o estado exato no SQLite em modo estritamente read-only (<code>mode=ro</code>):</strong>
+   <div class="highlight"><pre><span></span><code>.venv/bin/python<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;'PY'</span>
+<span class="s">import sqlite3</span>
+<span class="s">conn = sqlite3.connect("file:data/quant.db?mode=ro", uri=True, timeout=2.0)</span>
+<span class="s">conn.execute("PRAGMA query_only=ON")</span>
+<span class="s">print("=== system_state ===")</span>
+<span class="s">for k, v in conn.execute("SELECT key, value FROM system_state ORDER BY key"):</span>
+<span class="s">    print(f"  {k} = {v}")</span>
+<span class="s">print("=== active / HALT_REVIEW trades ===")</span>
+<span class="s">for r in conn.execute(</span>
+<span class="s">    "SELECT trade_id, environment, symbol, status, entry_executed_qty, oco_order_list_id, oco_qty "</span>
+<span class="s">    "FROM trades WHERE status IN ('PENDING_ENTRY','ENTRY_FILLED','PROTECTED','CLOSING','HALT_REVIEW')"</span>
+<span class="s">):</span>
+<span class="s">    print(" ", r)</span>
+<span class="s">print("=== recent order_events (last 10) ===")</span>
+<span class="s">for r in conn.execute(</span>
+<span class="s">    "SELECT event_id, trade_id, method, endpoint, http_status, binance_code, response_json "</span>
+<span class="s">    "FROM order_events ORDER BY event_id DESC LIMIT 10"</span>
+<span class="s">):</span>
+<span class="s">    print(" ", r)</span>
+<span class="s">conn.close()</span>
+<span class="s">PY</span>
+</code></pre></div></li>
+<li><strong>Confira a realidade na Binance (UI ou conta Spot):</strong> verifique saldos <code>free</code>/<code>locked</code> dos 7 pares de <code>config/strategies.yaml:70-76</code> e ordens OCO abertas.</li>
+</ol>
+<h3 id="13-como-destravar-com-seguranca">1.3. Como destravar com segurança<a class="headerlink" href="#13-como-destravar-com-seguranca" title="Permanent link">&para;</a></h3>
+<h4 id="caso-a-ambiente-testnet-binance_envtestnet-ex-preparacaoincidente-no-gate-6a">Caso A — Ambiente <strong>TESTNET</strong> (<code>BINANCE_ENV=TESTNET</code>, ex.: preparação/incidente no Gate 6A)<a class="headerlink" href="#caso-a-ambiente-testnet-binance_envtestnet-ex-preparacaoincidente-no-gate-6a" title="Permanent link">&para;</a></h4>
+<p>O utilitário <code>src/tools/testnet_prepare.py</code> inspeciona saldos não rastreados nos 7 ativos da cesta, vende excedentes na Testnet, recarrega BNB se necessário e chama <code>ShadowManager.reset_emergency_halt()</code>. Ele <strong>recusa estritamente</strong> <code>BINANCE_ENV=PRODUCTION</code> (<code>src/tools/testnet_prepare.py:55-59</code>).</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># 1. Preview sem alterar nada (dry-run)</span>
+.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>src.tools.testnet_prepare
+
+<span class="c1"># 2. Pare o container antes de qualquer escrita no SQLite (ADR-002)</span>
+docker<span class="w"> </span>compose<span class="w"> </span>stop<span class="w"> </span>quant-chameleon
+
+<span class="c1"># 3. Se houver trade em HALT_REVIEW já inspecionado (e que será zerado na Testnet), faça backup antes:</span>
+cp<span class="w"> </span>-a<span class="w"> </span>data/quant.db<span class="w"> </span>data/quant.db.pre-reset.bak
+
+<span class="c1"># 4. Limpe saldos excedentes na Testnet e resete emergency_halt / kill_switch_reason / reconcile_fail_streak</span>
+.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>src.tools.testnet_prepare<span class="w"> </span>--execute
+
+<span class="c1"># 5. Se havia linha presa em status='HALT_REVIEW' no SQLite após zerar na Testnet, encerre-a explicitamente:</span>
+.venv/bin/python<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;'PY'</span>
+<span class="s">import time</span>
+<span class="s">from pathlib import Path</span>
+<span class="s">from src.core.database import Database</span>
+<span class="s">db = Database(Path("data/quant.db"))</span>
+<span class="s">db.connect()</span>
+<span class="s">with db.write_tx() as tx:</span>
+<span class="s">    now_ms = int(time.time() * 1000)</span>
+<span class="s">    tx.execute(</span>
+<span class="s">        "UPDATE trades SET status='CLOSED', exit_reason=COALESCE(exit_reason,'RECONCILER'), "</span>
+<span class="s">        "updated_at_ms=?, closed_at_ms=COALESCE(closed_at_ms,?) WHERE status='HALT_REVIEW'",</span>
+<span class="s">        (now_ms, now_ms),</span>
+<span class="s">    )</span>
+<span class="s">db.close()</span>
+<span class="s">PY</span>
+
+<span class="c1"># 6. Religue o container e confirme boot_reconcile limpo nos logs</span>
+docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d<span class="w"> </span>quant-chameleon
+docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </span>--tail<span class="o">=</span><span class="m">100</span><span class="w"> </span>quant-chameleon
+</code></pre></div>
+<h4 id="caso-b-ambiente-production-binance_envproduction">Caso B — Ambiente <strong>PRODUCTION</strong> (<code>BINANCE_ENV=PRODUCTION</code>)<a class="headerlink" href="#caso-b-ambiente-production-binance_envproduction" title="Permanent link">&para;</a></h4>
+<blockquote>
+<p>[!WARNING]
+<strong>Nunca</strong> use <code>src.tools.testnet_prepare</code> em Produção (ele aborta com <code>ConfigError</code>). Resolva a causa raiz na corretora <strong>antes</strong> de resetar o halt.</p>
+</blockquote>
+<ol>
+<li><strong>Resolva a causa raiz na Binance primeiro:</strong></li>
+<li><strong>Saldo não rastreado (C1-D):</strong> mova/venda manualmente o ativo excedente na Binance (ou transfira para uma subconta dedicada a operações manuais — ADR-012) para que o saldo Spot da conta da API corresponda exatamente ao trade rastreado (ou zero).</li>
+<li><strong>Erro de autenticação (<code>-1002</code>, <code>-1022</code>, <code>-2015</code>, <code>-2014</code>):</strong> verifique IP permitido, permissões da API Key ou rotacione a chave Ed25519 (Seção 3).</li>
+<li><strong>HTTP <code>418</code> (IP ban):</strong> aguarde o <code>Retry-After</code> expirar completamente e investigue a causa do excesso de peso (<code>used_weight_1m_peak</code> em <code>cycle_health</code>).</li>
+<li><strong>Hard stop <code>-12%</code> (<code>HARD_STOP_DRAWDOWN_12PCT</code>):</strong> revise os trades fechados e só retome após decisão consciente de risco.</li>
+<li><strong>BNB <code>&lt; $2,00</code> (<code>BNB_FEE_RESERVE_DEPLETED</code>):</strong> recarregue BNB na conta Spot (Seção 4).</li>
+<li><strong>Teto diário (<code>DAILY_TRADES_CAP_EXCEEDED</code>):</strong> audite por que ocorreram <code>&gt;= 6</code> entradas em 24h (<code>trades</code> e <code>order_events</code>) antes de destravar.</li>
+<li><strong>Pare o container e crie backup local de segurança:</strong>
+   <div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>stop<span class="w"> </span>quant-chameleon
+.venv/bin/python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"from pathlib import Path; from src.core.database import Database; db=Database(Path('data/quant.db')); db.connect(); p=db.backup_to(Path('data/backups')); db.close(); print('Backup:', p, 'ok=', Database.verify_backup(p))"</span>
+</code></pre></div></li>
+<li><strong>Se havia trade em <code>HALT_REVIEW</code> cuja posição já foi encerrada na Binance</strong>, marque-o como <code>CLOSED</code> no SQLite (se a posição ainda existe e está protegida por OCO válida, ajuste o registro com o <code>oco_order_list_id</code> real em vez de fechar).</li>
+<li><strong>Resete <code>emergency_halt</code>, <code>kill_switch_reason</code> e <code>reconcile_fail_streak</code> usando <code>ShadowManager.reset_emergency_halt()</code> (<code>src/risk/shadow_manager.py:133-137</code>):</strong>
+   <div class="highlight"><pre><span></span><code>.venv/bin/python<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;'PY'</span>
+<span class="s">from src.core.config import load_config</span>
+<span class="s">from src.core.database import Database</span>
+<span class="s">from src.risk.shadow_manager import ShadowManager</span>
+
+<span class="s">cfg = load_config()</span>
+<span class="s">db = Database(cfg.runtime.db_path)</span>
+<span class="s">db.connect()</span>
+<span class="s">sm = ShadowManager(cfg.strategies.drawdown_and_shadow_protection, cfg.strategies.portfolio, db=db)</span>
+<span class="s">sm.reset_emergency_halt()</span>
+<span class="s">db.close()</span>
+<span class="s">print("OK: emergency_halt resetado.")</span>
+<span class="s">PY</span>
+</code></pre></div></li>
+<li><strong>Religue o container e acompanhe o <code>boot_reconcile</code> nos logs:</strong>
+   <div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d<span class="w"> </span>quant-chameleon
+docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </span>--tail<span class="o">=</span><span class="m">100</span><span class="w"> </span>quant-chameleon
+</code></pre></div></li>
+</ol>
+<hr />
+<h2 id="2-restauracao-de-backup-sqlite">2. Restauração de Backup SQLite<a class="headerlink" href="#2-restauracao-de-backup-sqlite" title="Permanent link">&para;</a></h2>
+<p>Consulte também o guia detalhado em <a href="../backup-and-restore/">Backup e Restauração</a>.</p>
+<h3 id="21-validar-o-backup-em-ambiente-isolado-antes-de-restaurar-obrigatorio-no-gate-6a">2.1. Validar o backup em ambiente isolado antes de restaurar (obrigatório no Gate 6A)<a class="headerlink" href="#21-validar-o-backup-em-ambiente-isolado-antes-de-restaurar-obrigatorio-no-gate-6a" title="Permanent link">&para;</a></h3>
+<p>O script <code>tools/restore_drill.sh</code> copia o backup (<code>.db</code>, <code>.db.gz</code> ou <code>.db.gz.enc</code>) para um diretório temporário novo, roda <code>PRAGMA integrity_check</code>, sobe <code>load_config</code> + <code>Database</code> + <code>QuantOrchestrator</code> em modo seguro (<code>MODE=ANALYST_ONLY</code>, sem chaves, sem tocar em <code>./data</code> nem em <code>./secrets</code>), confirma o reconhecimento do histórico/trades e remove o diretório temporário:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Backup local (.db)</span>
+tools/restore_drill.sh<span class="w"> </span>data/backups/quant_backup_YYYYMMDD_HHMMSS_ffffff.db<span class="w"> </span>--report-json<span class="w"> </span>/tmp/restore_drill.json
+
+<span class="c1"># Backup offsite criptografado (.db.gz.enc)</span>
+<span class="nv">BACKUP_ENCRYPTION_KEY</span><span class="o">=</span><span class="s1">'&lt;sua_chave_fernet&gt;'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>tools/restore_drill.sh<span class="w"> </span>/tmp/quant_backup_YYYYMMDD_HHMMSS_ffffff.db.gz.enc<span class="w"> </span>--report-json<span class="w"> </span>/tmp/restore_drill.json
+</code></pre></div>
+<p>Confirme <code>RESTORE DRILL: PASS</code> antes de substituir o banco real.</p>
+<h3 id="22-restauracao-real-em-dataquantdb">2.2. Restauração real em <code>./data/quant.db</code><a class="headerlink" href="#22-restauracao-real-em-dataquantdb" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># 1. Pare o container (nunca sobrescreva quant.db em WAL com o bot ativo — ADR-002)</span>
+docker<span class="w"> </span>compose<span class="w"> </span>stop<span class="w"> </span>quant-chameleon
+
+<span class="c1"># 2. Preserve o banco atual (se existir)</span>
+cp<span class="w"> </span>-a<span class="w"> </span>./data/quant.db<span class="w"> </span>./data/quant.db.pre-restore.bak<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+
+<span class="c1"># 3. Restaure com verificação automática (Database.verify_backup + os.replace + limpeza de -wal/-shm)</span>
+<span class="nv">BACKUP_ENCRYPTION_KEY</span><span class="o">=</span><span class="s1">'&lt;sua_chave_fernet&gt;'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>src.core.offsite_backup<span class="w"> </span>restore<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>/tmp/quant_backup_YYYYMMDD_HHMMSS_ffffff.db.gz.enc<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>./data/quant.db
+<span class="c1"># (Para backup local .db sem criptografia, passe diretamente o arquivo .db sem BACKUP_ENCRYPTION_KEY.)</span>
+
+<span class="c1"># 4. Religue e acompanhe o boot_reconcile nos logs</span>
+docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d<span class="w"> </span>quant-chameleon
+docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </span>--tail<span class="o">=</span><span class="m">100</span><span class="w"> </span>quant-chameleon
+</code></pre></div>
+<hr />
+<h2 id="3-rotacao-das-chaves-ed25519">3. Rotação das Chaves Ed25519<a class="headerlink" href="#3-rotacao-das-chaves-ed25519" title="Permanent link">&para;</a></h2>
+<p>O bot carrega <code>BINANCE_API_KEY</code> e <code>BINANCE_ED25519_PRIVATE_KEY_PATH</code> no boot (<code>src/core/config.py:50-51,488-503</code>; <code>_load_ed25519_key()</code> em <code>src/core/binance_client.py:678-683</code> exige <code>Ed25519PrivateKey</code> em PEM sem senha). No Docker, <code>./secrets</code> é montado somente-leitura em <code>/app/secrets:ro</code> (<code>docker-compose.yml:12</code>).</p>
+<ol>
+<li><strong>Gere um novo par Ed25519 localmente na VPS (com permissão restrita <code>600</code>):</strong>
+   <div class="highlight"><pre><span></span><code><span class="nb">umask</span><span class="w"> </span><span class="m">077</span>
+openssl<span class="w"> </span>genpkey<span class="w"> </span>-algorithm<span class="w"> </span>ED25519<span class="w"> </span>-out<span class="w"> </span>secrets/binance_ed25519_new.pem
+openssl<span class="w"> </span>pkey<span class="w"> </span>-in<span class="w"> </span>secrets/binance_ed25519_new.pem<span class="w"> </span>-pubout<span class="w"> </span>-out<span class="w"> </span>/tmp/binance_ed25519_new.pub
+chmod<span class="w"> </span><span class="m">600</span><span class="w"> </span>secrets/binance_ed25519_new.pem
+cat<span class="w"> </span>/tmp/binance_ed25519_new.pub
+</code></pre></div></li>
+<li><strong>Crie a nova API Key na Binance</strong> (Testnet ou Produção) usando a chave pública gerada:</li>
+<li><strong>Habilitar:</strong> <em>Enable Reading</em>, <em>Enable Spot &amp; Margin Trading</em> (e <em>Permits Universal Transfer</em> na Fase 2).</li>
+<li><strong>Proibir:</strong> <em>Enable Withdrawals</em> (sempre desligado).</li>
+<li><strong>Restringir:</strong> vincular exclusivamente ao IP fixo da VPS (<code>docs/unified-architecture.md:93-98</code>).</li>
+<li><strong>Escolha uma janela fora do fechamento de hora (<code>XX:05</code>–<code>XX:50 UTC</code>) e pare o container:</strong>
+   <div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>stop<span class="w"> </span>quant-chameleon
+</code></pre></div></li>
+<li><strong>Atualize <code>.env</code></strong> com o novo <code>BINANCE_API_KEY</code> e <code>BINANCE_ED25519_PRIVATE_KEY_PATH=/app/secrets/binance_ed25519_new.pem</code> (ou substitua o arquivo PEM mantendo o caminho).</li>
+<li><strong>Valide a configuração antes de religar</strong> (sem abrir ordens):
+   <div class="highlight"><pre><span></span><code>.venv/bin/python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"from src.core.config import load_config; cfg = load_config(); print('OK mode=', cfg.runtime.mode.value, 'env=', cfg.runtime.binance_env.value)"</span>
+</code></pre></div></li>
+<li><strong>Religue o container e valide <code>boot_reconcile</code> sem erros <code>-2015</code>/<code>-1022</code>/<code>-2014</code>:</strong>
+   <div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d<span class="w"> </span>quant-chameleon
+docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </span>--tail<span class="o">=</span><span class="m">100</span><span class="w"> </span>quant-chameleon
+</code></pre></div></li>
+<li><strong>Somente após confirmar boot e reconciliação limpos</strong>, revogue a API Key antiga na Binance e apague a chave privada antiga + <code>.pub</code> temporário:
+   <div class="highlight"><pre><span></span><code>rm<span class="w"> </span>-f<span class="w"> </span>/tmp/binance_ed25519_new.pub<span class="w"> </span>secrets/binance_ed25519_old.pem
+</code></pre></div></li>
+</ol>
+<hr />
+<h2 id="4-bnb-abaixo-da-reserva">4. BNB Abaixo da Reserva<a class="headerlink" href="#4-bnb-abaixo-da-reserva" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Reserva preventiva:</strong> <code>&lt; $5,00 USDT</code> (<code>min_bnb_fee_reserve_usdt_equiv: 5.00</code> em <code>config/strategies.yaml:13</code>, sinalizado em <code>DefenseStatus.bnb_below_recommended_reserve</code> em <code>src/risk/shadow_manager.py:262-263</code>).</li>
+<li><strong>Hard kill-switch:</strong> <code>&lt; $2,00 USDT</code> (<code>HARD_MIN_BNB_RESERVE_USDT = Decimal("2.00")</code> em <code>src/risk/shadow_manager.py:27,292-295</code> → <code>BNB_FEE_RESERVE_DEPLETED</code> + <code>emergency_halt='1'</code>).</li>
+<li><strong>Proteção C1-C:</strong> <code>BNBUSDT</code> é proibido no universo de execução (<code>src/core/config.py:21</code>), portanto recarregar BNB na conta Spot <strong>nunca</strong> dispara <code>HALT_REVIEW</code>.</li>
+</ul>
+<h3 id="procedimento">Procedimento<a class="headerlink" href="#procedimento" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Na Testnet:</strong>
+  <div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>stop<span class="w"> </span>quant-chameleon
+.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>src.tools.testnet_prepare<span class="w"> </span>--execute<span class="w">   </span><span class="c1"># compra 20 USDT em BNBUSDT se &lt; 10 USDT e reseta halt</span>
+docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d<span class="w"> </span>quant-chameleon
+</code></pre></div></li>
+<li><strong>Em Produção:</strong></li>
+<li>Compre ou transfira pelo menos <code>~$10–$20 USDT</code> equivalentes em <code>BNB</code> para a carteira Spot (<code>MAIN</code>) e confirme na Binance que o desconto de taxas em BNB está ativo.</li>
+<li>Se o kill-switch <code>BNB_FEE_RESERVE_DEPLETED</code> <strong>não</strong> chegou a disparar (<code>emergency_halt='0'</code>), nenhuma reinicialização é necessária — o próximo ciclo horário lerá o saldo atualizado via <code>GET /api/v3/account</code> (<code>src/main.py:309-338</code>).</li>
+<li>Se <code>emergency_halt='1'</code> já tiver sido acionado, execute o reset da Seção 1.3 (Caso B) com o container parado e religue.</li>
+</ul>
+<hr />
+<h2 id="5-manutencao-da-binance">5. Manutenção da Binance<a class="headerlink" href="#5-manutencao-da-binance" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Como o código reage hoje:</strong> <code>QuantOrchestrator._check_maintenance()</code> (<code>src/main.py:274-285</code>) chama <code>SignedBinanceClient.sapi_system_status()</code> (<code>src/core/binance_client.py:833-845</code>), que consulta <code>GET /sapi/v1/system/status</code> (mockado como <code>normal=True</code> quando <code>BINANCE_ENV=TESTNET</code>).</li>
+<li>Se <code>status != 0</code> ou a chamada falhar, <code>maintenance_blocked=True</code> (fail-closed) bloqueia <strong>novas entradas</strong> (<code>src/main.py:887</code>), preservando o acompanhamento de posições já abertas.</li>
+<li><strong>Atenção:</strong> o endpoint <code>/sapi/v1/system/status</code> da Binance informa apenas manutenção já em andamento (<code>status == 1</code>), <strong>não</strong> fornece aviso programado com 2 horas de antecedência.</li>
+<li><strong>Procedimento operacional:</strong></li>
+<li><strong>Antes de manutenção programada anunciada pela Binance:</strong> verifique se há trade aberto (<code>tools/gate_report.py</code> / query read-only da Seção 1.2) e confirme que a OCO está ativa na corretora (as ordens OCO vivem no motor da Binance, não na VPS).</li>
+<li><strong>Durante a manutenção:</strong> <strong>não</strong> reinicie o bot repetidamente (evita falhas de <code>boot_reconcile</code> e acúmulo de <code>reconcile_fail_streak</code>). Deixe <code>maintenance_blocked=True</code> segurar entradas.</li>
+<li><strong>Após a manutenção:</strong> confirme nos logs que <code>CandleCollector.repair_gaps()</code> (<code>src/main.py:819</code>) preencheu eventuais lacunas, que <code>clock_offset_ms</code> continua dentro de <code>±500 ms</code> (<code>tools/gate_report.py</code>) e que <code>emergency_halt</code> segue inativo (se a indisponibilidade gerou 3 falhas consecutivas de reconciliação, siga a Seção 1.3 após confirmar estabilidade da corretora).</li>
+</ul>
+<hr />
+<h2 id="6-o-que-fazer-se-a-api-da-binance-mudar">6. O Que Fazer Se a API da Binance Mudar<a class="headerlink" href="#6-o-que-fazer-se-a-api-da-binance-mudar" title="Permanent link">&para;</a></h2>
+<h3 id="61-pontos-de-acoplamento-com-a-binance-spot-api-no-codigo">6.1. Pontos de acoplamento com a Binance Spot API no código<a class="headerlink" href="#61-pontos-de-acoplamento-com-a-binance-spot-api-no-codigo" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Endpoints, pesos e assinaturas:</strong> <code>ENDPOINT_WEIGHTS</code> (<code>src/core/binance_client.py:23-56</code>), <code>PublicBinanceClient</code> (<code>binance_client.py:430-627</code>) e <code>SignedBinanceClient</code> (<code>binance_client.py:686-973</code>, incluindo <code>POST /api/v3/orderList/oco</code> em <code>:911-941</code>).</li>
+<li><strong>Parsing de respostas de ordem e OCO:</strong> <code>extract_fill_summary()</code> (<code>src/execution/oco_order_manager.py:66-88</code>), <code>_extract_oco_executed_qty()</code> (<code>oco_order_manager.py:1169-1225</code>) e <code>_inspect_completed_oco_outcome()</code> (<code>src/core/state_reconciler.py:314-372</code>).</li>
+<li><strong>Códigos de erro tratados:</strong> <code>-1007</code>/5XX (<code>binance_client.py:751</code>), <code>-1021</code> (<code>oco_order_manager.py:238,996,1189</code>), <code>-2010</code>/<code>-1013</code> (<code>oco_order_manager.py:1027-1089</code>), <code>-2013</code> (<code>oco_order_manager.py:493,1161</code>), <code>429</code>/<code>418</code> (<code>binance_client.py:457-475</code>), auth <code>-1002</code>/<code>-1022</code>/<code>-2015</code>/<code>-2014</code> (<code>shadow_manager.py:25</code>, <code>state_reconciler.py:33</code>).</li>
+</ul>
+<h3 id="62-protocolo-de-resposta">6.2. Protocolo de resposta<a class="headerlink" href="#62-protocolo-de-resposta" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Contenção imediata (se em Produção com rejeições em série):</strong></li>
+<li>Verifique na Binance se alguma posição aberta ficou sem OCO — se sim, proteja/feche manualmente pela interface da Binance primeiro.</li>
+<li>Se necessário impedir novas entradas enquanto corrige, pare o container (<code>docker compose stop quant-chameleon</code>) ou mantenha <code>emergency_halt='1'</code>.</li>
+<li><strong>Diagnóstico exato do payload:</strong></li>
+<li>Leia os últimos registros em <code>order_events</code> (query read-only da Seção 1.2) para inspecionar <code>endpoint</code>, <code>http_status</code>, <code>binance_code</code>, <code>request_json</code> e <code>response_json</code> reais devolvidos pela Binance.</li>
+<li><strong>Correção isolada em branch nova:</strong></li>
+<li><strong>Nunca</strong> altere <code>config/strategies.yaml</code> nem parâmetros da estratégia <code>K9.3</code> para contornar mudança de API.</li>
+<li>Atualize exclusivamente a camada de integração (<code>binance_client.py</code>, <code>oco_order_manager.py</code> e/ou <code>state_reconciler.py</code>) e crie testes de regressão em <code>tests/</code> espelhando o payload real novo da Binance.</li>
+<li><strong>Validação obrigatória antes de voltar à Produção:</strong>
+   <div class="highlight"><pre><span></span><code>.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>-q
+</code></pre></div>
+   Valide primeiro na <strong>Binance Spot Testnet</strong> (<code>BINANCE_ENV=TESTNET</code>) confirmando compra, OCO, <code>get_order_list</code> e cancelamento antes de atualizar Produção.</li>
+</ol>
+<hr />
+<h2 id="7-operacao-diaria-de-gates-e-transicao-guiada-6a-6b">7. Operação Diária de Gates e Transição Guiada (6A → 6B)<a class="headerlink" href="#7-operacao-diaria-de-gates-e-transicao-guiada-6a-6b" title="Permanent link">&para;</a></h2>
+<h3 id="71-resumo-diario-no-telegram-toolsdaily_gate_digestpy">7.1. Resumo diário no Telegram (<code>tools/daily_gate_digest.py</code>)<a class="headerlink" href="#71-resumo-diario-no-telegram-toolsdaily_gate_digestpy" title="Permanent link">&para;</a></h3>
+<p>A ferramenta <code>tools/daily_gate_digest.py</code> executa <code>tools/gate_report.py</code> estritamente em modo somente-leitura (<code>URI mode=ro</code> + <code>PRAGMA query_only=ON</code>, ADR-002), calcula o <strong>dia atual do gate</strong> (<code>Dia X / 7</code> no Gate 6A, <code>Dia X / 30</code> no Gate 6B, <code>Dia X / 60</code> na Fase 1) e envia um resumo curto no Telegram com os critérios <code>PASS</code>, <code>FAIL</code> e <code>UNKNOWN</code> (além dos Kill-Switches §5.2). <strong>Nunca imprime segredos</strong> e sanitiza tokens mesmo em falhas HTTP.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># 1. Teste local sem enviar ao Telegram (--dry-run)</span>
+docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>--no-color<span class="w"> </span>--since<span class="w"> </span>192h<span class="w"> </span>quant-chameleon<span class="w"> </span>&gt;<span class="w"> </span>/tmp/bot_digest.log
+.venv/bin/python<span class="w"> </span>tools/daily_gate_digest.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--db<span class="w"> </span>data/quant.db<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--env-file<span class="w"> </span>.env<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--gate<span class="w"> </span>auto<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--log-file<span class="w"> </span>/tmp/bot_digest.log<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--dry-run
+
+<span class="c1"># 2. Envio real do resumo diário ao Telegram</span>
+.venv/bin/python<span class="w"> </span>tools/daily_gate_digest.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--db<span class="w"> </span>data/quant.db<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--env-file<span class="w"> </span>.env<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--gate<span class="w"> </span>auto<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--log-file<span class="w"> </span>/tmp/bot_digest.log
+
+<span class="c1"># 3. Gerar comando pronto para agendar no cron da VM (crontab -e)</span>
+.venv/bin/python<span class="w"> </span>tools/daily_gate_digest.py<span class="w"> </span>--print-cron<span class="w"> </span>--gate<span class="w"> </span>6a<span class="w"> </span>--cron-hour<span class="w"> </span><span class="m">9</span>
+</code></pre></div>
+<p>Exemplo gerado para <code>crontab -e</code> na VM (roda diariamente às <code>09:05 UTC</code> sem reiniciar o container):</p>
+<div class="highlight"><pre><span></span><code>5 9 * * * cd /srv/quant-crypto-chameleon-radar-engine &amp;&amp; docker compose logs --no-color --since 192h quant-chameleon &gt; /tmp/bot_digest.log 2&gt;&amp;1 &amp;&amp; .venv/bin/python tools/daily_gate_digest.py --db data/quant.db --env-file .env --gate 6a --log-file /tmp/bot_digest.log &gt;&gt; /tmp/daily_gate_digest.log 2&gt;&amp;1
+</code></pre></div>
+<blockquote>
+<p><strong>Dica:</strong> após executar o <code>tools/restore_drill.sh</code> no Gate 6A, passe também <code>--restore-drill-report /tmp/restore_drill_6a.json</code> para que o critério <code>gate_6a.disaster_restore_drill</code> deixe de aparecer como <code>UNKNOWN</code>.</p>
+</blockquote>
+<h3 id="72-transicao-guiada-exclusiva-gate-6a-gate-6b-toolsguided_gate_switchpy-to-6b">7.2. Transição guiada exclusiva Gate 6A → Gate 6B (<code>tools/guided_gate_switch.py --to 6b</code>)<a class="headerlink" href="#72-transicao-guiada-exclusiva-gate-6a-gate-6b-toolsguided_gate_switchpy-to-6b" title="Permanent link">&para;</a></h3>
+<p>Quando o Gate 6A concluir os 7 dias (168 ciclos horários consecutivos), use <code>tools/guided_gate_switch.py --to 6b</code> para auditar e alternar o <code>.env</code> para <code>MODE=SHADOW_CHAMELEON</code> com segurança:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># 1. Gere os artefatos exigidos pelo gate_report (sem parar o bot)</span>
+docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>--no-color<span class="w"> </span>quant-chameleon<span class="w"> </span>&gt;<span class="w"> </span>/tmp/bot_6a.log
+<span class="nv">LATEST_BKP</span><span class="o">=</span><span class="k">$(</span>ls<span class="w"> </span>-1t<span class="w"> </span>data/backups/quant_backup_*.db<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="k">)</span>
+tools/restore_drill.sh<span class="w"> </span><span class="s2">"</span><span class="nv">$LATEST_BKP</span><span class="s2">"</span><span class="w"> </span>--report-json<span class="w"> </span>/tmp/restore_drill_6a.json
+
+<span class="c1"># 2. Execute o assistente guiado EXCLUSIVO para 6B</span>
+.venv/bin/python<span class="w"> </span>tools/guided_gate_switch.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--to<span class="w"> </span>6b<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--db<span class="w"> </span>data/quant.db<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--env-file<span class="w"> </span>.env<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--log-file<span class="w"> </span>/tmp/bot_6a.log<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--restore-drill-report<span class="w"> </span>/tmp/restore_drill_6a.json
+</code></pre></div>
+<p><strong>Salvaguardas inegociáveis desta ferramenta:</strong></p>
+<ol>
+<li><strong>Bloqueio absoluto em <code>FAIL</code> ou <code>UNKNOWN</code>:</strong> executa <code>tools/preflight_check.py --target-gate 6a</code> e <code>tools/gate_report.py</code>; se <strong>qualquer</strong> critério do Gate 6A, Kill-Switch ou Preflight estiver <code>FAIL</code> ou <code>UNKNOWN</code>, recusa prosseguir sem alterar <code>.env</code>.</li>
+<li><strong>Confirmação explícita obrigatória:</strong> exibe o resumo das alterações (sem exibir segredos) e só grava o <code>.env</code> depois de o operador digitar exatamente <code>SWITCH TO 6B</code>.</li>
+<li><strong>Backup atômico + menor privilégio (ADR-010):</strong> cria <code>.env.bak.&lt;UTC&gt;</code> (<code>chmod 0600</code>), altera <code>MODE=SHADOW_CHAMELEON</code>, <strong>remove</strong> <code>BINANCE_API_KEY</code>, <code>BINANCE_ED25519_PRIVATE_KEY_PATH</code>, <code>LIVE_CONFIRMATION</code> e <code>APPROVED_STRATEGIES_SHA256</code>, e revalida o <code>.env</code> final com <code>preflight_check --target-gate 6b</code> (revertendo automaticamente para o backup em caso de falha).</li>
+<li><strong>Sem reinício automático:</strong> não executa <code>docker compose up</code>; o operador reinicia manualmente quando estiver pronto.</li>
+<li><strong>Fase 1 (dinheiro real) e Fase 2 são ESTRITAMENTE MANUAIS:</strong> a ferramenta <strong>recusa</strong> qualquer alvo diferente de <code>6b</code> (ex.: <code>--to phase1</code> ou <code>--to phase2</code> encerra com código <code>2</code>). A decisão pós-Gate 6B segue a regra pré-registrada em <a href="../adr-016-regra-de-decisao-6b/">ADR-016</a>.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Voltar ao topo
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.path", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "Mais 1 nesta p\u00e1gina", "search.result.more.other": "Mais # nesta p\u00e1gina", "search.result.none": "Nenhum resultado encontrado", "search.result.one": "1 resultado encontrado", "search.result.other": "# resultados encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

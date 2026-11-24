@@ -1,0 +1,2656 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Arquitetura, operação, governança quantitativa e auditorias do QuantCrypto Chameleon & Radar Engine">
+      
+      
+      
+        <link rel="canonical" href="https://pac-coins.github.io/quant-crypto-chameleon-radar-engine/next-steps/">
+      
+      
+        <link rel="prev" href="../adr-016-regra-de-decisao-6b/">
+      
+      
+        <link rel="next" href="../backtest-edge-audit/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
+    
+    
+      
+        <title>Próximos Passos e Pré-mortem - QuantCrypto Chameleon & Radar Engine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#proximos-passos-backlog-priorizado-e-pre-mortem-da-fase-1" class="md-skip">
+          Ir para o conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href=".." title="QuantCrypto Chameleon &amp; Radar Engine" class="md-header__button md-logo" aria-label="QuantCrypto Chameleon & Radar Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            QuantCrypto Chameleon & Radar Engine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Próximos Passos e Pré-mortem
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Usar modo escuro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Usar modo escuro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Usar modo claro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Usar modo claro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando a pesquisa
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/pac-coins/quant-crypto-chameleon-radar-engine" title="Ir ao repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pac-coins/quant-crypto-chameleon-radar-engine
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Abas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href=".." class="md-tabs__link">
+          
+  
+  
+  Início
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../runbook/" class="md-tabs__link">
+          
+  
+  
+  Operação
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../unified-architecture/" class="md-tabs__link">
+          
+  
+  
+  Arquitetura & Referência
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../methodology-and-roadmap/" class="md-tabs__link">
+          
+  
+  
+  Governança & Pesquisa
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../integration-audit/" class="md-tabs__link">
+          
+  
+  
+  Auditorias & Histórico
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="QuantCrypto Chameleon &amp; Radar Engine" class="md-nav__button md-logo" aria-label="QuantCrypto Chameleon & Radar Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    QuantCrypto Chameleon & Radar Engine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/pac-coins/quant-crypto-chameleon-radar-engine" title="Ir ao repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pac-coins/quant-crypto-chameleon-radar-engine
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Início
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Início
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão Geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guia Rápido e Transição de Gates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operação
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operação
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../runbook/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runbook de Incidentes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backup-and-restore/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup e Restauração
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura & Referência
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitetura & Referência
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../unified-architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura Unificada (Canônica)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de Dados (SQLite WAL)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Executor (Chameleon v6.0)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../radar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Radar & Auditor Virtual (v1.1)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Governança & Pesquisa
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Governança & Pesquisa
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methodology-and-roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metodologia e Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisões Arquiteturais (ADR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr-016-regra-de-decisao-6b/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-016 — Regra de Decisão do Gate 6B
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Próximos Passos e Pré-mortem
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Próximos Passos e Pré-mortem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-backlog-priorizado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Backlog Priorizado
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Backlog Priorizado">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#resumo-executivo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resumo Executivo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#detalhamento-dos-itens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detalhamento dos Itens
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Detalhamento dos Itens">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#b1-persistencia-de-telemetria-operacional-system_state-regime_history-alertas-preventivos-de-bnbtaxa-e-rotacao-de-backups-locais-implementado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B1 — Persistência de telemetria operacional (system_state / regime_history), alertas preventivos de BNB/taxa e rotação de backups locais (Implementado)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b2-contabilidade-liquida-de-taxas-fees_usdt_equiv-e-medicao-real-de-slippage-por-profundidade-no-gate-6b-implementado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B2 — Contabilidade líquida de taxas (fees_usdt_equiv) e medição real de slippage por profundidade no Gate 6B (Implementado)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b3-observabilidade-ativa-scorecard-semanal-do-radar-alerta-de-disco-da-vps-e-resiliencia-do-batch-exchangeinfo-implementado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B3 — Observabilidade ativa: Scorecard semanal do Radar, alerta de disco da VPS e resiliência do batch exchangeInfo (Implementado)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b4-treinamento-offline-treinovalidacao-e-carga-de-artefato-calibrado-do-mljudge-para-o-observador-silencioso-da-fase-1-implementado-cli-loader-prontos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B4 — Treinamento offline (Treino/Validação) e carga de artefato calibrado do MLJudge para o observador silencioso da Fase 1 (Implementado — CLI + loader prontos)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b5-uso-dos-dados-do-radar-virtual_signals-orderbook_snapshots-orderbook_walls-para-auditar-l4-e-validar-o-juiz-de-ia-implementado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B5 — Uso dos dados do Radar (virtual_signals, orderbook_snapshots, orderbook_walls) para auditar L4 e validar o Juiz de IA (Implementado)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b6-watchdog-sub-horario-para-stop-pendurado-stop_loss_limit-implementado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B6 — Watchdog sub-horário para Stop Pendurado (STOP_LOSS_LIMIT) (Implementado)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b7-integracao-runtime-da-fase-2-runmode-fase-2-profitsplitter-filtro-ativo-nota-c-escada-15-20-cvar-99-e-auto-downgrade-de-30-trades-implementado-ativacao-travada-ate-gate-f1-f2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B7 — Integração runtime da Fase 2 (RunMode Fase 2, ProfitSplitter, filtro ativo Nota C, escada 1,5% -&gt; 2,0% + CVaR 99% e Auto-Downgrade de 30 trades) (Implementado — ativação travada até Gate F1-&gt;F2)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b8-estudo-do-degrau-e-breakeven-12r-em-1m-e-modulo-websocket-assincrono-bookticker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B8 — Estudo do Degrau E (Breakeven +1,2R em 1m) e Módulo WebSocket assíncrono bookTicker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b9-homologacao-de-sideways_pingpong-gate-3-30-shadow-trades-e-roteamento-multi-estrategia-por-net_expected_r" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B9 — Homologação de sideways_pingpong (Gate 3 + 30 shadow trades) e roteamento multi-estratégia por net_expected_r
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b10-estudo-ponto-no-tempo-de-bear_capitulation_snap-com-ativos-colapsadosdeslistados" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B10 — Estudo ponto-no-tempo de bear_capitulation_snap com ativos colapsados/deslistados
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-pre-mortem-da-fase-1-as-10-maneiras-mais-provaveis-de-perder-dinheiro-ou-capital" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Pré-mortem da Fase 1: As 10 Maneiras Mais Prováveis de Perder Dinheiro ou Capital
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Pré-mortem da Fase 1: As 10 Maneiras Mais Prováveis de Perder Dinheiro ou Capital">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tabela-resumo-do-ranking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tabela-Resumo do Ranking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#analise-cetica-detalhada" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Análise Cética Detalhada
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Análise Cética Detalhada">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-queda-severa-7090-da-carteira-core-150-xrp-e-concentracao-dobrada-em-xrpusdt-p4-i5-20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #1 — Queda severa (70%–90%) da Carteira Core (150 XRP) e concentração dobrada em XRPUSDT (P=4 × I=5 = 20)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-overfitting-residual-holdsum-observado-em-k1k9-e-vies-de-sobrevivencia-da-cesta-p4-i4-16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #2 — Overfitting residual (HoldSum observado em K1–K9) e viés de sobrevivência da cesta (P=4 × I=4 = 16)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-mudanca-estrutural-de-regime-bear-market-prolongado-ou-whipsaws-de-rompimento-falso-p4-i4-16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #3 — Mudança estrutural de regime (bear market prolongado ou whipsaws de rompimento falso) (P=4 × I=4 = 16)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-flash-crash-saltando-o-buffer-de-25-da-perna-stop_loss_limit-p3-i5-15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #4 — Flash-crash saltando o buffer de 2,5% da perna STOP_LOSS_LIMIT (P=3 × I=5 = 15)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-divergencia-de-slippage-spread-e-taxas-reais-frente-as-premissas-do-backtest-p3-i4-12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #5 — Divergência de slippage, spread e taxas reais frente às premissas do backtest (P=3 × I=4 = 12)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-dependencia-concentrada-na-binance-contraparte-manutencao-sem-aviso-de-2h-mudanca-de-apidelisting-e-depeg-de-usdt-p2-i5-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #6 — Dependência concentrada na Binance: contraparte, manutenção sem aviso de 2h, mudança de API/delisting e depeg de USDT (P=2 × I=5 = 10)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-http-418-ip-ban-ou-queda-de-redevps-entre-fill-da-compra-e-criacao-da-oco-deixando-posicao-nua-p2-i5-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #7 — HTTP 418 (IP ban) ou queda de rede/VPS entre fill da compra e criação da OCO, deixando posição nua (P=2 × I=5 = 10)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-erro-operacional-humano-intervencao-por-tediopanico-trade-manual-na-conta-api-protecoes-desligadas-por-padrao-ou-bnb-sem-recarga-p3-i3-9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #8 — Erro operacional humano: intervenção por tédio/pânico, trade manual na conta API, proteções desligadas por padrão ou BNB sem recarga (P=3 × I=3 = 9)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#9-cegueira-de-degradacao-e-contabilidade-distorcida-p3-i3-9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #9 — Cegueira de degradação e contabilidade distorcida (P=3 × I=3 = 9)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#10-falha-de-infraestrutura-da-vps-disco-cheio-oom-512m-drift-de-relogio-ou-perda-de-disco-p2-i4-8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #10 — Falha de infraestrutura da VPS: disco cheio, OOM (&gt; 512m), drift de relógio ou perda de disco (P=2 × I=4 = 8)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backtest-edge-audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditoria do Backtest e Edge (K9.3)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditorias & Histórico
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Auditorias & Histórico
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integration-audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditoria de Integração (C1/C2)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../audit-2026-11-23/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditoria Adversarial (2026-11-23)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../audit-2026-11-23-remediation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Remediação da Auditoria (2026-11-23)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_4" id="__nav_5_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificações dos Blocos 1–6
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Especificações dos Blocos 1–6
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-1-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bloco 1 — Fundação & Dados
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-2-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bloco 2 — Features & MECE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-3-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bloco 3 — Backtest, DSR & K9.3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-4-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bloco 4 — Risco, CPPI & MLJudge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-5-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bloco 5 — OCO & Reconciliador
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-6-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bloco 6 — Radar, Auditor & Main
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../todo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quadro TODO (Histórico)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v5-to-v6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migração v5 → v6
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura v5 (Legado)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-backlog-priorizado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Backlog Priorizado
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Backlog Priorizado">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#resumo-executivo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resumo Executivo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#detalhamento-dos-itens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detalhamento dos Itens
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Detalhamento dos Itens">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#b1-persistencia-de-telemetria-operacional-system_state-regime_history-alertas-preventivos-de-bnbtaxa-e-rotacao-de-backups-locais-implementado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B1 — Persistência de telemetria operacional (system_state / regime_history), alertas preventivos de BNB/taxa e rotação de backups locais (Implementado)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b2-contabilidade-liquida-de-taxas-fees_usdt_equiv-e-medicao-real-de-slippage-por-profundidade-no-gate-6b-implementado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B2 — Contabilidade líquida de taxas (fees_usdt_equiv) e medição real de slippage por profundidade no Gate 6B (Implementado)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b3-observabilidade-ativa-scorecard-semanal-do-radar-alerta-de-disco-da-vps-e-resiliencia-do-batch-exchangeinfo-implementado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B3 — Observabilidade ativa: Scorecard semanal do Radar, alerta de disco da VPS e resiliência do batch exchangeInfo (Implementado)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b4-treinamento-offline-treinovalidacao-e-carga-de-artefato-calibrado-do-mljudge-para-o-observador-silencioso-da-fase-1-implementado-cli-loader-prontos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B4 — Treinamento offline (Treino/Validação) e carga de artefato calibrado do MLJudge para o observador silencioso da Fase 1 (Implementado — CLI + loader prontos)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b5-uso-dos-dados-do-radar-virtual_signals-orderbook_snapshots-orderbook_walls-para-auditar-l4-e-validar-o-juiz-de-ia-implementado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B5 — Uso dos dados do Radar (virtual_signals, orderbook_snapshots, orderbook_walls) para auditar L4 e validar o Juiz de IA (Implementado)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b6-watchdog-sub-horario-para-stop-pendurado-stop_loss_limit-implementado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B6 — Watchdog sub-horário para Stop Pendurado (STOP_LOSS_LIMIT) (Implementado)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b7-integracao-runtime-da-fase-2-runmode-fase-2-profitsplitter-filtro-ativo-nota-c-escada-15-20-cvar-99-e-auto-downgrade-de-30-trades-implementado-ativacao-travada-ate-gate-f1-f2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B7 — Integração runtime da Fase 2 (RunMode Fase 2, ProfitSplitter, filtro ativo Nota C, escada 1,5% -&gt; 2,0% + CVaR 99% e Auto-Downgrade de 30 trades) (Implementado — ativação travada até Gate F1-&gt;F2)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b8-estudo-do-degrau-e-breakeven-12r-em-1m-e-modulo-websocket-assincrono-bookticker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B8 — Estudo do Degrau E (Breakeven +1,2R em 1m) e Módulo WebSocket assíncrono bookTicker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b9-homologacao-de-sideways_pingpong-gate-3-30-shadow-trades-e-roteamento-multi-estrategia-por-net_expected_r" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B9 — Homologação de sideways_pingpong (Gate 3 + 30 shadow trades) e roteamento multi-estratégia por net_expected_r
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b10-estudo-ponto-no-tempo-de-bear_capitulation_snap-com-ativos-colapsadosdeslistados" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B10 — Estudo ponto-no-tempo de bear_capitulation_snap com ativos colapsados/deslistados
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-pre-mortem-da-fase-1-as-10-maneiras-mais-provaveis-de-perder-dinheiro-ou-capital" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Pré-mortem da Fase 1: As 10 Maneiras Mais Prováveis de Perder Dinheiro ou Capital
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Pré-mortem da Fase 1: As 10 Maneiras Mais Prováveis de Perder Dinheiro ou Capital">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tabela-resumo-do-ranking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tabela-Resumo do Ranking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#analise-cetica-detalhada" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Análise Cética Detalhada
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Análise Cética Detalhada">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-queda-severa-7090-da-carteira-core-150-xrp-e-concentracao-dobrada-em-xrpusdt-p4-i5-20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #1 — Queda severa (70%–90%) da Carteira Core (150 XRP) e concentração dobrada em XRPUSDT (P=4 × I=5 = 20)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-overfitting-residual-holdsum-observado-em-k1k9-e-vies-de-sobrevivencia-da-cesta-p4-i4-16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #2 — Overfitting residual (HoldSum observado em K1–K9) e viés de sobrevivência da cesta (P=4 × I=4 = 16)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-mudanca-estrutural-de-regime-bear-market-prolongado-ou-whipsaws-de-rompimento-falso-p4-i4-16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #3 — Mudança estrutural de regime (bear market prolongado ou whipsaws de rompimento falso) (P=4 × I=4 = 16)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-flash-crash-saltando-o-buffer-de-25-da-perna-stop_loss_limit-p3-i5-15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #4 — Flash-crash saltando o buffer de 2,5% da perna STOP_LOSS_LIMIT (P=3 × I=5 = 15)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-divergencia-de-slippage-spread-e-taxas-reais-frente-as-premissas-do-backtest-p3-i4-12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #5 — Divergência de slippage, spread e taxas reais frente às premissas do backtest (P=3 × I=4 = 12)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-dependencia-concentrada-na-binance-contraparte-manutencao-sem-aviso-de-2h-mudanca-de-apidelisting-e-depeg-de-usdt-p2-i5-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #6 — Dependência concentrada na Binance: contraparte, manutenção sem aviso de 2h, mudança de API/delisting e depeg de USDT (P=2 × I=5 = 10)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-http-418-ip-ban-ou-queda-de-redevps-entre-fill-da-compra-e-criacao-da-oco-deixando-posicao-nua-p2-i5-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #7 — HTTP 418 (IP ban) ou queda de rede/VPS entre fill da compra e criação da OCO, deixando posição nua (P=2 × I=5 = 10)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-erro-operacional-humano-intervencao-por-tediopanico-trade-manual-na-conta-api-protecoes-desligadas-por-padrao-ou-bnb-sem-recarga-p3-i3-9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #8 — Erro operacional humano: intervenção por tédio/pânico, trade manual na conta API, proteções desligadas por padrão ou BNB sem recarga (P=3 × I=3 = 9)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#9-cegueira-de-degradacao-e-contabilidade-distorcida-p3-i3-9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #9 — Cegueira de degradação e contabilidade distorcida (P=3 × I=3 = 9)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#10-falha-de-infraestrutura-da-vps-disco-cheio-oom-512m-drift-de-relogio-ou-perda-de-disco-p2-i4-8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #10 — Falha de infraestrutura da VPS: disco cheio, OOM (&gt; 512m), drift de relógio ou perda de disco (P=2 × I=4 = 8)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="proximos-passos-backlog-priorizado-e-pre-mortem-da-fase-1">Próximos Passos: Backlog Priorizado e Pré-mortem da Fase 1<a class="headerlink" href="#proximos-passos-backlog-priorizado-e-pre-mortem-da-fase-1" title="Permanent link">&para;</a></h1>
+<p>Este documento consolida o planejamento técnico pós-Bloco 6 e a análise cética de riscos antes da virada para capital real na <strong>Fase 1</strong> (<code>MODE=LIVE_CHAMELEON_PHASE_1</code>, <code>BINANCE_ENV=PRODUCTION</code>).</p>
+<div class="admonition warning">
+<p class="admonition-title">Restrição inegociável de governança</p>
+<p>Nenhum item deste documento propõe alterar parâmetros da estratégia congelada <strong><code>K9.3</code></strong> (<code>bull_trend_pullback</code>), editar <code>config/strategies.yaml</code> ou reabrir o Holdout do Bloco 3 (<a href="../methodology-and-roadmap/">Metodologia e Roadmap §2</a>). Toda alteração de flags de fase (<code>profit_splitter</code>, <code>ml_judge</code>, <code>conviction_sizing</code>, <code>breakeven</code>, <code>sideways_pingpong</code>) permanece travada em <code>src/core/config.py:495-595</code> até que o respectivo Gate seja aprovado formalmente e receba novo <code>APPROVED_STRATEGIES_SHA256</code>.</p>
+</div>
+<hr />
+<h2 id="1-backlog-priorizado">1. Backlog Priorizado<a class="headerlink" href="#1-backlog-priorizado" title="Permanent link">&para;</a></h2>
+<p>A ordenação abaixo segue estritamente <strong>o que desbloqueia o próximo gate mais cedo</strong>, respeitando o estado atual do projeto (<strong>Gate 6A</strong> em curso na Binance Spot Testnet → <strong>Gate 6B</strong> em <code>SHADOW_CHAMELEON</code> → <strong>Fase 1</strong> → <strong>Gate F1→F2</strong> → <strong>Gate F2→F3</strong>).</p>
+<div class="admonition info">
+<p class="admonition-title">Regra operacional de deploy</p>
+<p>Nenhum código deve ser implantado nem o container reiniciado <strong>durante</strong> o Gate 6A em andamento (<code>AGENTS.md</code>). Os itens <strong>B1–B7</strong> já foram implementados e validados em suíte unitária (<code>pytest</code>: 110 passed) sem alterar <code>config/strategies.yaml</code>, prontos para entrar na transição controlada de gate; <strong>B8–B10</strong> permanecem pendentes de estudos empíricos offline.</p>
+</div>
+<h3 id="resumo-executivo">Resumo Executivo<a class="headerlink" href="#resumo-executivo" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Ordem</th>
+<th>ID</th>
+<th>Status</th>
+<th>Item</th>
+<th>Gate / Fase</th>
+<th>Esforço</th>
+<th>Desbloqueio principal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1</strong></td>
+<td><strong>B1</strong></td>
+<td><strong>Implementado</strong></td>
+<td>Telemetria de equity/BNB/regime no SQLite, alertas preventivos (<code>&lt; 5,00 USDT</code> BNB e taxa <code>&gt; 0,10%</code>) e rotação de backups locais</td>
+<td><code>6A</code> / <code>6B</code></td>
+<td><code>P</code></td>
+<td>Elimina <code>UNKNOWN</code> em <code>tools/gate_report.py</code> e previne disco cheio / esgotamento silencioso de BNB</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td><strong>B2</strong></td>
+<td><strong>Implementado</strong></td>
+<td>Contabilidade líquida de <code>fees_usdt_equiv</code> (LIVE) e slippage ponderado por profundidade do livro (<code>SHADOW_CHAMELEON</code>)</td>
+<td><code>6B</code> (pré-<code>F1</code>)</td>
+<td><code>M</code></td>
+<td>Validação fiel do limiar de slippage <code>&lt;= 0,08%</code> no Gate 6B e PnL/PF reais líquidos na Fase 1</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td><strong>B3</strong></td>
+<td><strong>Implementado</strong></td>
+<td>Observabilidade ativa: Scorecard semanal do Radar, alerta de disco e isolamento de <code>-1121</code> no batch de <code>exchangeInfo</code></td>
+<td><code>6B</code></td>
+<td><code>P</code></td>
+<td>30 dias limpos no Gate 6B sem um par Radar deslistado derrubar os 7 pares do Chameleon</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td><strong>B4</strong></td>
+<td><strong>Implementado</strong> (CLI + loader)</td>
+<td>Treinamento offline (Treino/Validação) e carga de artefato calibrado do <code>MLJudge</code> em modo observador silencioso</td>
+<td><code>6B</code> → <code>F1-&gt;F2</code></td>
+<td><code>M</code></td>
+<td>Evita desperdiçar os 60 trades reais da Fase 1 com <code>PlattCalibrator</code> não treinado (<code>a=-1, b=0</code>); falta apenas rodar o CLI sobre candles históricos</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td><strong>B5</strong></td>
+<td><strong>Implementado</strong></td>
+<td>Pipeline de auditoria dos dados do Radar (<code>virtual_signals</code> + <code>orderbook_snapshots</code>) para validar L4 e o Juiz de IA</td>
+<td><code>6B</code> → <code>F1-&gt;F2</code></td>
+<td><code>M</code></td>
+<td>Testa empiricamente se L4 adiciona edge e se enriquece features do <code>MLJudge</code> sem violar ADR-004</td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td><strong>B6</strong></td>
+<td><strong>Implementado</strong></td>
+<td>Watchdog sub-horário (<code>&lt;= 30 s</code>) para <code>STOP_LOSS_LIMIT</code> pendurado durante posição <code>PROTECTED</code></td>
+<td><code>6B</code> / <code>F1-&gt;F2</code></td>
+<td><code>M</code></td>
+<td>Reduz de ~59 min para <code>&lt;= 20 s</code> (padrão) a exposição a flash-crash que pule o buffer de <code>2,5%</code></td>
+</tr>
+<tr>
+<td><strong>7</strong></td>
+<td><strong>B7</strong></td>
+<td><strong>Implementado</strong></td>
+<td>Integração runtime da Fase 2 (<code>RunMode</code> Fase 2, <code>ProfitSplitter</code>, filtro ativo Nota C, escada <code>1,5% -&gt; 2,0%</code> + <code>CVaR 99%</code>, Auto-Downgrade 30 trades)</td>
+<td><code>F1-&gt;F2</code></td>
+<td><code>G</code></td>
+<td>Habilita a virada segura para Fase 2A/2B assim que os 5 requisitos de <code>F1-&gt;F2</code> derem <code>PASS</code></td>
+</tr>
+<tr>
+<td><strong>8</strong></td>
+<td><strong>B8</strong></td>
+<td>Pendente (pesquisa)</td>
+<td>Avaliação do Degrau E (Breakeven <code>+1,2R</code> em velas <code>1m</code> sobre <code>K9.3</code>) e módulo WebSocket assíncrono <code>bookTicker</code> (soak test 14 dias)</td>
+<td><code>F2-&gt;F3</code></td>
+<td><code>G</code></td>
+<td>Cumpre o duplo cadeado (estatístico + 14 dias de estabilidade) antes de cogitar <code>breakeven_enabled</code></td>
+</tr>
+<tr>
+<td><strong>9</strong></td>
+<td><strong>B9</strong></td>
+<td>Pendente (pesquisa)</td>
+<td>Homologação de <code>sideways_pingpong</code> (Gate 3 + 30 shadow trades) e roteamento multi-estratégia por <code>net_expected_r</code></td>
+<td><code>F2-&gt;F3</code></td>
+<td><code>G</code></td>
+<td>Desbloqueia operação em clima <code>SIDEWAYS</code> após <code>&gt;= 100</code> trades reais na Fase 2</td>
+</tr>
+<tr>
+<td><strong>10</strong></td>
+<td><strong>B10</strong></td>
+<td>Pendente (pesquisa)</td>
+<td>Estudo ponto-no-tempo de <code>bear_capitulation_snap</code> incluindo ativos deslistados/colapsados</td>
+<td><code>F2-&gt;F3</code></td>
+<td><code>G</code></td>
+<td>Comprova ou arquiva definitivamente via ADR a quarentena do regime <code>BEAR</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="detalhamento-dos-itens">Detalhamento dos Itens<a class="headerlink" href="#detalhamento-dos-itens" title="Permanent link">&para;</a></h3>
+<h4 id="b1-persistencia-de-telemetria-operacional-system_state-regime_history-alertas-preventivos-de-bnbtaxa-e-rotacao-de-backups-locais-implementado">B1 — Persistência de telemetria operacional (<code>system_state</code> / <code>regime_history</code>), alertas preventivos de BNB/taxa e rotação de backups locais <em>(Implementado)</em><a class="headerlink" href="#b1-persistencia-de-telemetria-operacional-system_state-regime_history-alertas-preventivos-de-bnbtaxa-e-rotacao-de-backups-locais-implementado" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Implementação entregue:</strong></li>
+<li><code>src/main.py:803-806,844-872,1205-1219</code> persiste <code>current_equity_usdt</code>, <code>initial_tactical_equity_usdt</code>, <code>bnb_free_usdt_equiv</code> e grava snapshots em <code>regime_history</code> via <code>Database.upsert_regime_history()</code> (<code>src/core/database.py:725-754</code>), além de enfileirar <code>BNB_LOW_WARNING</code> (<code>&lt; 5,00 USDT</code>) e <code>COMMISSION_WARNING</code> (<code>taker &gt; 0,10%</code>) com rate-limit diário.</li>
+<li><code>src/execution/paper_executor.py</code> atualiza <code>shadow_virtual_equity_usdt</code> e <code>initial_shadow_equity_usdt</code> ao fechar cada <code>shadow_trade</code>.</li>
+<li><code>Database.prune_old_backups()</code> (<code>src/core/database.py:782-812</code>, controlado por <code>BACKUP_RETENTION_DAYS=14</code> em <code>src/core/config.py</code>) rotaciona backups locais em <code>BACKUP_DIR</code>.</li>
+<li>Coberto por <code>tests/test_b1_telemetry_and_retention.py</code> (incluindo <code>tools/gate_report.py</code> resolvendo KS-1 e KS-2 como <code>PASS</code>).</li>
+<li><strong>Gate / Fase:</strong> <code>6A</code> / <code>6B</code>.</li>
+<li><strong>Esforço:</strong> <code>P</code></li>
+<li><strong>Contexto mínimo para IA (arquivos a ler):</strong> <code>AGENTS.md</code>, <code>src/main.py</code>, <code>src/execution/paper_executor.py</code>, <code>src/core/database.py</code>, <code>src/risk/shadow_manager.py</code>, <code>tools/gate_report.py</code>.</li>
+</ul>
+<hr />
+<h4 id="b2-contabilidade-liquida-de-taxas-fees_usdt_equiv-e-medicao-real-de-slippage-por-profundidade-no-gate-6b-implementado">B2 — Contabilidade líquida de taxas (<code>fees_usdt_equiv</code>) e medição real de slippage por profundidade no Gate 6B <em>(Implementado)</em><a class="headerlink" href="#b2-contabilidade-liquida-de-taxas-fees_usdt_equiv-e-medicao-real-de-slippage-por-profundidade-no-gate-6b-implementado" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Implementação entregue:</strong></li>
+<li><code>OcoOrderManager</code> (<code>src/execution/oco_order_manager.py:91,431,823,1395,1991</code>) e <code>StateReconciler</code> (<code>src/core/state_reconciler.py:1007-1020</code>) convertem taxas em <code>BNB</code>/<code>USDT</code>/ativo base para <code>fees_usdt_equiv</code> (com resolução zero-rede entre compra e OCO para preservar C1-B/C1-E) e gravam <code>realized_r</code> líquido de taxas (mantendo <code>realized_pnl_usdt</code> bruto conforme convenção de <code>tools/gate_report.py:724-725</code>).</li>
+<li><code>PaperExecutor</code> (<code>src/execution/paper_executor.py:17,111-183</code>) consulta <code>get_depth(symbol, limit=20)</code> via <code>compute_depth_vwap_ask()</code>, grava <code>depth_vwap_ask</code> e <code>book_impact_bps</code> nas colunas aditivas de <code>shadow_trades</code> (<code>src/core/database.py:170-171,454-456</code>, mantendo <code>SCHEMA_VERSION = 1</code>), com fallback seguro para top-of-book.</li>
+<li>Coberto por <code>tests/test_b2_fees_and_depth_slippage.py</code>.</li>
+<li><strong>Gate / Fase:</strong> <code>6B</code> (critério <code>slippage &lt;= 0,08%</code>) e pré-requisito para <code>F1-&gt;F2</code> (Req. 2 e Req. 3).</li>
+<li><strong>Esforço:</strong> <code>M</code></li>
+<li><strong>Contexto mínimo para IA (arquivos a ler):</strong> <code>AGENTS.md</code>, <code>src/execution/oco_order_manager.py</code>, <code>src/core/state_reconciler.py</code>, <code>src/execution/paper_executor.py</code>, <code>src/core/binance_client.py</code>, <code>src/core/database.py</code>, <code>tools/gate_report.py</code>.</li>
+</ul>
+<hr />
+<h4 id="b3-observabilidade-ativa-scorecard-semanal-do-radar-alerta-de-disco-da-vps-e-resiliencia-do-batch-exchangeinfo-implementado">B3 — Observabilidade ativa: Scorecard semanal do Radar, alerta de disco da VPS e resiliência do batch <code>exchangeInfo</code> <em>(Implementado)</em><a class="headerlink" href="#b3-observabilidade-ativa-scorecard-semanal-do-radar-alerta-de-disco-da-vps-e-resiliencia-do-batch-exchangeinfo-implementado" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Implementação entregue:</strong></li>
+<li><code>QuantOrchestrator._maybe_emit_weekly_radar_scorecard()</code> (<code>src/main.py:510-535</code>) agenda envio semanal idempotente via <code>last_weekly_scorecard_ms</code> respeitando <code>analyst.virtual_auditor.send_weekly_scorecard_telegram</code>.</li>
+<li><code>QuantOrchestrator._check_disk_usage()</code> (<code>src/main.py:537-566</code>) monitora o disco em <code>db_path.parent</code>, persiste <code>disk_usage_pct</code> e emite <code>DISK_USAGE_WARNING</code> (<code>&gt;= 70%</code>).</li>
+<li><code>ExchangeInfoCache</code> (<code>src/core/binance_client.py:647-705</code>, <code>src/main.py:1134-1145,1500-1505</code>) prioriza <code>execution_universe</code>, isola símbolos inválidos <code>-1121</code> do Radar em <code>last_invalid_symbols</code> com alerta <code>EXCHANGE_INFO_WARNING</code> e falha fechado apenas se um símbolo de execução for inválido.</li>
+<li>Coberto por <code>tests/test_b3_observability_and_exchange_info.py</code>.</li>
+<li><strong>Gate / Fase:</strong> <code>6B</code> (30 dias ininterruptos com os 15 símbolos do Radar em produção pública).</li>
+<li><strong>Esforço:</strong> <code>P</code></li>
+<li><strong>Contexto mínimo para IA (arquivos a ler):</strong> <code>AGENTS.md</code>, <code>src/main.py</code>, <code>src/auditing/virtual_auditor.py</code>, <code>src/core/binance_client.py</code>, <code>src/notifications/telegram.py</code>, <code>config/analyst.yaml</code>.</li>
+</ul>
+<hr />
+<h4 id="b4-treinamento-offline-treinovalidacao-e-carga-de-artefato-calibrado-do-mljudge-para-o-observador-silencioso-da-fase-1-implementado-cli-loader-prontos">B4 — Treinamento offline (Treino/Validação) e carga de artefato calibrado do <code>MLJudge</code> para o observador silencioso da Fase 1 <em>(Implementado — CLI + loader prontos)</em><a class="headerlink" href="#b4-treinamento-offline-treinovalidacao-e-carga-de-artefato-calibrado-do-mljudge-para-o-observador-silencioso-da-fase-1-implementado-cli-loader-prontos" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Implementação entregue:</strong></li>
+<li><code>src/features/ml_judge.py:55,321,463-500</code> implementa <code>MLJudgeArtifact</code> (verificação SHA-256 canônica), treinador determinístico puro <code>numpy</code> <code>fit_l2_logistic_and_platt()</code> (L2 logística ponderada + calibração Platt na validação + quantis <code>q33</code>/<code>q70</code>, sem novas dependências e compatível com <code>mem_limit: 512m</code>), <code>MLJudge.from_artifact()</code> e <code>MLJudge.score_features()</code>.</li>
+<li><code>tools/train_ml_judge.py:71-265</code> treina exclusivamente em <code>URI mode=ro</code> sobre Treino/Validação (excluindo estritamente os 15% finais do Holdout via <code>split_temporal_vaults</code>) e exporta artefato JSON pronto para <code>ML_JUDGE_ARTIFACT_PATH</code> (<code>.env.example</code>, <code>src/core/config.py</code>).</li>
+<li><code>src/main.py:150-167,899-908</code> carrega o artefato se configurado, extrai features via <code>extract_stationary_features()</code>, grava <code>ml_p_cal_silent</code> também em <code>shadow_trades</code> (<code>src/core/database.py:185,456</code>, <code>src/execution/paper_executor.py:162,182</code>), mantendo <code>use_ml_filter = False</code> na Fase 1. <strong>Ação operacional pendente antes do dia 1 da Fase 1:</strong> rodar <code>tools/train_ml_judge.py</code> sobre banco com histórico suficiente de candles e apontar <code>ML_JUDGE_ARTIFACT_PATH</code> no <code>.env</code>.</li>
+<li>Coberto por <code>tests/test_b4_ml_judge_artifact.py</code>.</li>
+<li><strong>Gate / Fase:</strong> Preparar durante o <code>6B</code> (antes do dia 1 da Fase 1) para desbloquear <code>F1-&gt;F2</code> (Requisito 5).</li>
+<li><strong>Esforço:</strong> <code>M</code></li>
+<li><strong>Contexto mínimo para IA (arquivos a ler):</strong> <code>AGENTS.md</code>, <code>src/features/ml_judge.py</code>, <code>tools/train_ml_judge.py</code>, <code>src/main.py</code>, <code>src/risk/position_sizer.py</code>, <code>src/core/database.py</code>, <code>tools/gate_report.py</code>.</li>
+</ul>
+<hr />
+<h4 id="b5-uso-dos-dados-do-radar-virtual_signals-orderbook_snapshots-orderbook_walls-para-auditar-l4-e-validar-o-juiz-de-ia-implementado">B5 — Uso dos dados do Radar (<code>virtual_signals</code>, <code>orderbook_snapshots</code>, <code>orderbook_walls</code>) para auditar L4 e validar o Juiz de IA <em>(Implementado)</em><a class="headerlink" href="#b5-uso-dos-dados-do-radar-virtual_signals-orderbook_snapshots-orderbook_walls-para-auditar-l4-e-validar-o-juiz-de-ia-implementado" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Implementação entregue:</strong></li>
+<li><code>tools/radar_ai_audit.py</code> (<code>_open_readonly</code>, <code>generate_radar_ai_audit</code>, <code>_bootstrap_diff_ci95</code>, <code>_offline_ml_ablation</code> em <code>L31,89,110,234</code>) implementa auditoria estritamente somente-leitura (<code>URI mode=ro</code> + <code>PRAGMA query_only=ON</code>, ADR-002): ablação de Camada 4 (<code>L1–L3</code> vs. <code>L1–L4</code>, <code>ob_valid</code>, <code>ob_ask_wall_before_t2</code>, quartis de OBI) com IC 95% via bootstrap, convergência Chameleon × Radar (<code>shadow_trades</code>/<code>trades</code> × <code>virtual_signals</code>), ablação offline OHLCV vs. OHLCV+L4 para o <code>MLJudge</code> (somente quando <code>n &gt;= 150</code> com <code>ob_valid = 1</code>), e preservação estrita de <code>affects_execution: False</code> (ADR-004).</li>
+<li>Coberto por <code>tests/test_b5_radar_ai_audit.py</code> (incluindo teste em diretório <code>chmod 0555</code>).</li>
+<li><strong>Gate / Fase:</strong> Coleta contínua durante <code>6B</code> e Fase 1; decisão científica antes de <code>F1-&gt;F2</code> (e eventual ADR na Fase 2B/3).</li>
+<li><strong>Esforço:</strong> <code>M</code></li>
+<li><strong>Contexto mínimo para IA (arquivos a ler):</strong> <code>AGENTS.md</code>, <code>tools/radar_ai_audit.py</code>, <code>src/core/database.py</code>, <code>src/auditing/virtual_auditor.py</code>, <code>src/radar/orderbook_inspector.py</code>, <code>src/features/ml_judge.py</code>, <code>docs/decisions.md</code>.</li>
+</ul>
+<hr />
+<h4 id="b6-watchdog-sub-horario-para-stop-pendurado-stop_loss_limit-implementado">B6 — Watchdog sub-horário para Stop Pendurado (<code>STOP_LOSS_LIMIT</code>) <em>(Implementado)</em><a class="headerlink" href="#b6-watchdog-sub-horario-para-stop-pendurado-stop_loss_limit-implementado" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Implementação entregue:</strong></li>
+<li><code>QuantOrchestrator.run_subhourly_watchdog_tick()</code> (<code>src/main.py:1363-1444</code>) e <code>wait_for_next_cycle_with_watchdog()</code> (<code>src/main.py:1446-1483</code>, ligado em <code>main()</code> em <code>L1533-1536</code> com <code>WATCHDOG_POLL_INTERVAL_SECONDS=20.0</code> em <code>src/core/config.py</code> / <code>.env.example</code>) substituem o <code>sleep</code> monolítico de até 1h por polling na thread única (respeitando ADR-002 e resposta rápida a <code>SIGTERM</code>). Faz zero chamadas de rede quando flat e liquida stop pendurado ou Time-Stop vencido em <code>&lt;= 20 s</code> (padrão) quando há posição <code>PROTECTED</code>.</li>
+<li>Coberto por <code>tests/test_b6_subhourly_watchdog.py</code>.</li>
+<li><strong>Gate / Fase:</strong> Pronto para <code>6A</code>/<code>6B</code> e proteção ativa na Fase 1.</li>
+<li><strong>Esforço:</strong> <code>M</code></li>
+<li><strong>Contexto mínimo para IA (arquivos a ler):</strong> <code>AGENTS.md</code>, <code>src/main.py</code>, <code>src/data/candle_collector.py</code>, <code>src/execution/oco_order_manager.py</code>, <code>src/core/binance_client.py</code>, <code>src/core/database.py</code>.</li>
+</ul>
+<hr />
+<h4 id="b7-integracao-runtime-da-fase-2-runmode-fase-2-profitsplitter-filtro-ativo-nota-c-escada-15-20-cvar-99-e-auto-downgrade-de-30-trades-implementado-ativacao-travada-ate-gate-f1-f2">B7 — Integração runtime da Fase 2 (<code>RunMode</code> Fase 2, <code>ProfitSplitter</code>, filtro ativo Nota C, escada <code>1,5% -&gt; 2,0%</code> + <code>CVaR 99%</code> e Auto-Downgrade de 30 trades) <em>(Implementado — ativação travada até Gate <code>F1-&gt;F2</code>)</em><a class="headerlink" href="#b7-integracao-runtime-da-fase-2-runmode-fase-2-profitsplitter-filtro-ativo-nota-c-escada-15-20-cvar-99-e-auto-downgrade-de-30-trades-implementado-ativacao-travada-ate-gate-f1-f2" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Implementação entregue:</strong></li>
+<li><code>RunMode.LIVE_CHAMELEON_PHASE_2</code> e <code>PHASE_2_LIVE_CONFIRMATION = "PHASE_2_F1_TO_F2_PASSED"</code> em <code>src/core/config.py:23,39,547-595</code>: exige <code>ML_JUDGE_ARTIFACT_PATH</code> quando <code>use_ml_filter=true</code>, proíbe flags de Fase 3 (<code>breakeven_enabled</code>, <code>sideways_pingpong</code>, <code>bear_capitulation_snap</code>), exige confirmação dedicada + <code>APPROVED_STRATEGIES_SHA256</code> em <code>PRODUCTION</code> e mantém <code>LIVE_CHAMELEON_PHASE_1</code> 100% intocado.</li>
+<li><code>QuantOrchestrator</code> (<code>src/main.py:169-178,223-227,237-397,911-935</code>) conecta: (1) filtro ativo Nota <code>C</code> apenas em <code>LIVE_CHAMELEON_PHASE_2</code> quando <code>use_ml_filter=true</code> e <code>ece_out_of_sample &lt;= max_allowed_ece</code>; (2) <code>_process_newly_closed_live_trades()</code> idempotente por <code>last_post_close_processed_trade_id</code> chamando <code>ShadowManager.evaluate_phase_downgrade()</code> (alerta <code>PHASE_DOWNGRADE</code> em <code>mean_R_30 &lt; 0</code> ou <code>ECE_30 &gt; 0,08</code>) e <code>ProfitSplitter.on_trade_closed()</code> (alerta <code>PROFIT_SPLIT</code> sem duplicar transferências em restart); (3) <code>_compute_phase2_sizing_guards()</code> calculando <code>CVaR 99%</code> empírico e mantendo Estágio 1 (<code>1,5%</code>) até <code>&gt;= 30</code> trades fechados na Fase 2 com <code>mean(R_30) &gt; +0,15R</code> sem downgrade (antes de liberar Estágio 2 <code>2,0%</code>).</li>
+<li><code>config/strategies.yaml</code> permanece 100% congelado para Fase 1; coberto por <code>tests/test_b7_phase2_runtime.py</code>.</li>
+<li><strong>Gate / Fase:</strong> <code>F1-&gt;F2</code> (ativação somente após <code>tools/gate_report.py</code> retornar <code>PASS</code> nos 5 requisitos de <code>phase_1_to_2</code>).</li>
+<li><strong>Esforço:</strong> <code>G</code></li>
+<li><strong>Contexto mínimo para IA (arquivos a ler):</strong> <code>AGENTS.md</code>, <code>src/core/config.py</code>, <code>src/main.py</code>, <code>src/risk/profit_splitter.py</code>, <code>src/risk/position_sizer.py</code>, <code>src/risk/shadow_manager.py</code>, <code>docs/methodology-and-roadmap.md</code>.</li>
+</ul>
+<hr />
+<h4 id="b8-estudo-do-degrau-e-breakeven-12r-em-1m-e-modulo-websocket-assincrono-bookticker">B8 — Estudo do Degrau E (Breakeven <code>+1,2R</code> em <code>1m</code>) e Módulo WebSocket assíncrono <code>bookTicker</code><a class="headerlink" href="#b8-estudo-do-degrau-e-breakeven-12r-em-1m-e-modulo-websocket-assincrono-bookticker" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Estado atual verificado:</strong></li>
+<li><code>config/strategies.yaml:45-47</code> mantém <code>breakeven_enabled: false</code>, <code>breakeven_trigger_r: 1.2</code> e <code>require_realtime_websocket_for_be: true</code>.</li>
+<li>Não existe cliente WebSocket no código atual (<code>src/core/binance_client.py</code> é 100% REST síncrono).</li>
+<li>Nos estudos preliminares do Bloco 3, o Breakeven piorou ou empatou mal em variantes anteriores (<code>K1</code> em <code>docs/block-3-spec.md:291</code>; <code>K5.5</code> em <code>docs/block-3-spec.md:329</code>), e ainda não há ablação publicada em <code>1m</code> especificamente sobre <code>K9.3</code>.</li>
+<li><code>docs/methodology-and-roadmap.md:139-140</code> exige <strong>duas provas</strong>: (1) ganho matemático em Calmar Ratio e retorno líquido sobre <code>K9.3</code> em velas <code>1m</code>, e (2) WebSocket <code>bookTicker</code> rodando <strong>14 dias sem desconexões não tratadas</strong>.</li>
+<li><strong>Objetivo (em duas etapas estritamente sequenciais — só construir etapa 2 se etapa 1 passar!):</strong></li>
+<li><strong>Etapa 1 (Pesquisa offline em <code>1m</code>, zero código de produção):</strong> Avaliar <code>CausalSingleSlotSimulator(..., breakeven_enabled=True, breakeven_trigger_r=1.2)</code> (<code>src/backtest/causal_simulator.py:63-64,129,193</code>) sobre <code>K9.3</code> com dados <code>1m</code> apenas em Treino+Validação (sem reabrir o Holdout!). Se Calmar e <code>E[R]_net</code> <strong>não</strong> melhorarem frente à <code>K9.3</code> sem BE, <strong>encerrar e arquivar o Breakeven via ADR</strong> (poupando complexidade operacional).</li>
+<li><strong>Etapa 2 (Somente se Etapa 1 = PASS):</strong> Implementar consumidor WebSocket assíncrono <code>wss://stream.binance.com:9443/ws/&lt;symbol&gt;@bookTicker</code> com reconexão automática (<code>ping/pong</code>, rotação preventiva <code>&lt; 24h</code> da Binance), isolamento de thread compatível com <code>ADR-002</code> (fila thread-safe enviando eventos ao writer único da thread principal — nunca chamando <code>write_tx()</code> na thread do socket, <code>src/core/database.py:388-392</code>), protocolo atômico de cancelamento + recriação da OCO em <code>critical_section()</code> com fallback a mercado em <code>-2010</code>, e desarme automático do BE quando o socket estiver desconectado (<code>require_realtime_websocket_for_be</code>). Rodar soak test de <strong>14 dias</strong> em modo observador antes de habilitar.</li>
+<li><strong>Gate / Fase:</strong> <code>F2-&gt;F3</code>.</li>
+<li><strong>Teste ou métrica que prova que funcionou:</strong> (1) Relatório <code>1m</code> provando <code>Calmar(K9.3 + BE) &gt; Calmar(K9.3)</code> e <code>E[R]_net(K9.3 + BE) &gt; E[R]_net(K9.3)</code> nos cenários Base e Pessimista (ou ADR formal de descarte); (2) se aprovado, 14 dias consecutivos de soak test com 0 desconexões não tratadas, RSS <code>&lt; 350 MB</code> (<code>mem_limit: 512m</code>), e testes de race condition (preço revertendo durante cancelamento/recriação da OCO sem jamais deixar posição sem stop).</li>
+<li><strong>Esforço:</strong> <code>G</code></li>
+<li><strong>Contexto mínimo para IA (arquivos a ler):</strong> <code>AGENTS.md</code>, <code>src/backtest/causal_simulator.py</code>, <code>src/execution/oco_order_manager.py</code>, <code>src/core/binance_client.py</code>, <code>src/core/database.py</code>, <code>src/main.py</code>, <code>docs/methodology-and-roadmap.md</code>, <code>docs/block-3-spec.md</code>, <code>docs/decisions.md</code>.</li>
+</ul>
+<hr />
+<h4 id="b9-homologacao-de-sideways_pingpong-gate-3-30-shadow-trades-e-roteamento-multi-estrategia-por-net_expected_r">B9 — Homologação de <code>sideways_pingpong</code> (Gate 3 + 30 shadow trades) e roteamento multi-estratégia por <code>net_expected_r</code><a class="headerlink" href="#b9-homologacao-de-sideways_pingpong-gate-3-30-shadow-trades-e-roteamento-multi-estrategia-por-net_expected_r" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Estado atual verificado:</strong></li>
+<li><code>SidewaysPingPongStrategy</code> está codificada (<code>src/strategies/sideways_pingpong.py:16-118</code>, trava <code>RR &gt;= 1,50</code> em <code>L90-91</code>), mas <code>src/main.py:117-121</code> carrega apenas <code>BullTrendPullbackStrategy</code> e <code>src/main.py:571</code> desempata candidatos apenas por <code>rs_vol_adjusted_12h</code>.</li>
+<li>Não há homologação empírica de <code>sideways_pingpong</code> no Gate 3 (<code>docs/block-3-spec.md:280-375</code> cobriu apenas <code>bull_trend_pullback</code> / <code>K9.3</code>) nem coleta de 30 operações virtuais <em>Shadow Live</em> (<a href="../methodology-and-roadmap/">Metodologia §4.4</a>).</li>
+<li><strong>Objetivo:</strong> (1) Executar validação Gate 3 isolada de <code>sideways_pingpong</code> em Treino/Validação/Holdout próprio (nova hipótese estrutural separada, <code>n &gt;= 150</code>, <code>RR &gt;= 1,5</code> líquido, <code>PF_base &gt;= 1,20</code>, <code>PF_pess &gt; 1,05</code>, <code>DSR &gt;= 0,95</code>); (2) se aprovar, habilitar registro <em>Shadow Live</em> somente-observação em <code>shadow_trades</code> durante períodos <code>SIDEWAYS</code> reais até somar <code>&gt;= 30</code> trades com <code>mean(R_shadow) &gt;= +0,10R</code>; (3) implementar roteamento multi-estratégia atrás de <code>RunMode</code> Fase 3 usando <code>phase_2_tie_breaker: "net_expected_r"</code> (<code>config/strategies.yaml:68</code>, <code>docs/architecture.md:103</code>) e o desarme isolado de 20 trades (<code>&lt;= -3,0R</code>) via <code>ShadowManager.evaluate_phase_downgrade()</code> (<code>src/risk/shadow_manager.py:217-223</code>).</li>
+<li><strong>Gate / Fase:</strong> <code>F2-&gt;F3</code> (exige também <code>&gt;= 100</code> trades reais acumulados na Fase 2, <code>docs/methodology-and-roadmap.md:134</code>).</li>
+<li><strong>Teste ou métrica que prova que funcionou:</strong> Gate 3 <code>PASS</code> para <code>sideways_pingpong</code> + 30 operações shadow com <code>mean(R_shadow) &gt;= +0,10R</code> + testes unitários validando desempate por <code>net_expected_r</code> entre regimes distintos e desarme isolado de <code>SIDEWAYS</code> em <code>-3,0R</code> / 20 trades sem afetar <code>BULL</code>.</li>
+<li><strong>Esforço:</strong> <code>G</code></li>
+<li><strong>Contexto mínimo para IA (arquivos a ler):</strong> <code>AGENTS.md</code>, <code>src/strategies/sideways_pingpong.py</code>, <code>src/backtest/causal_simulator.py</code>, <code>src/backtest/ablation_and_dsr.py</code>, <code>src/main.py</code>, <code>src/risk/shadow_manager.py</code>, <code>docs/methodology-and-roadmap.md</code>, <code>docs/architecture.md</code>.</li>
+</ul>
+<hr />
+<h4 id="b10-estudo-ponto-no-tempo-de-bear_capitulation_snap-com-ativos-colapsadosdeslistados">B10 — Estudo ponto-no-tempo de <code>bear_capitulation_snap</code> com ativos colapsados/deslistados<a class="headerlink" href="#b10-estudo-ponto-no-tempo-de-bear_capitulation_snap-com-ativos-colapsadosdeslistados" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Estado atual verificado:</strong></li>
+<li><code>bear_capitulation_snap</code> está em quarentena permanente (<code>config/strategies.yaml:118-126</code>, <code>docs/methodology-and-roadmap.md:143-144</code>).</li>
+<li><code>src/strategies/bear_capitulation_snap.py:47-98</code> não implementa <code>required_features()</code> (não solicita <code>rsi_2</code> nem <code>lower_wick_ratio</code> ao <code>FeatureStore</code>), usa nomes de coluna fixos incompatíveis com <code>FeatureStore</code> (<code>rsi_2_1h</code>, <code>rvol_20_1h</code>, <code>atr_14_1h</code>, <code>close_time</code> em vez de <code>close_time_ms</code> em <code>L57,84</code>) e nunca passou por simulação sem viés de sobrevivência.</li>
+<li><strong>Objetivo:</strong> Realizar pesquisa offline dedicada com série histórica <strong>ponto-no-tempo</strong> (<em>point-in-time</em>) que inclua explicitamente grandes ativos de 2021–2024 que colapsaram ou foram deslistados (ex.: <code>LUNAUSDT</code>, <code>FTTUSDT</code>, <code>USTUSDT</code>, entre outros da Binance) além dos 7 pares atuais, corrigindo o alinhamento de features apenas no escopo do estudo (sem ativar em produção nem editar <code>config/strategies.yaml</code>). Submeter a estratégia a estresse severo de slippage/gap (<code>&gt;= 3%–5%</code> no stop em eventos de capitulação) para decidir objetivamente entre promover a estudo Shadow ou arquivar permanentemente via ADR.</li>
+<li><strong>Gate / Fase:</strong> <code>F2-&gt;F3</code> (menor prioridade; permanecer 100% em USDT no regime <code>BEAR</code> é o comportamento desejado nas Fases 1 e 2).</li>
+<li><strong>Teste ou métrica que prova que funcionou:</strong> Notebook reproduzível sobre dataset ponto-no-tempo com ativos colapsados atingindo <code>PASS</code> em todos os critérios do Gate 3 (<code>n &gt;= 150</code>, <code>E[R]_net &gt; +0,10R</code>, <code>CI95_lo &gt; 0</code>, <code>PF_pess &gt; 1,05</code>, <code>DSR &gt;= 0,95</code>) <strong>sob estresse extremo de gap</strong> — ou registro formal de rejeição/arquivamento em <code>docs/decisions.md</code>.</li>
+<li><strong>Esforço:</strong> <code>G</code></li>
+<li><strong>Contexto mínimo para IA (arquivos a ler):</strong> <code>AGENTS.md</code>, <code>src/strategies/bear_capitulation_snap.py</code>, <code>src/backtest/causal_simulator.py</code>, <code>src/backtest/ablation_and_dsr.py</code>, <code>src/features/feature_store.py</code>, <code>docs/methodology-and-roadmap.md</code>, <code>docs/architecture.md</code>.</li>
+</ul>
+<hr />
+<h2 id="2-pre-mortem-da-fase-1-as-10-maneiras-mais-provaveis-de-perder-dinheiro-ou-capital">2. Pré-mortem da Fase 1: As 10 Maneiras Mais Prováveis de Perder Dinheiro ou Capital<a class="headerlink" href="#2-pre-mortem-da-fase-1-as-10-maneiras-mais-provaveis-de-perder-dinheiro-ou-capital" title="Permanent link">&para;</a></h2>
+<p><strong>Premissa do exercício:</strong> imagine que estamos 6 meses após a ativação da <strong>Fase 1</strong> (<code>150 XRP</code> na Carteira Core + <code>~145,5 XRP</code> em USDT na Carteira Tática + <code>~4,5 XRP</code> em BNB) e houve perda relevante de patrimônio ou erosão severa do capital tático. Abaixo estão os <strong>10 modos de falha mais prováveis</strong>, cobrindo riscos de <strong>mercado</strong>, <strong>técnicos/execução</strong> e <strong>operacionais/externos</strong>, ranqueados por <strong>Probabilidade (<code>P</code>, 1–5) × Impacto (<code>I</code>, 1–5)</strong> e avaliados com ceticismo frente às premissas não provadas da documentação.</p>
+<ul>
+<li><strong>Escala de Probabilidade (<code>P</code>, horizonte 12 meses):</strong> <code>1</code> = raro (<code>&lt; 5%</code>), <code>2</code> = baixo (<code>5%–15%</code>), <code>3</code> = moderado (<code>15%–35%</code>), <code>4</code> = alto (<code>35%–60%</code>), <code>5</code> = quase certo (<code>&gt; 60%</code>).</li>
+<li><strong>Escala de Impacto (<code>I</code>, sobre capital tático ou patrimônio total):</strong> <code>1</code> = <code>&lt; 2%</code>, <code>2</code> = <code>2%–5%</code>, <code>3</code> = <code>5%–12%</code>, <code>4</code> = <code>12%–25%</code>, <code>5</code> = <code>&gt; 25%</code> ou perda/bloqueio severo do capital.</li>
+</ul>
+<h3 id="tabela-resumo-do-ranking">Tabela-Resumo do Ranking<a class="headerlink" href="#tabela-resumo-do-ranking" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Rank</th>
+<th>Categoria</th>
+<th>Modo de Perda</th>
+<th>P</th>
+<th>I</th>
+<th>P × I</th>
+<th>Mitigação no código?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>#1</strong></td>
+<td>Mercado / Portfólio</td>
+<td>Queda de 70%–90% da Carteira Core (<code>150 XRP</code>) + concentração dobrada quando o bot compra <code>XRPUSDT</code></td>
+<td>4</td>
+<td>5</td>
+<td><strong>20</strong></td>
+<td><strong>Nenhuma</strong> (para risco de mercado do Core; <code>CVaR 99%</code> só tático na Fase 2 via B7)</td>
+</tr>
+<tr>
+<td><strong>#2</strong></td>
+<td>Modelo / Mercado</td>
+<td>Overfitting residual (<code>HoldSum</code> observado em <code>K1</code>–<code>K9</code>) e viés de sobrevivência dos 7 pares</td>
+<td>4</td>
+<td>4</td>
+<td><strong>16</strong></td>
+<td>Parcial (CPPI <code>-4%</code>, Hard Stop <code>-12%</code>, Gate 6B, <code>evaluate_phase_downgrade</code> via B7)</td>
+</tr>
+<tr>
+<td><strong>#3</strong></td>
+<td>Mercado</td>
+<td>Mudança estrutural de regime (<em>bear</em> prolongado / <em>whipsaws</em> de falsos rompimentos em 4h)</td>
+<td>4</td>
+<td>4</td>
+<td><strong>16</strong></td>
+<td>Parcial (MECE <code>BEAR</code> 1º, veto BTC, CPPI, <code>-12%</code>, <code>regime_history</code> via B1)</td>
+</tr>
+<tr>
+<td><strong>#4</strong></td>
+<td>Execução / Técnica</td>
+<td>Flash-crash saltando buffer <code>2,5%</code> do <code>STOP_LOSS_LIMIT</code></td>
+<td>3</td>
+<td>5</td>
+<td><strong>15</strong></td>
+<td>Melhorada via <strong>B6</strong> (buffer <code>2,5%</code>, teto caixa <code>50%</code>, watchdog sub-horário <code>&lt;= 20 s</code>)</td>
+</tr>
+<tr>
+<td><strong>#5</strong></td>
+<td>Execução / Microestrutura</td>
+<td>Slippage, spread e taxas reais na virada de hora (<code>XX:00:03 UTC</code>) acima do backtest</td>
+<td>3</td>
+<td>4</td>
+<td><strong>12</strong></td>
+<td>Melhorada via <strong>B1/B2</strong> (<code>fees_usdt_equiv</code>, L2 VWAP shadow, <code>COMMISSION_WARNING</code>; falta slippage de saída dedicado)</td>
+</tr>
+<tr>
+<td><strong>#6</strong></td>
+<td>Externa / Contraparte</td>
+<td>Dependência única da Binance (contraparte/regulatório, manutenção sem aviso de 2h, API/delisting, depeg <code>USDT</code>)</td>
+<td>2</td>
+<td>5</td>
+<td><strong>10</strong></td>
+<td>Parcial (fail-closed manutenção, isolamento <code>-1121</code> via <strong>B3</strong>; <strong>nenhuma</strong> para contraparte/USDT/2h)</td>
+</tr>
+<tr>
+<td><strong>#7</strong></td>
+<td>Execução / Técnica</td>
+<td>HTTP <code>418</code> (IP ban) ou queda de rede/VPS entre fill e OCO (ou após cancelar OCO), deixando posição nua</td>
+<td>2</td>
+<td>5</td>
+<td><strong>10</strong></td>
+<td>Parcial (<code>PENDING_ENTRY</code>, <code>critical_section</code>, reconciler; <strong>nenhuma</strong> sob ban 418 ativo)</td>
+</tr>
+<tr>
+<td><strong>#8</strong></td>
+<td>Operacional / Humana</td>
+<td>Intervenção humana por tédio/pânico, trade manual na conta API (C1-D), offsite/heartbeat desligados ou BNB esgotado</td>
+<td>3</td>
+<td>3</td>
+<td><strong>9</strong></td>
+<td>Melhorada via <strong>B1</strong> (<code>HALT_REVIEW</code> C1-D, SHA-256, <code>BNB_LOW_WARNING</code> <code>&lt; 5,00</code>; falta exigir <code>HEALTHCHECK_URL</code> em prod)</td>
+</tr>
+<tr>
+<td><strong>#9</strong></td>
+<td>Técnica / Governança</td>
+<td>Cegueira de degradação e contabilidade distorcida (<code>ML_JUDGE_ARTIFACT_PATH</code> ainda não gerado em prod, aportes manuais no HWM)</td>
+<td>3</td>
+<td>3</td>
+<td><strong>9</strong></td>
+<td>Melhorada via <strong>B2/B4/B7</strong> (<code>fees_usdt_equiv</code>, loader <code>MLJudge</code> + CLI <code>train_ml_judge.py</code>, <code>evaluate_phase_downgrade</code>; exige rodar treino antes da Fase 1)</td>
+</tr>
+<tr>
+<td><strong>#10</strong></td>
+<td>Infraestrutura / Técnica</td>
+<td>Falha de VPS: disco cheio, OOM (<code>&gt; 512m</code>), drift de relógio ou perda de disco sem offsite</td>
+<td>2</td>
+<td>4</td>
+<td><strong>8</strong></td>
+<td>Melhorada via <strong>B1/B3</strong> (WAL, <code>HEALTHCHECK</code>, <code>prune_old_backups</code>, <code>DISK_USAGE_WARNING &gt;= 70%</code>; sem monitor interno de RAM)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="analise-cetica-detalhada">Análise Cética Detalhada<a class="headerlink" href="#analise-cetica-detalhada" title="Permanent link">&para;</a></h3>
+<h4 id="1-queda-severa-7090-da-carteira-core-150-xrp-e-concentracao-dobrada-em-xrpusdt-p4-i5-20">#1 — Queda severa (70%–90%) da Carteira Core (<code>150 XRP</code>) e concentração dobrada em <code>XRPUSDT</code> (<code>P=4 × I=5 = 20</code>)<a class="headerlink" href="#1-queda-severa-7090-da-carteira-core-150-xrp-e-concentracao-dobrada-em-xrpusdt-p4-i5-20" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Como o dinheiro é perdido:</strong> Metade do capital total do projeto (<code>150 XRP</code>, <code>config/strategies.yaml:9-10</code>) fica em exposição direcional pura, sem stop, em uma única altcoin. Mesmo se o Chameleon tático tiver desempenho exemplar, um ciclo de baixa severo de <code>-75%</code> no XRP apaga <code>-37,5%</code> do patrimônio total. Além disso, <code>XRPUSDT</code> faz parte da cesta de execução tática (<code>config/strategies.yaml:73</code>): durante um topo local em <code>BULL</code>, o bot pode alocar até <code>50%</code> da carteira tática em <code>XRPUSDT</code> (<code>config/strategies.yaml:36</code>), concentrando temporariamente ~75% do patrimônio total no mesmo ativo.</li>
+<li><strong>Premissa não provada na documentação:</strong> <code>docs/architecture.md:25</code> afirma que <em>"o risco global é monitorado pelo Value at Risk (VaR) e Conditional VaR (CVaR a 99%) do portfólio combinado"</em>. Mesmo após <strong>B7</strong>, <code>QuantOrchestrator._compute_phase2_sizing_guards()</code> (<code>src/main.py:360-397</code>) calcula <code>CVaR 99%</code> apenas sobre os trades táticos na Fase 2 — <strong>não</strong> inclui a marcação a mercado da Carteira Core (<code>150 XRP</code>).</li>
+<li><strong>Mitigação existente no código:</strong> <strong><code>nenhuma</code></strong> contra risco de mercado do Core (o isolamento físico citado em <code>config/strategies.yaml:10</code> e <code>docs/architecture.md:24</code> protege apenas contra erro operacional do bot, não contra queda do preço do XRP).</li>
+<li><strong>O que mediria o risco:</strong> Drawdown marcado a mercado do patrimônio consolidado (<code>150 * preço_XRP + USDT_tático + BNB</code>), percentual de trades táticos alocados em <code>XRPUSDT</code> e CVaR 99% empírico combinado (Core + Tático).</li>
+</ul>
+<hr />
+<h4 id="2-overfitting-residual-holdsum-observado-em-k1k9-e-vies-de-sobrevivencia-da-cesta-p4-i4-16">#2 — Overfitting residual (<code>HoldSum</code> observado em <code>K1</code>–<code>K9</code>) e viés de sobrevivência da cesta (<code>P=4 × I=4 = 16</code>)<a class="headerlink" href="#2-overfitting-residual-holdsum-observado-em-k1k9-e-vies-de-sobrevivencia-da-cesta-p4-i4-16" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Como o dinheiro é perdido:</strong> <code>K9.3</code> exibe <code>E[R]_net = +0,230R</code>, <code>PF_base = 1,43</code> e <code>DSR = 0,96</code> (<code>docs/block-3-spec.md:350</code>), porém o próprio <code>docs/methodology-and-roadmap.md:57</code> reconhece que <code>HoldSum</code> foi observado durante as rodadas <code>K1</code>–<code>K9</code>. Na prática, <code>docs/block-3-spec.md:309-354</code> documenta explicitamente ajustes iterativos (<code>K5</code> → <code>K6</code> → <code>K7</code> → <code>K8</code> → <code>K9</code>) após o raio-X do Holdout negativo (<code>-6,58R</code>) até chegar a <code>+5,80R</code>, contabilizando múltiplas sub-variantes (<code>K3.1..K9.6</code>) como apenas <code>K = 9</code> baterias no cálculo do <code>DSR</code> (<code>src/backtest/ablation_and_dsr.py:226-237</code>). Soma-se o viés de sobrevivência retrospectivo de fixar em 2026 os 7 sobreviventes líquidos de 2022–2026 (<code>config/strategies.yaml:70-76</code>). Se a vantagem real fora da amostra for próxima de zero ou negativa após custos, a carteira tática sangra gradualmente até o hard stop de <code>-12%</code>.</li>
+<li><strong>Premissa não provada na documentação:</strong> Que <code>K = 9</code> representa o número real de graus de liberdade explorados e que o Holdout (<code>+5,80R</code>) é livre de viés de seleção.</li>
+<li><strong>Mitigação existente no código:</strong> CPPI reduz risco em 50% a partir de <code>-4,0%</code> abaixo do HWM (<code>src/risk/shadow_manager.py:305-315</code>); Hard Stop Patrimonial dispara <code>EMERGENCY_HALT</code> em <code>-12,0%</code> (<code>src/risk/shadow_manager.py:26,288-291</code>); <code>ShadowManager.evaluate_phase_downgrade()</code> conectado no pós-fechamento em <code>src/main.py:237-315</code> (<strong>B7</strong>); e o Gate 6B funciona como Holdout Prospectivo (<code>tools/gate_report.py:426-630</code>).</li>
+<li><strong>O que mediria o risco:</strong> <code>mean(realized_r)</code> líquido acumulado e estatística CUSUM no Gate 6B e nos primeiros 30–60 trades da Fase 1 comparados à banda inferior do IC 95% do Bloco 3 (<code>+0,068R</code>, <code>docs/block-3-spec.md:350</code>), mais <code>Profit Factor</code> líquido em janela móvel.</li>
+</ul>
+<hr />
+<h4 id="3-mudanca-estrutural-de-regime-bear-market-prolongado-ou-whipsaws-de-rompimento-falso-p4-i4-16">#3 — Mudança estrutural de regime (<em>bear market</em> prolongado ou <em>whipsaws</em> de rompimento falso) (<code>P=4 × I=4 = 16</code>)<a class="headerlink" href="#3-mudanca-estrutural-de-regime-bear-market-prolongado-ou-whipsaws-de-rompimento-falso-p4-i4-16" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Como o dinheiro é perdido:</strong> A Fase 1 executa exclusivamente <code>bull_trend_pullback</code> em modo <code>K9.3</code> (rompimento comprador Donchian <code>12h</code> + <code>RS &gt;= 1,40</code> com stop <code>3,0 * ATR_14</code>, <code>src/strategies/bull_trend_pullback.py:27-33</code>). Em um regime prolongado de baixa pontuado por <em>bear-market rallies</em> violentos, a <code>EMA_100</code> de <code>4h</code> (~16,7 dias) vira positivamente tarde demais: o detector classifica <code>BULL</code> próximo ao topo do repique (<code>src/regimes/regime_detector.py:97-98</code>), o bot compra rompimentos esticados e sofre stops consecutivos na reversão. Alternativamente, em um ano inteiro de lateralização/queda sem tendências sustentadas de <code>72h</code>, o custo de oportunidade + falsos rompimentos corroem o caixa até <code>-4%</code>/<code>-12%</code>.</li>
+<li><strong>Premissa não provada na documentação:</strong> Que a frequência de tendências limpas de <code>72h</code> observada em 2022–2026 (<code>~1,3 trade/semana</code>) se manterá e que <code>veto_if_btc_bear</code> impede <em>bull traps</em> quando o próprio BTC ainda está acima da <code>EMA_100_4h</code>.</li>
+<li><strong>Mitigação existente no código:</strong> Precedência <code>BEAR</code> antes de <code>BULL</code> no MECE 4h (<code>src/regimes/regime_detector.py:93-98</code>), filtro <code>CHOP_14_4h &lt; 50</code> (<code>L97</code>), veto <code>btc_regime_4h == BEAR</code> (<code>src/strategies/bull_trend_pullback.py:155-156</code>), filtro <code>ADX_14_4h &gt;= 17,0</code> (<code>L158-160</code>), CPPI em <code>-4%</code> (<code>src/risk/shadow_manager.py:305-315</code>), Hard Stop em <code>-12%</code> (<code>L288-291</code>) e telemetria persistida em <code>regime_history</code> (<code>src/main.py:1205-1219</code>, <strong>B1</strong>).</li>
+<li><strong>O que mediria o risco:</strong> Taxa de <em>false breakouts</em> (<code>exit_reason == 'STOP'</code> ocorridos em <code>&lt; 24h</code> da entrada), distribuição de tempo gasto em cada regime 4h (agora persistida em <code>regime_history</code>), e soma móvel de <code>realized_r</code> nos últimos 10–20 trades.</li>
+</ul>
+<hr />
+<h4 id="4-flash-crash-saltando-o-buffer-de-25-da-perna-stop_loss_limit-p3-i5-15">#4 — Flash-crash saltando o buffer de <code>2,5%</code> da perna <code>STOP_LOSS_LIMIT</code> (<code>P=3 × I=5 = 15</code>)<a class="headerlink" href="#4-flash-crash-saltando-o-buffer-de-25-da-perna-stop_loss_limit-p3-i5-15" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Como o dinheiro é perdido:</strong> A proteção OCO usa <code>STOP_LOSS_LIMIT</code> com limite <code>2,5%</code> abaixo do <code>stopPrice</code> (<code>config/strategies.yaml:27-28</code>, <code>src/execution/oco_order_manager.py:134-139</code>). Em quedas bruscas por cascata de liquidações em futuros (evento recorrente em <code>SOL</code>, <code>XRP</code>, <code>ADA</code>, <code>LINK</code> e <code>AVAX</code>), o preço aciona o <code>stopPrice</code> e atravessa o <code>stopLimitPrice</code> em segundos sem preencher a ordem limite. Com teto de alocação de <code>50%</code> do caixa (<code>config/strategies.yaml:36</code>), mesmo poucos segundos de gap extremo podem gerar perda muito acima de <code>1%</code> do capital tático.</li>
+<li><strong>Premissa não provada na documentação:</strong> O simulador do Bloco 3 (<code>src/backtest/causal_simulator.py:108-112</code>) aplica no cenário <code>PESSIMISTIC</code> um <code>gap_shock</code> fixo de apenas <code>0,15%</code> (<code>0.0015</code>), nunca modelando saltos de liquidez <code>&gt; 2,5%</code>.</li>
+<li><strong>Mitigação existente no código:</strong> Buffer de <code>2,5%</code> em <code>compute_oco_leg_prices()</code> (<code>src/execution/oco_order_manager.py:134-139</code>), teto de caixa de <code>50%</code> (<code>src/risk/position_sizer.py:276,286</code>), e <strong>watchdog sub-horário implementado em B6</strong> (<code>src/main.py:1363-1483,1533-1536</code>, polling padrão a cada <code>20 s</code> via <code>WATCHDOG_POLL_INTERVAL_SECONDS</code>), reduzindo a janela exposta de ~59 minutos para <code>&lt;= 20 s</code> (sem eliminar gaps instantâneos ocorridos dentro dessa janela).</li>
+<li><strong>O que mediria o risco:</strong> Qualquer ocorrência de <code>exit_reason == 'STOP_WATCHDOG'</code> em <code>trades</code>, o desvio percentual <code>(oco_stop_price - exit_avg_price) / oco_stop_price</code> em todos os stops fechados (slippage de saída — hoje sem coluna própria), e o atraso entre o candle <code>1m</code> que cruzou <code>oco_stop_limit_price</code> e <code>trades.closed_at_ms</code>.</li>
+</ul>
+<hr />
+<h4 id="5-divergencia-de-slippage-spread-e-taxas-reais-frente-as-premissas-do-backtest-p3-i4-12">#5 — Divergência de slippage, spread e taxas reais frente às premissas do backtest (<code>P=3 × I=4 = 12</code>)<a class="headerlink" href="#5-divergencia-de-slippage-spread-e-taxas-reais-frente-as-premissas-do-backtest-p3-i4-12" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Como o dinheiro é perdido:</strong> A entrada em <code>LIVE</code> envia <code>MARKET BUY</code> (<code>src/execution/oco_order_manager.py:492-496</code>) após o fechamento da vela <code>1h</code> (<code>XX:00:03 UTC</code>, <code>config/strategies.yaml:24</code>, mais latência de coleta de 16 ativos em <code>src/main.py:1163</code>), comprando exatamente <strong>rompimentos com volume explosivo</strong> (<code>RVOL &gt;= 1,30</code>, <code>Donchian 12h</code>, <code>corpo &gt;= 0,65 * ATR</code>) no segundo em que bots de rompimento disputam a mesma liquidez e spreads abrem. O backtest pressupõe <code>0,06%</code> de slippage base (<code>0,12%</code> pessimista) e <code>0,15%</code> de taxa com desconto BNB (<code>config/strategies.yaml:41-42</code>, <code>src/backtest/causal_simulator.py:104-110</code>). Se o desconto BNB falhar ou spreads abrirem na virada de hora, a expectativa líquida de <code>+0,230R</code> pode ser erodida.</li>
+<li><strong>Premissa não provada na documentação:</strong> Que o slippage real somado (entrada + saída em stop/time-stop) em altcoins às <code>XX:00:03+ UTC</code> fica dentro de <code>0,06%–0,12%</code>.</li>
+<li><strong>Mitigação existente no código:</strong> Ordem de execução C2-9 rodando Chameleon antes da L4 (<code>src/main.py:1246-1259</code>), registro de <code>trades.slippage_entry_bps</code> (<code>src/execution/oco_order_manager.py:655-680</code>), auditoria de slippage em <code>tools/gate_report.py:530-593,865-912</code>, alerta <code>COMMISSION_WARNING</code> em <code>src/main.py:859-872</code> (<strong>B1</strong>), apuração real de <code>fees_usdt_equiv</code> e <code>realized_r</code> líquido em <code>src/execution/oco_order_manager.py:91,431,823,1395,1991</code> / <code>src/core/state_reconciler.py:1007-1020</code> (<strong>B2</strong>), e impacto VWAP L2 (<code>depth_vwap_ask</code>, <code>book_impact_bps</code>) no <code>PaperExecutor</code> (<code>src/execution/paper_executor.py:17,111-183</code>, <strong>B2</strong>). <strong>Ainda não existe coluna dedicada para slippage de saída em <code>trades</code>.</strong></li>
+<li><strong>O que mediria o risco:</strong> Mediana, p90 e média de <code>trades.slippage_entry_bps</code> (alerta se <code>&gt; 8 bps</code>) e <code>shadow_trades.book_impact_bps</code>, slippage de saída nos stops/time-stops (<code>(oco_stop_price - exit_avg_price) / oco_stop_price</code>), alertas <code>COMMISSION_WARNING</code> e reconciliação periódica do saldo real <code>USDT + BNB</code> vs. soma de <code>realized_pnl_usdt - fees_usdt_equiv</code>.</li>
+</ul>
+<hr />
+<h4 id="6-dependencia-concentrada-na-binance-contraparte-manutencao-sem-aviso-de-2h-mudanca-de-apidelisting-e-depeg-de-usdt-p2-i5-10">#6 — Dependência concentrada na Binance: contraparte, manutenção sem aviso de 2h, mudança de API/delisting e depeg de <code>USDT</code> (<code>P=2 × I=5 = 10</code>)<a class="headerlink" href="#6-dependencia-concentrada-na-binance-contraparte-manutencao-sem-aviso-de-2h-mudanca-de-apidelisting-e-depeg-de-usdt-p2-i5-10" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Como o dinheiro é perdido:</strong> Todo o capital tático + reserva BNB reside em uma única corretora e um único endpoint hardcoded (<code>https://api.binance.com</code>, sem failover para <code>api1..4.binance.com</code>, <code>src/core/config.py:26,401,410</code>). Quatro cenários críticos:</li>
+<li><strong>Contraparte / regulatório / bloqueio de conta:</strong> insolvência, restrição jurisdicional ou congelamento de conta Spot indisponibiliza 100% da carteira tática.</li>
+<li><strong>Manutenção sem aviso prévio de 2h:</strong> <code>docs/methodology-and-roadmap.md:72</code> afirma <em>"bloqueando entradas 2h antes"</em>, porém <code>SignedBinanceClient.sapi_system_status()</code> (<code>src/core/binance_client.py:833-845</code>) e <code>src/main.py:480-491</code> leem apenas o binário <code>status == 0</code> vs. <code>1</code> (e a Testnet retorna <code>mocked=True</code>). O bot pode abrir uma posição minutos antes de uma parada de manutenção e sofrer gap severo na reabertura.</li>
+<li><strong>Mudança de contrato API ou deslistagem:</strong> <code>oco_allowed</code> assume default <code>True</code> se o campo sumir (<code>src/core/binance_client.py:624</code>), e filtros <code>MARKET_LOT_SIZE</code> / <code>PERCENT_PRICE_BY_SIDE</code> não são verificados (<code>src/core/binance_client.py:604-615</code>). <em>(Nota: o isolamento de <code>-1121</code> para símbolos exclusivos do Radar foi resolvido em <strong>B3</strong>.)</em></li>
+<li><strong>Depeg de <code>USDT</code>:</strong> Em <code>BEAR</code> e <code>TRANSITION</code>, 100% da defesa fica estacionada em <code>USDT</code> (<code>config/strategies.yaml:11</code>). Uma desancoragem aguda da stablecoin atinge o caixa inteiro de uma vez.</li>
+<li><strong>Premissa não provada na documentação:</strong> Que <code>/sapi/v1/system/status</code> antecipa manutenções em 2h, que <code>USDT</code> é livre de risco e que os contratos <code>/api/v3/orderList/oco</code> e <code>/api/v3/exchangeInfo</code> permanecem estáveis.</li>
+<li><strong>Mitigação existente no código:</strong> Fail-closed quando <code>sapi_system_status()</code> falha (<code>src/main.py:486-491</code>), pré-validação <code>status == TRADING</code> e <code>oco_allowed</code> antes da compra (<code>src/execution/oco_order_manager.py:389-410</code>), isolamento <code>-1121</code> por símbolo priorizando <code>execution_universe</code> em <code>ExchangeInfoCache</code> (<code>src/core/binance_client.py:647-705</code>, <strong>B3</strong>), fallback para filtros em cache se <code>exchangeInfo</code> falhar (<code>src/main.py:1146-1154</code>), e Core fora da chave Spot (<code>config/strategies.yaml:10</code>). <strong>Nenhuma mitigação existe para risco de contraparte, depeg de <code>USDT</code>, failover de host ou janela antecipada de 2h.</strong></li>
+<li><strong>O que mediria o risco:</strong> Taxa de erros HTTP 4xx/5xx em <code>order_events</code>, alertas <code>EXCHANGE_INFO_WARNING</code> e falhas em <code>sapi_system_status</code>, monitoramento externo de <em>peg</em> <code>USDT/USD</code> (<code>&lt; 0,995</code>) e revisão periódica do changelog da Binance API (<a href="../runbook/">Runbook</a>).</li>
+</ul>
+<hr />
+<h4 id="7-http-418-ip-ban-ou-queda-de-redevps-entre-fill-da-compra-e-criacao-da-oco-deixando-posicao-nua-p2-i5-10">#7 — HTTP <code>418</code> (IP ban) ou queda de rede/VPS entre fill da compra e criação da OCO, deixando posição nua (<code>P=2 × I=5 = 10</code>)<a class="headerlink" href="#7-http-418-ip-ban-ou-queda-de-redevps-entre-fill-da-compra-e-criacao-da-oco-deixando-posicao-nua-p2-i5-10" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Como o dinheiro é perdido:</strong> Se a Binance retornar HTTP <code>418</code> (possível em VPS com IP compartilhado/reutilizado ou bug de rajada) logo <strong>após</strong> <code>POST /api/v3/order</code> executar e <strong>antes</strong> de <code>POST /api/v3/orderList/oco</code>, <code>WeightGovernor.on_rate_limited(..., banned=True)</code> (<code>src/core/binance_client.py:212-213,466-472</code>) bloqueia localmente <strong>todas</strong> as requisições — inclusive <code>Priority.CRITICAL</code> (<code>src/core/binance_client.py:150-153</code>) — durante <code>Retry-After</code>. <code>OcoOrderManager._handle_ip_ban()</code> (<code>src/execution/oco_order_manager.py:258-291</code>) aciona <code>emergency_halt</code> e envia alerta <code>KILL_SWITCH</code>, mas <strong>a posição permanece sem stop na corretora</strong> até ação humana ou expiração do ban. Falha análoga ocorre se a VPS perder conectividade após cancelar a OCO no passo 1 do Time-Stop ou do Watchdog antes da venda <code>MARKET</code>.</li>
+<li><strong>Premissa não provada na documentação:</strong> Que o operador lerá o alerta Telegram em poucos minutos (inclusive de madrugada) e terá acesso imediato à Binance para proteger ou liquidar a posição manualmente.</li>
+<li><strong>Mitigação existente no código:</strong> <code>PENDING_ENTRY</code> gravado antes do POST (<code>src/execution/oco_order_manager.py:597</code>), <code>governor.critical_section()</code> (<code>src/core/binance_client.py:155-159,225</code>), escritas pós-fill <em>best-effort</em> (<code>src/execution/oco_order_manager.py:233</code>), recuperação automática no boot para <code>PENDING_ENTRY</code>/<code>ENTRY_FILLED</code>/<code>CLOSING</code> (<code>src/core/state_reconciler.py:398-520,643-710</code>), alerta <code>KILL_SWITCH</code> em HTTP 418 e heartbeat opcional <code>HEALTHCHECK_URL</code> (<code>src/main.py:1342-1348</code>, <code>src/core/healthcheck.py:21-54</code>). <strong>Nenhuma mitigação de software consegue colocar a OCO enquanto o IP estiver banido (418) ou a VPS estiver sem rede.</strong></li>
+<li><strong>O que mediria o risco:</strong> <code>cycle_health.used_weight_1m_peak</code> (alerta preventivo se <code>&gt; 3000</code> de 6000), qualquer registro em <code>order_events</code> com <code>http_status IN (429, 418)</code>, qualquer trade em <code>ENTRY_FILLED</code>/<code>CLOSING</code> por <code>&gt; 60 s</code>, e disparo do dead-man switch externo (<code>HEALTHCHECK_URL</code>, que <strong>vem vazio por padrão</strong> em <code>.env.example</code>).</li>
+</ul>
+<hr />
+<h4 id="8-erro-operacional-humano-intervencao-por-tediopanico-trade-manual-na-conta-api-protecoes-desligadas-por-padrao-ou-bnb-sem-recarga-p3-i3-9">#8 — Erro operacional humano: intervenção por tédio/pânico, trade manual na conta API, proteções desligadas por padrão ou BNB sem recarga (<code>P=3 × I=3 = 9</code>)<a class="headerlink" href="#8-erro-operacional-humano-intervencao-por-tediopanico-trade-manual-na-conta-api-protecoes-desligadas-por-padrao-ou-bnb-sem-recarga-p3-i3-9" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Como o dinheiro é perdido:</strong></li>
+<li><strong>Intervenção emocional:</strong> Com taxa de acerto típica de estratégia <code>2:1</code>, sequências de 5 a 7 stops consecutivos ou 20 dias sem sinal em <code>BEAR</code>/<code>TRANSITION</code> são normais. Fechar posições no pânico ou desligar o robô no fundo do drawdown cristaliza a perda e impede capturar os grandes <em>winners</em> de <code>+2,0R</code> que pagam a expectativa.</li>
+<li><strong>Trade manual na mesma conta Spot da chave de API:</strong> Qualquer saldo excedente <code>&gt;= minNotional</code> em um dos 7 pares dispara <code>HALT_REVIEW</code> (C1-D, <code>src/core/state_reconciler.py:562-614</code>), paralisando o robô e podendo induzir erros manuais durante o destravamento.</li>
+<li><strong>Subir produção com defaults inseguros:</strong> Em <code>.env.example</code>, tanto <code>HEALTHCHECK_URL</code> quanto <code>OFFSITE_BACKUP_ENABLED</code> vêm vazios/<code>false</code> por padrão; esquecer de configurá-los deixa produção sem dead-man switch e sem backup fora da VPS.</li>
+<li><strong>Esgotamento de BNB se o alerta preventivo for ignorado:</strong> <code>BNB_LOW_WARNING</code> (<code>&lt; 5,00 USDT</code>) agora alerta via Telegram (<strong>B1</strong>), mas se o operador não recarregar a conta Spot, o bot para em <code>EMERGENCY_HALT</code> ao atingir <code>&lt; 2,00 USDT</code> (<code>src/risk/shadow_manager.py:292-295</code>).</li>
+<li><strong>Premissa não provada na documentação:</strong> Disciplina humana perfeita em períodos longos sem operação e execução pontual do rito mensal manual (<code>docs/methodology-and-roadmap.md:175-179</code>).</li>
+<li><strong>Mitigação existente no código:</strong> Trava dupla de produção (<code>LIVE_CONFIRMATION</code> + <code>APPROVED_STRATEGIES_SHA256</code>, <code>src/core/config.py:532-544,583-595</code>), <code>HALT_REVIEW</code> C1-D nunca vende saldo manual (<code>src/core/state_reconciler.py:580-613</code>), alerta preventivo <code>BNB_LOW_WARNING</code> em <code>&lt; 5,00 USDT</code> (<code>src/main.py:844-858</code>, <strong>B1</strong>), <code>EMERGENCY_HALT</code> em <code>BNB &lt; 2,00 USDT</code> (<code>src/risk/shadow_manager.py:292-295</code>), <code>OFFSITE_BACKUP_ENABLED=true</code> falha no boot sem <code>BACKUP_ENCRYPTION_KEY</code> (<code>src/core/config.py:111-119</code>), e procedimentos passo a passo em <a href="../runbook/">Runbook Operacional</a>. <strong>Nenhuma mitigação impede <code>HEALTHCHECK_URL</code> vazio em produção.</strong></li>
+<li><strong>O que mediria o risco:</strong> Checklist automatizado pré-produção validando <code>.env</code> (<code>HEALTHCHECK_URL</code> + <code>OFFSITE_BACKUP_ENABLED=true</code>), auditoria mensal de divergência entre histórico <code>myTrades</code> da Binance e tabela <code>trades</code> (detecta trades manuais), contagem de <code>HALT_REVIEW</code> e saldo <code>BNB</code> em USDT (<code>system_state.bnb_free_usdt_equiv</code>).</li>
+</ul>
+<hr />
+<h4 id="9-cegueira-de-degradacao-e-contabilidade-distorcida-p3-i3-9">#9 — Cegueira de degradação e contabilidade distorcida (<code>P=3 × I=3 = 9</code>)<a class="headerlink" href="#9-cegueira-de-degradacao-e-contabilidade-distorcida-p3-i3-9" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Como o dinheiro é perdido:</strong> Decisões ruins de gestão de capital (continuar operando estratégia degradada ou promover risco/Fase 2 prematuramente) caso o operador não conclua as calibrações pré-produção ou misture aportes/saques na conta tática:</li>
+<li><strong>B2, B4 e B7</strong> resolveram no código a apuração de <code>fees_usdt_equiv</code> líquido, o loader/treinador calibrado do <code>MLJudge</code> (<code>tools/train_ml_judge.py</code>, <code>src/features/ml_judge.py:55,321,463</code>) e a conexão de <code>ShadowManager.evaluate_phase_downgrade()</code> (<code>src/main.py:237-315</code>);</li>
+<li><strong>Riscos residuais ativos:</strong> (1) se a Fase 1 iniciar sem gerar e apontar <code>ML_JUDGE_ARTIFACT_PATH</code>, o fallback continuará sendo <code>PlattCalibrator(a=-1.0, b=0.0)</code> não treinado; (2) <code>src/main.py:619</code> ainda iguala <code>tactical_equity_usdt = free_usdt</code> — depósitos/saques manuais de USDT na carteira Spot distorcem silenciosamente <code>tactical_hwm_usdt</code> (<code>src/risk/shadow_manager.py:266-277</code>), podendo disparar CPPI/Hard Stop falsamente em saque ou mascarar drawdown real em aporte.</li>
+<li><strong>Premissa não provada na documentação:</strong> Que o artefato do <code>MLJudge</code> terá <code>ECE &lt;= 0,05</code> e separação real sobre os 60 trades ao vivo da Fase 1, e que nenhum aporte/saque manual alterará o <code>free_usdt</code> durante a execução.</li>
+<li><strong>Mitigação existente no código:</strong> <code>tools/gate_report.py</code> adota fail-safe rigoroso de <code>UNKNOWN</code> (nunca <code>PASS</code> por omissão); <code>tools/train_ml_judge.py</code> exclui estritamente o Holdout (<strong>B4</strong>); <code>LIVE_CHAMELEON_PHASE_2</code> exige <code>ML_JUDGE_ARTIFACT_PATH</code> no boot quando <code>use_ml_filter=true</code> (<code>src/core/config.py:576-581</code>, <strong>B7</strong>); <code>fees_usdt_equiv</code> + <code>realized_r</code> líquido (<strong>B2</strong>) e <code>evaluate_phase_downgrade()</code> (<strong>B7</strong>). <strong>Nenhuma mitigação distingue automaticamente aportes/saques manuais de USDT de lucro/prejuízo de trade.</strong></li>
+<li><strong>O que mediria o risco:</strong> Reconciliação semanal <code>Δ(USDT + BNB real na Binance - aportes + saques) - sum(trades.realized_pnl_usdt - trades.fees_usdt_equiv)</code>, distribuição de <code>trades.ml_grade_silent</code> (<code>% C / % B / % A+</code>), e execução periódica de <code>tools/gate_report.py</code> e <code>tools/radar_ai_audit.py</code> (<strong>B5</strong>).</li>
+</ul>
+<hr />
+<h4 id="10-falha-de-infraestrutura-da-vps-disco-cheio-oom-512m-drift-de-relogio-ou-perda-de-disco-p2-i4-8">#10 — Falha de infraestrutura da VPS: disco cheio, OOM (<code>&gt; 512m</code>), drift de relógio ou perda de disco (<code>P=2 × I=4 = 8</code>)<a class="headerlink" href="#10-falha-de-infraestrutura-da-vps-disco-cheio-oom-512m-drift-de-relogio-ou-perda-de-disco-p2-i4-8" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Como o dinheiro é perdido:</strong> Uma parada prolongada ou falha de escrita no disco da VPS não destrói o saldo imediatamente quando a OCO já está ativa na Binance, mas impede (a) gravar <code>PENDING_ENTRY</code> ou executar <code>STOP_WATCHDOG</code> e Time-Stop de <code>72h</code> no prazo, (b) manter o estado de <code>trades</code> (<code>oco_order_list_id</code>, <code>time_barrier_end_ms</code>, <code>tactical_hwm_usdt</code>) se o disco corromper sem backup offsite — fazendo um banco recriado do zero disparar <code>HALT_REVIEW</code> (C1-D) sobre a própria posição aberta do bot! Especificamente:</li>
+<li><code>docker-compose.yml:6</code> e <code>deploy/quant-chameleon.service:13</code> impõem <code>mem_limit: 512m</code> (ADR-015; apenas <code>import src.main</code> já consome ~93,4 MB de RSS, <code>docs/decisions.md:23</code>); vazamentos ou picos de memória causam <code>OOMKilled</code> (<code>Exit 137</code>).</li>
+<li>Falhas repetidas de <code>MonotonicClock.sync()</code> (<code>src/main.py:1115-1121</code>) podem acumular drift <code>&gt; 500 ms</code> e provocar rejeições <code>-1021</code> (há apenas 1 tentativa de resync+retry em <code>OcoOrderManager</code>).</li>
+<li><strong>Premissa não provada na documentação:</strong> Que o consumo de RAM permanece folgado abaixo de <code>512 MB</code> ao longo de meses de histórico em SQLite/pandas sem monitoramento automático interno de RSS.</li>
+<li><strong>Mitigação existente no código:</strong> Rotação automática de backups locais <code>Database.prune_old_backups()</code> (<code>src/core/database.py:782-812</code>, <code>BACKUP_RETENTION_DAYS=14</code>, <strong>B1</strong>), monitoramento interno de disco <code>QuantOrchestrator._check_disk_usage()</code> com alerta <code>DISK_USAGE_WARNING &gt;= 70%</code> (<code>src/main.py:537-566</code>, <strong>B3</strong>), rotação de logs Docker (<code>max-size: 10m</code>, <code>max-file: 3</code> em <code>docker-compose.yml:13-17</code>), <code>restart: unless-stopped</code> (<code>docker-compose.yml:5</code>), <code>mem_limit: 512m</code> (<code>docker-compose.yml:6</code>), SQLite WAL + <code>synchronous=FULL</code> (<code>src/core/database.py:19-20</code>), escritas pós-fill <em>best-effort</em>, Docker <code>HEALTHCHECK</code> somente-leitura (<code>Dockerfile:21-22</code>, <code>src/core/healthcheck.py:57-100</code>), backup offsite criptografado opcional (<code>src/core/offsite_backup.py:43-165</code>), resync + retry único em <code>-1021</code>, e <code>StateReconciler</code> no boot. <strong>Nenhuma mitigação monitora consumo de RAM (RSS) internamente.</strong></li>
+<li><strong>O que mediria o risco:</strong> Uso de disco (<code>system_state.disk_usage_pct</code> e <code>df -h</code>), tamanho e quantidade de arquivos em <code>data/backups/</code> e <code>data/quant.db</code>, memória RSS do container (<code>docker stats</code>), <code>cycle_health.clock_offset_ms</code>, <code>cycle_health.duration_ms</code>, <code>cycle_health.unhandled_errors</code>, <code>cycle_health.stale_symbols</code> e alertas do <code>HEALTHCHECK_URL</code>.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Voltar ao topo
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.path", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "Mais 1 nesta p\u00e1gina", "search.result.more.other": "Mais # nesta p\u00e1gina", "search.result.none": "Nenhum resultado encontrado", "search.result.one": "1 resultado encontrado", "search.result.other": "# resultados encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,1924 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Arquitetura, operação, governança quantitativa e auditorias do QuantCrypto Chameleon & Radar Engine">
+      
+      
+      
+        <link rel="canonical" href="https://pac-coins.github.io/quant-crypto-chameleon-radar-engine/quickstart/">
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../runbook/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
+    
+    
+      
+        <title>Guia Rápido e Transição de Gates - QuantCrypto Chameleon & Radar Engine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#guia-rapido-e-transicao-de-gates" class="md-skip">
+          Ir para o conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href=".." title="QuantCrypto Chameleon &amp; Radar Engine" class="md-header__button md-logo" aria-label="QuantCrypto Chameleon & Radar Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            QuantCrypto Chameleon & Radar Engine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Guia Rápido e Transição de Gates
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Usar modo escuro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Usar modo escuro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Usar modo claro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Usar modo claro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando a pesquisa
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/pac-coins/quant-crypto-chameleon-radar-engine" title="Ir ao repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pac-coins/quant-crypto-chameleon-radar-engine
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Abas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href=".." class="md-tabs__link">
+          
+  
+  
+  Início
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../runbook/" class="md-tabs__link">
+          
+  
+  
+  Operação
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../unified-architecture/" class="md-tabs__link">
+          
+  
+  
+  Arquitetura & Referência
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../methodology-and-roadmap/" class="md-tabs__link">
+          
+  
+  
+  Governança & Pesquisa
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../integration-audit/" class="md-tabs__link">
+          
+  
+  
+  Auditorias & Histórico
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="QuantCrypto Chameleon &amp; Radar Engine" class="md-nav__button md-logo" aria-label="QuantCrypto Chameleon & Radar Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    QuantCrypto Chameleon & Radar Engine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/pac-coins/quant-crypto-chameleon-radar-engine" title="Ir ao repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pac-coins/quant-crypto-chameleon-radar-engine
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Início
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Início
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão Geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guia Rápido e Transição de Gates
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guia Rápido e Transição de Gates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-instalacao-local-e-testes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Instalação Local e Testes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-configuracao-do-env-e-preflight-obrigatorio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Configuração do .env e Preflight Obrigatório
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-fluxo-por-gate-6a-6b-fase-1-fase-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Fluxo por Gate (6A → 6B → Fase 1 → Fase 2)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Fluxo por Gate (6A → 6B → Fase 1 → Fase 2)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gate-6a-7-dias-na-binance-spot-testnet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gate 6A — 7 Dias na Binance Spot Testnet
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gate-6b-shadow-live-30-dias-ou-25-trades" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gate 6B — Shadow Live (&gt;= 30 dias ou &gt;= 25 trades)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fase-1-capital-real-live_chameleon_phase_1-production" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fase 1 — Capital Real (LIVE_CHAMELEON_PHASE_1 + PRODUCTION)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fase-2-live_chameleon_phase_2-apos-5-requisitos-de-f1-f2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fase 2 — LIVE_CHAMELEON_PHASE_2 (Após 5 Requisitos de F1 → F2)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-resumo-das-ferramentas-cli-operacionais-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Resumo das Ferramentas CLI Operacionais (tools/)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operação
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operação
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../runbook/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runbook de Incidentes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backup-and-restore/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup e Restauração
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura & Referência
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitetura & Referência
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../unified-architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura Unificada (Canônica)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de Dados (SQLite WAL)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Executor (Chameleon v6.0)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../radar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Radar & Auditor Virtual (v1.1)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Governança & Pesquisa
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Governança & Pesquisa
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methodology-and-roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metodologia e Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisões Arquiteturais (ADR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr-016-regra-de-decisao-6b/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-016 — Regra de Decisão do Gate 6B
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../next-steps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Próximos Passos e Pré-mortem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backtest-edge-audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditoria do Backtest e Edge (K9.3)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditorias & Histórico
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Auditorias & Histórico
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integration-audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditoria de Integração (C1/C2)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../audit-2026-11-23/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auditoria Adversarial (2026-11-23)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../audit-2026-11-23-remediation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Remediação da Auditoria (2026-11-23)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_4" id="__nav_5_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificações dos Blocos 1–6
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Especificações dos Blocos 1–6
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-1-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bloco 1 — Fundação & Dados
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-2-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bloco 2 — Features & MECE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-3-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bloco 3 — Backtest, DSR & K9.3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-4-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bloco 4 — Risco, CPPI & MLJudge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-5-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bloco 5 — OCO & Reconciliador
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../block-6-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bloco 6 — Radar, Auditor & Main
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../todo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quadro TODO (Histórico)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v5-to-v6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migração v5 → v6
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura v5 (Legado)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-instalacao-local-e-testes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Instalação Local e Testes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-configuracao-do-env-e-preflight-obrigatorio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Configuração do .env e Preflight Obrigatório
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-fluxo-por-gate-6a-6b-fase-1-fase-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Fluxo por Gate (6A → 6B → Fase 1 → Fase 2)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Fluxo por Gate (6A → 6B → Fase 1 → Fase 2)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gate-6a-7-dias-na-binance-spot-testnet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gate 6A — 7 Dias na Binance Spot Testnet
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gate-6b-shadow-live-30-dias-ou-25-trades" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gate 6B — Shadow Live (&gt;= 30 dias ou &gt;= 25 trades)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fase-1-capital-real-live_chameleon_phase_1-production" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fase 1 — Capital Real (LIVE_CHAMELEON_PHASE_1 + PRODUCTION)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fase-2-live_chameleon_phase_2-apos-5-requisitos-de-f1-f2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fase 2 — LIVE_CHAMELEON_PHASE_2 (Após 5 Requisitos de F1 → F2)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-resumo-das-ferramentas-cli-operacionais-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Resumo das Ferramentas CLI Operacionais (tools/)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="guia-rapido-e-transicao-de-gates">Guia Rápido e Transição de Gates<a class="headerlink" href="#guia-rapido-e-transicao-de-gates" title="Permanent link">&para;</a></h1>
+<p>Este guia reúne o fluxo operacional prático para instalar o ambiente, validar pré-requisitos com <code>tools/preflight_check.py</code> e conduzir com segurança cada transição de gate definida na <a href="../methodology-and-roadmap/">Metodologia e Roadmap</a>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Regra operacional inegociável</p>
+<p><strong>Nunca</strong> reinicie containers nem faça deploy durante um <strong>Gate 6A</strong> ou <strong>Gate 6B</strong> em andamento, <strong>nunca</strong> edite <code>config/strategies.yaml</code> fora de aprovação formal de gate (ADR-009) e <strong>nunca</strong> abra <code>data/quant.db</code> em escrita por fora do processo do bot (ADR-002).</p>
+</div>
+<hr />
+<h2 id="1-instalacao-local-e-testes">1. Instalação Local e Testes<a class="headerlink" href="#1-instalacao-local-e-testes" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
+.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
+.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+
+<span class="c1"># Suíte completa de testes unitários e de injeção de falhas</span>
+.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>-q
+</code></pre></div>
+<p>Para servir a documentação localmente:</p>
+<div class="highlight"><pre><span></span><code>.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements-docs.txt
+.venv/bin/mkdocs<span class="w"> </span>serve
+</code></pre></div>
+<hr />
+<h2 id="2-configuracao-do-env-e-preflight-obrigatorio">2. Configuração do <code>.env</code> e Preflight Obrigatório<a class="headerlink" href="#2-configuracao-do-env-e-preflight-obrigatorio" title="Permanent link">&para;</a></h2>
+<p>Copie <code>.env.example</code> para <code>.env</code> e preencha apenas o necessário para o modo desejado:</p>
+<div class="highlight"><pre><span></span><code>cp<span class="w"> </span>.env.example<span class="w"> </span>.env
+</code></pre></div>
+<p>Antes de <strong>qualquer</strong> subida ou troca de gate, valide o <code>.env</code> em modo somente-leitura (não toca em <code>./data</code> nem imprime segredos):</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Substitua --target-gate por: 6a | 6b | phase1 | phase2</span>
+.venv/bin/python<span class="w"> </span>tools/preflight_check.py<span class="w"> </span>--env-file<span class="w"> </span>.env<span class="w"> </span>--target-gate<span class="w"> </span>6a
+</code></pre></div>
+<p>O <code>preflight_check.py</code> verifica automaticamente:</p>
+<ul>
+<li>Invariantes de boot (<code>validate_mode_invariants</code>: menor privilégio ADR-010, <code>BNBUSDT</code> proibido C1-C, <code>affects_execution: false</code> ADR-004);</li>
+<li>Hash SHA-256 exato de <code>config/strategies.yaml</code> (ADR-009);</li>
+<li>Permissões seguras (<code>chmod 600</code>) da chave privada Ed25519 em modos <code>LIVE</code>;</li>
+<li>Dead-man switch (<code>HEALTHCHECK_URL</code>) e backup offsite criptografado (<code>OFFSITE_BACKUP_ENABLED=true</code> + chave Fernet válida);</li>
+<li>Integridade SHA-256 e <code>ECE &lt;= 0,05</code> do artefato calibrado <code>ML_JUDGE_ARTIFACT_PATH</code> (obrigatório em <code>phase1</code>/<code>phase2</code>);</li>
+<li>Presença do mount <code>./models:/app/models:ro</code> em <code>docker-compose.yml</code> e espaço em disco livre (<code>&lt; 70%</code>).</li>
+</ul>
+<hr />
+<h2 id="3-fluxo-por-gate-6a-6b-fase-1-fase-2">3. Fluxo por Gate (<code>6A → 6B → Fase 1 → Fase 2</code>)<a class="headerlink" href="#3-fluxo-por-gate-6a-6b-fase-1-fase-2" title="Permanent link">&para;</a></h2>
+<h3 id="gate-6a-7-dias-na-binance-spot-testnet">Gate 6A — 7 Dias na Binance Spot Testnet<a class="headerlink" href="#gate-6a-7-dias-na-binance-spot-testnet" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Configuração no <code>.env</code>:</strong> <code>MODE=LIVE_CHAMELEON_PHASE_1</code>, <code>BINANCE_ENV=TESTNET</code>, <code>BINANCE_API_KEY</code>, <code>BINANCE_ED25519_PRIVATE_KEY_PATH=/app/secrets/ed25519.pem</code>, <code>TELEGRAM_BOT_TOKEN</code>, <code>TELEGRAM_CHAT_ID</code>.</li>
+<li><strong>Preparação de conta Testnet (preview seguro — recusa <code>PRODUCTION</code>):</strong>
+  <div class="highlight"><pre><span></span><code>.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>src.tools.testnet_prepare
+</code></pre></div></li>
+<li><strong>Auditoria ao completar 168 ciclos horários consecutivos:</strong>
+  <div class="highlight"><pre><span></span><code><span class="c1"># Exporta os logs reais do container (sem reiniciar o bot)</span>
+docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>--no-color<span class="w"> </span>quant-chameleon<span class="w"> </span>&gt;<span class="w"> </span>/tmp/bot_6a.log
+
+<span class="c1"># Relatório read-only (URI mode=ro)</span>
+.venv/bin/python<span class="w"> </span>tools/gate_report.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--db<span class="w"> </span>data/quant.db<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--log-file<span class="w"> </span>/tmp/bot_6a.log<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--json-out<span class="w"> </span>/tmp/gate_6a_report.json
+
+<span class="c1"># Teste isolado de restauração do backup mais recente em /tmp</span>
+<span class="nv">LATEST_BKP</span><span class="o">=</span><span class="k">$(</span>ls<span class="w"> </span>-1t<span class="w"> </span>data/backups/quant_backup_*.db<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="k">)</span>
+tools/restore_drill.sh<span class="w"> </span><span class="s2">"</span><span class="nv">$LATEST_BKP</span><span class="s2">"</span><span class="w"> </span>--report-json<span class="w"> </span>/tmp/restore_drill_6a.json
+</code></pre></div></li>
+</ul>
+<h3 id="gate-6b-shadow-live-30-dias-ou-25-trades">Gate 6B — Shadow Live (<code>&gt;= 30 dias</code> ou <code>&gt;= 25 trades</code>)<a class="headerlink" href="#gate-6b-shadow-live-30-dias-ou-25-trades" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Regra de decisão pré-registrada:</strong> antes de avaliar os resultados, consulte <a href="../adr-016-regra-de-decisao-6b/">ADR-016 — Regra de Decisão do Gate 6B</a> (<code>GO</code> Fase 1, <code>HOLD</code>/ajustar, <code>NO-GO</code>/abandonar e protocolo de amostra pequena).</li>
+<li><strong>Transição guiada (somente <code>6A → 6B</code>):</strong> após <code>PASS</code> sem nenhum <code>UNKNOWN</code> no Gate 6A, você pode usar <code>tools/guided_gate_switch.py --to 6b</code> (<a href="../runbook/">Runbook §7.2</a>). Transições para Fase 1 e Fase 2 são <strong>estritamente manuais</strong>.</li>
+<li><strong>Configuração no <code>.env</code>:</strong> <code>MODE=SHADOW_CHAMELEON</code>, <code>SHADOW_INITIAL_USDT=300.00</code>, <strong>remover completamente</strong> <code>BINANCE_API_KEY</code> e <code>BINANCE_ED25519_PRIVATE_KEY_PATH</code> (ADR-010: o boot falha se existirem chaves Binance neste modo).</li>
+<li><strong>Validação antes de subir:</strong>
+  <div class="highlight"><pre><span></span><code>.venv/bin/python<span class="w"> </span>tools/preflight_check.py<span class="w"> </span>--env-file<span class="w"> </span>.env<span class="w"> </span>--target-gate<span class="w"> </span>6b
+</code></pre></div></li>
+<li><strong>Preparação do observador silencioso <code>MLJudge</code> antes da Fase 1 (sem tocar no Holdout):</strong>
+  <div class="highlight"><pre><span></span><code>.venv/bin/python<span class="w"> </span>tools/train_ml_judge.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--db<span class="w"> </span>data/quant.db<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>models/ml_judge_bull_v1.json
+</code></pre></div></li>
+<li><strong>Auditoria da Camada 4 do Radar e convergência Chameleon × Radar (somente-leitura):</strong>
+  <div class="highlight"><pre><span></span><code>.venv/bin/python<span class="w"> </span>tools/radar_ai_audit.py<span class="w"> </span>--db<span class="w"> </span>data/quant.db
+</code></pre></div></li>
+</ul>
+<h3 id="fase-1-capital-real-live_chameleon_phase_1-production">Fase 1 — Capital Real (<code>LIVE_CHAMELEON_PHASE_1</code> + <code>PRODUCTION</code>)<a class="headerlink" href="#fase-1-capital-real-live_chameleon_phase_1-production" title="Permanent link">&para;</a></h3>
+<p>Somente após <code>PASS</code> formal nos Gates 6A e 6B (<code>tools/gate_report.py</code>) e cumprimento de <a href="../adr-016-regra-de-decisao-6b/">ADR-016</a>:</p>
+<ol>
+<li>Defina no <code>.env</code>:</li>
+<li><code>MODE=LIVE_CHAMELEON_PHASE_1</code> e <code>BINANCE_ENV=PRODUCTION</code></li>
+<li><code>LIVE_CONFIRMATION=PHASE_1_GATES_6A_6B_PASSED</code></li>
+<li><code>APPROVED_STRATEGIES_SHA256=&lt;sha256 exacto de config/strategies.yaml&gt;</code></li>
+<li><code>HEALTHCHECK_URL=&lt;url externa&gt;</code> e <code>OFFSITE_BACKUP_ENABLED=true</code> + <code>BACKUP_ENCRYPTION_KEY=&lt;chave Fernet&gt;</code></li>
+<li><code>ML_JUDGE_ARTIFACT_PATH=/app/models/ml_judge_bull_v1.json</code> (observador silencioso calibrado; <code>use_ml_filter</code> continua <code>false</code>)</li>
+<li>Execute o preflight estrito:
+   <div class="highlight"><pre><span></span><code>.venv/bin/python<span class="w"> </span>tools/preflight_check.py<span class="w"> </span>--env-file<span class="w"> </span>.env<span class="w"> </span>--target-gate<span class="w"> </span>phase1<span class="w"> </span>--strict
+</code></pre></div></li>
+<li>Somente após <code>Overall: PASS</code>, faça deploy controlado:
+   <div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d<span class="w"> </span>--build
+docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </span>--tail<span class="o">=</span><span class="m">100</span><span class="w"> </span>quant-chameleon
+</code></pre></div></li>
+</ol>
+<h3 id="fase-2-live_chameleon_phase_2-apos-5-requisitos-de-f1-f2">Fase 2 — <code>LIVE_CHAMELEON_PHASE_2</code> (Após 5 Requisitos de <code>F1 → F2</code>)<a class="headerlink" href="#fase-2-live_chameleon_phase_2-apos-5-requisitos-de-f1-f2" title="Permanent link">&para;</a></h3>
+<p>Exige <code>PASS</code> simultâneo nos 5 critérios de <code>phase_1_to_2</code> em <code>tools/gate_report.py</code> (<a href="../methodology-and-roadmap/">Metodologia §4.3</a>), novo hash <code>APPROVED_STRATEGIES_SHA256</code>, <code>LIVE_CONFIRMATION=PHASE_2_F1_TO_F2_PASSED</code> e aprovação em <code>tools/preflight_check.py --target-gate phase2 --strict</code>.</p>
+<hr />
+<h2 id="4-resumo-das-ferramentas-cli-operacionais-tools">4. Resumo das Ferramentas CLI Operacionais (<code>tools/</code>)<a class="headerlink" href="#4-resumo-das-ferramentas-cli-operacionais-tools" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Ferramenta</th>
+<th>Finalidade</th>
+<th>Acesso ao SQLite</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tools/preflight_check.py</code></td>
+<td>Valida <code>.env</code>, SHA-256, permissões Ed25519, Fernet, artefato <code>MLJudge</code>, Docker mounts e disco antes de subir</td>
+<td>Não abre SQLite</td>
+</tr>
+<tr>
+<td><code>tools/gate_report.py</code></td>
+<td>Avalia Gates 6A, 6B, Fase 1→2 e kill-switches (<code>PASS</code>/<code>FAIL</code>/<code>UNKNOWN</code>)</td>
+<td><code>URI mode=ro</code> + <code>query_only=ON</code></td>
+</tr>
+<tr>
+<td><code>tools/daily_gate_digest.py</code></td>
+<td>Envia resumo diário curto no Telegram (critérios + dia do gate) e gera linha de <code>cron</code> (<code>--print-cron</code>)</td>
+<td><code>URI mode=ro</code> + <code>query_only=ON</code></td>
+</tr>
+<tr>
+<td><code>tools/guided_gate_switch.py</code></td>
+<td>Transição guiada <strong>exclusiva <code>--to 6b</code></strong> (recusa <code>FAIL</code>/<code>UNKNOWN</code> e recusa Fase 1/Fase 2; exige confirmação)</td>
+<td><code>URI mode=ro</code> + <code>query_only=ON</code></td>
+</tr>
+<tr>
+<td><code>tools/restore_drill.sh</code></td>
+<td>Testa restauração de backup em diretório isolado <code>/tmp</code> (<code>ANALYST_ONLY</code>)</td>
+<td>Somente cópia em <code>/tmp</code></td>
+</tr>
+<tr>
+<td><code>tools/train_ml_judge.py</code></td>
+<td>Treina e exporta artefato JSON calibrado do <code>MLJudge</code> (Treino/Validação apenas, Holdout excluído)</td>
+<td><code>URI mode=ro</code> + <code>query_only=ON</code></td>
+</tr>
+<tr>
+<td><code>tools/radar_ai_audit.py</code></td>
+<td>Audita Camada 4 (<code>virtual_signals</code> + <code>orderbook_snapshots</code>), convergência Chameleon×Radar e ablação offline L4</td>
+<td><code>URI mode=ro</code> + <code>query_only=ON</code></td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Voltar ao topo
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.path", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "Mais 1 nesta p\u00e1gina", "search.result.more.other": "Mais # nesta p\u00e1gina", "search.result.none": "Nenhum resultado encontrado", "search.result.one": "1 resultado encontrado", "search.result.other": "# resultados encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
