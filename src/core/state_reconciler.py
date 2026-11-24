@@ -973,7 +973,37 @@ class StateReconciler:
                     )
                     pnl_usdt = oco_quote_rec - prorated_cost
                     risk_unit = max(Decimal("0.00000001"), entry_avg - planned_stop)
-                    realized_r = float((exit_avg - entry_avg) / risk_unit)
+                    entry_fee_usdt = self.oco_manager._load_existing_trade_fee_usdt(
+                        trade_id,
+                        symbol=symbol,
+                        base_asset=flt.base_asset,
+                        entry_order_id=(
+                            int(active_row["entry_order_id"])
+                            if active_row["entry_order_id"] is not None
+                            else None
+                        ),
+                        entry_avg_price=entry_avg,
+                        allow_network=True,
+                    )
+                    exit_fee_usdt = Decimal("0")
+                    legs = order_list.get("orderReports") or order_list.get("orders") or []
+                    if isinstance(legs, list):
+                        for leg in legs:
+                            if isinstance(leg, dict):
+                                exit_fee_usdt += self.oco_manager.resolve_order_fee_usdt(
+                                    symbol,
+                                    leg,
+                                    base_asset=flt.base_asset,
+                                    base_price_usdt=exit_avg,
+                                    exclude_base_asset=False,
+                                    allow_network=True,
+                                )
+                    total_fees_usdt = (entry_fee_usdt + exit_fee_usdt).quantize(Decimal("0.00000001"))
+                    if total_fees_usdt > Decimal("0"):
+                        risk_total_usdt = max(Decimal("0.00000001"), risk_unit * oco_exec_qty)
+                        realized_r = float((pnl_usdt - total_fees_usdt) / risk_total_usdt)
+                    else:
+                        realized_r = float((exit_avg - entry_avg) / risk_unit)
                     with self.db.write_tx() as tx:
                         tx.execute(
                             """
@@ -982,6 +1012,7 @@ class StateReconciler:
                                 exit_reason = ?,
                                 exit_avg_price = ?,
                                 exit_quote_received = ?,
+                                fees_usdt_equiv = ?,
                                 realized_pnl_usdt = ?,
                                 realized_r = ?,
                                 updated_at_ms = ?,
@@ -993,6 +1024,7 @@ class StateReconciler:
                                 exit_reason.value,
                                 to_api_str(exit_avg),
                                 to_api_str(oco_quote_rec),
+                                to_api_str(total_fees_usdt),
                                 to_api_str(pnl_usdt),
                                 realized_r,
                                 now_ms,

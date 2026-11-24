@@ -167,6 +167,8 @@ CREATE TABLE IF NOT EXISTS shadow_trades (
     signal_close_time_ms  INTEGER NOT NULL,
     status                TEXT    NOT NULL CHECK (status IN ('OPEN','CLOSED')),
     decision_ask_price    REAL    NOT NULL,
+    depth_vwap_ask        REAL,
+    book_impact_bps       REAL,
     sim_entry_price       REAL    NOT NULL,
     stop_price            REAL    NOT NULL,
     target_price          REAL    NOT NULL,
@@ -444,6 +446,15 @@ class Database:
         with self.write_tx() as tx:
             for stmt in statements:
                 tx.execute(stmt)
+            existing_shadow_cols = {
+                str(r[1]) for r in tx.execute("PRAGMA table_info(shadow_trades)").fetchall()
+            }
+            for col_name, col_def in (
+                ("depth_vwap_ask", "REAL"),
+                ("book_impact_bps", "REAL"),
+            ):
+                if col_name not in existing_shadow_cols:
+                    tx.execute(f"ALTER TABLE shadow_trades ADD COLUMN {col_name} {col_def}")
             tx.execute(
                 "INSERT INTO schema_meta(key, value) VALUES ('version', ?) "
                 "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
