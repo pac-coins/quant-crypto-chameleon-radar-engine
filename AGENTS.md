@@ -4,10 +4,10 @@ Bot Spot na Binance (1h/4h, sem alavancagem) em **1 processo Python** e **1 SQLi
 
 ## 1. Estado Atual (Fase e Gates)
 
-- **Blocos 1–6 + Backlog B1–B7:** implementados e aprovados nos testes (`pytest`: 110 passed; `docs/methodology-and-roadmap.md:225-230`, `docs/next-steps.md`). Estratégia congelada no Bloco 3: **`K9.3`** (`bull_trend_pullback`, `n=282`, `DSR=0,96`, `PF_base=1,43`; `docs/block-3-spec.md:350`).
+- **Blocos 1–6 + Backlog B1–B7 + CI/Preflight + AUD-01/05/06:** implementados e aprovados nos testes (`pytest`: 116 passed; `docs/methodology-and-roadmap.md:225-230`, `docs/next-steps.md`). Estratégia congelada no Bloco 3: **`K9.3`** (`bull_trend_pullback`, ver auditoria estatística `AUD-02`/`AUD-03` em `docs/backtest-edge-audit.md`).
 - **Gate atual:** **Gate 6A** — 7 dias na Binance Spot Testnet (`MODE=LIVE_CHAMELEON_PHASE_1`, `BINANCE_ENV=TESTNET`: 168 ciclos horários consecutivos sem exceções não tratadas, `|clock_offset_ms| <= 500 ms` e restauração validada; `docs/methodology-and-roadmap.md:84-87`).
 - **Próximos gates:** **Gate 6B** (`MODE=SHADOW_CHAMELEON`, `>= 30 dias` ou `>= 25 trades`, slippage médio `<= 0,08%`; `methodology-and-roadmap.md:90-92`) → **Fase 1** (`PRODUCTION`, só `bull_trend_pullback` em `BULL`, risco 1%, IA/Radar silenciosos) → **Fase 2** (`LIVE_CHAMELEON_PHASE_2`, 5 requisitos simultâneos em `methodology-and-roadmap.md:114-121`).
-- **Runtime:** container único `mem_limit: 512m` (`docker-compose.yml:6`, `deploy/quant-chameleon.service:13`, ADR-015) + `HEALTHCHECK` read-only (`Dockerfile:21-22`).
+- **Runtime:** container único `mem_limit: 512m` (`docker-compose.yml:6`, `deploy/quant-chameleon.service:13`, ADR-015) + `HEALTHCHECK` read-only (`Dockerfile:21-22`) + mount `./models:/app/models:ro` (`docker-compose.yml:13`).
 
 ## 2. Invariantes Inegociáveis (Verificadas no Código)
 
@@ -16,7 +16,7 @@ Bot Spot na Binance (1h/4h, sem alavancagem) em **1 processo Python** e **1 SQLi
 3. **`Decimal` em preço/lote:** `to_decimal()` rejeita `float`/`bool` (`binance_client.py:325-329`); `round_price_to_tick()` e `floor_qty_to_step()` aplicam filtros (`binance_client.py:345-369`); ordens gravadas como `TEXT` (`docs/data-contract.md:13`).
 4. **`BNBUSDT` fora da execução (C1-C):** `FORBIDDEN_EXECUTION_SYMBOLS = {"BNBUSDT"}` (`config.py:21`), barrado no boot (`config.py:483-488`), no reconciliador (`state_reconciler.py:93`) e no loop (`src/main.py:878`). Só existe no Radar (`config/analyst.yaml:15`).
 5. **Escritor único no SQLite (ADR-002):** `write_tx()` usa `BEGIN IMMEDIATE` e lança `WrongThreadError` fora da thread dona (`database.py:388-397`). Ferramentas externas (`src/core/healthcheck.py:75`, `tools/gate_report.py:95`, `tools/train_ml_judge.py:44`, `tools/radar_ai_audit.py:31`) abrem só em `URI mode=ro` + `PRAGMA query_only=ON`.
-6. **`config/strategies.yaml` congelado por SHA-256 (ADR-009):** `LIVE_CHAMELEON_PHASE_1` + `PRODUCTION` exige `LIVE_CONFIRMATION="PHASE_1_GATES_6A_6B_PASSED"` e `LIVE_CHAMELEON_PHASE_2` exige `"PHASE_2_F1_TO_F2_PASSED"`, ambos com `APPROVED_STRATEGIES_SHA256` exato (`config.py:22-23,532-544,583-595`). Em `config/analyst.yaml`, `affects_execution: Literal[False]` é fixo no schema (`config.py:324,491-492`, ADR-004).
+6. **`config/strategies.yaml` congelado por SHA-256 (ADR-009):** `LIVE_CHAMELEON_PHASE_1` + `PRODUCTION` exige `LIVE_CONFIRMATION="PHASE_1_GATES_6A_6B_PASSED"` e `LIVE_CHAMELEON_PHASE_2` exige `"PHASE_2_F1_TO_F2_PASSED"`, ambos com `APPROVED_STRATEGIES_SHA256` exato (`config.py:22-23,532-544,583-595`); protegido também no CI (`.github/workflows/ci.yml`). Em `config/analyst.yaml`, `affects_execution: Literal[False]` é fixo no schema (`config.py:324,491-492`, ADR-004).
 7. **Holdout só uma vez (`methodology-and-roadmap.md:40-57`):** últimos 15% (mín. 6 meses) trancados; teto $K_{\max}=20$ em `logs/backtest_trials_registry.csv` (`src/backtest/ablation_and_dsr.py:250`). Gate 6B é o Holdout Prospectivo Verdadeiro.
 8. **Menor privilégio & C1-D (ADR-010 / ADR-012):** `ANALYST_ONLY`/`SHADOW_CHAMELEON` falham no boot se houver chaves Binance (`config.py:475-480`); `OFFSITE_BACKUP_ENABLED=true` falha sem `BACKUP_ENCRYPTION_KEY` (`config.py:119-125`). Saldo não rastreado entra em `HALT_REVIEW` e nunca é vendido (`state_reconciler.py:572-615`).
 
@@ -24,6 +24,7 @@ Bot Spot na Binance (1h/4h, sem alavancagem) em **1 processo Python** e **1 SQLi
 
 - `config/strategies.yaml` — Parâmetros congelados do Chameleon v6.0 / `K9.3` (SHA-256).
 - `config/analyst.yaml` — Parâmetros do Radar v1.1 (15 símbolos, `affects_execution: false`).
+- `.github/workflows/ci.yml` — CI (pytest + `mkdocs build --strict` + trava SHA-256 de `strategies.yaml`).
 - `src/main.py` — Orquestrador horário único + watchdog sub-horário (`QuantOrchestrator`: live → coleta → Chameleon → Radar → Auditor → backup → heartbeat).
 - `src/core/config.py` — Pydantic estrito (`.env` + 2 YAMLs), `RunMode` (incl. Fase 2) e `validate_mode_invariants()`.
 - `src/core/database.py` — SQLite WAL single-writer (`SCHEMA_DDL` v1, `write_tx()`, `upsert_regime_history()`, `backup_to()`, `prune_old_backups()`).
@@ -41,18 +42,20 @@ Bot Spot na Binance (1h/4h, sem alavancagem) em **1 processo Python** e **1 SQLi
 - `src/notifications/telegram.py` — Outbox persistente `telegram_outbox` + `HttpTelegramTransport`.
 - `src/backtest/` — `causal_simulator.py` e `ablation_and_dsr.py` (Bloco 3).
 - `src/tools/testnet_prepare.py` — Limpeza de saldos não rastreados e reset de halt só na Testnet.
+- `tools/preflight_check.py` — Validador read-only de `.env`, SHA-256, chave Ed25519, Fernet, `MLJudge` e disco antes de cada gate.
 - `tools/gate_report.py` — Relatório read-only (`mode=ro`) de Gates 6A/6B, Fase 1→2 e kill-switches.
 - `tools/train_ml_judge.py` — Treinador offline read-only do `MLJudge` (Treino/Validação apenas, Holdout excluído).
 - `tools/radar_ai_audit.py` — Auditoria read-only (`mode=ro`) da Camada 4, convergência Chameleon×Radar e ablação offline L4 no `MLJudge`.
 - `tools/restore_drill.sh` — Teste isolado de restauração em `/tmp` (modo seguro `ANALYST_ONLY`, sem chaves).
-- `docs/` — Specs (`unified-architecture.md`, `data-contract.md`, `methodology-and-roadmap.md`, `decisions.md`, `block-1..6-spec.md`, `runbook.md`, `backup-and-restore.md`, `next-steps.md`).
-- `tests/` — Suíte `pytest` (Gates 1–6, auditoria, healthcheck, backup, fault injection, `gate_report`, `restore_drill`, B1–B7).
+- `docs/` — Diátaxis: `quickstart.md`, `runbook.md`, `backup-and-restore.md`, `unified-architecture.md`, `data-contract.md`, `methodology-and-roadmap.md`, `decisions.md`, `backtest-edge-audit.md`, `next-steps.md`.
+- `tests/` — Suíte `pytest` (Gates 1–6, auditoria, healthcheck, backup, fault injection, `gate_report`, `restore_drill`, `preflight`, B1–B7).
 
 ## 4. Comandos
 
 ```bash
 .venv/bin/python -m pytest -q                                                    # Testes (antes e depois)
-.venv/bin/python tools/gate_report.py --db data/quant.db --log-file logs/bot.log # Relatório read-only
+.venv/bin/python tools/preflight_check.py --env-file .env --target-gate 6a       # Preflight read-only (6a|6b|phase1|phase2)
+.venv/bin/python tools/gate_report.py --db data/quant.db --log-file /tmp/bot.log # Relatório read-only
 .venv/bin/python tools/train_ml_judge.py --db data/quant.db --output models/ml_judge_bull_v1.json # Treino MLJudge (sem Holdout)
 .venv/bin/python tools/radar_ai_audit.py --db data/quant.db                      # Auditoria L4 & Radar×Chameleon (read-only)
 tools/restore_drill.sh data/backups/quant_backup_....db --report-json /tmp/d.json # Restore drill seguro

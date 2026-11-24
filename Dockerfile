@@ -15,7 +15,7 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 COPY config ./config
 COPY src ./src
 
-RUN mkdir -p /app/data /app/data/backups /app/logs /app/secrets && chown -R quantuser:quantuser /app
+RUN mkdir -p /app/data /app/data/backups /app/logs /app/secrets /app/models && chown -R quantuser:quantuser /app
 USER quantuser
 
 HEALTHCHECK --interval=60s --timeout=5s --start-period=120s --retries=3 \

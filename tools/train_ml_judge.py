@@ -133,12 +133,16 @@ def train_ml_judge_from_sqlite(
         btc_ctx = pd.DataFrame({"close_time_ms": btc_df["close_time_ms"]})
         if "rs_vol_adjusted_12h" in btc_df.columns:
             btc_ctx["rs_12h"] = btc_df["rs_vol_adjusted_12h"]
-        btc_regimes = regime_det.detect_series(btc_df).values
-        btc_ctx["btc_regime_4h"] = [r.value if isinstance(r, MarketRegime) else str(r) for r in btc_regimes]
+        btc_reg_map = regime_det.detect_series_from_aligned_frame(btc_df)
+        btc_reg_vals = [
+            btc_reg_map.get(int(t), MarketRegime.TRANSITION).value
+            for t in btc_df["close_time_ms"].tolist()
+        ]
+        btc_ctx["btc_regime_4h"] = btc_reg_vals
         for sym, df_al in list(aligned_by_sym.items()):
             if sym == "BTCUSDT":
                 df_al["btc_rs_12h"] = df_al.get("rs_vol_adjusted_12h", 0.0)
-                df_al["btc_regime_4h"] = [r.value if isinstance(r, MarketRegime) else str(r) for r in btc_regimes]
+                df_al["btc_regime_4h"] = btc_reg_vals
                 continue
             enriched = align_btc_context(df_al, btc_ctx[["close_time_ms", "rs_12h"]])
             if "rs_12h_btc" in enriched.columns:
@@ -159,7 +163,7 @@ def train_ml_judge_from_sqlite(
     for sym, df_al in aligned_by_sym.items():
         if df_al.empty:
             continue
-        regimes_series = regime_det.detect_series(df_al)
+        reg_map = regime_det.detect_series_from_aligned_frame(df_al)
         for idx in range(len(df_al)):
             row = df_al.iloc[idx]
             ts_ms = int(row["close_time_ms"])
@@ -168,11 +172,7 @@ def train_ml_judge_from_sqlite(
                 continue
             if ts_ms > bounds.val_end_ms:
                 continue
-            reg_raw = regimes_series.iloc[idx]
-            try:
-                reg = reg_raw if isinstance(reg_raw, MarketRegime) else MarketRegime(str(reg_raw))
-            except ValueError:
-                continue
+            reg = reg_map.get(ts_ms, MarketRegime.TRANSITION)
             sig = strategy.evaluate_row(sym, row, reg)
             if sig is None:
                 continue

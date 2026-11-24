@@ -152,8 +152,17 @@ class BullTrendPullbackStrategy(BaseStrategy):
         )
 
         if has_k93_cols:
-            if self.veto_if_btc_bear and str(row.get("btc_regime_4h", "")) == MarketRegime.BEAR.value:
-                return None
+            if self.veto_if_btc_bear:
+                raw_btc_reg = row.get("btc_regime_4h")
+                btc_reg_str = "" if raw_btc_reg is None else str(raw_btc_reg).strip()
+                if btc_reg_str == MarketRegime.BEAR.value:
+                    return None
+                if symbol != "BTCUSDT" and btc_reg_str not in (
+                    MarketRegime.BULL.value,
+                    MarketRegime.SIDEWAYS.value,
+                    MarketRegime.TRANSITION.value,
+                ):
+                    return None
 
             adx_4h = _first_finite(row, "adx_14_4h", default=float("nan"))
             if not math.isfinite(adx_4h) or adx_4h < self.min_adx_4h:
@@ -180,8 +189,8 @@ class BullTrendPullbackStrategy(BaseStrategy):
                 return None
 
             if self.require_beat_btc_rs_12h and symbol != "BTCUSDT":
-                btc_rs = _first_finite(row, "btc_rs_12h", default=0.0)
-                if rs_score < btc_rs:
+                btc_rs = _first_finite(row, "btc_rs_12h", default=float("nan"))
+                if not math.isfinite(btc_rs) or rs_score < btc_rs:
                     return None
 
             if close_p <= prev_high:

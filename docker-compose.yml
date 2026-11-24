@@ -10,6 +10,7 @@ services:
       - ./data:/app/data
       - ./logs:/app/logs
       - ./secrets:/app/secrets:ro
+      - ./models:/app/models:ro
     logging:
       driver: "json-file"
       options:
