@@ -36,7 +36,7 @@ from src.data.candle_collector import CandleCollector, align_4h_to_1h, align_btc
 from src.execution.executor_protocol import ExecutionReport, ExecutionRequest, NoOpExecutor
 from src.execution.paper_executor import PaperExecutor
 from src.features.feature_store import FeatureRequest, FeatureStore
-from src.features.ml_judge import MLJudge
+from src.features.ml_judge import MLJudge, extract_stationary_features
 
 if TYPE_CHECKING:
     from src.core.state_reconciler import StateReconciler
@@ -142,10 +142,26 @@ class QuantOrchestrator:
             strategies_cfg.portfolio,
             db=db,
         )
-        self.ml_judge = ml_judge or MLJudge(
-            strategies_cfg.ml_judge_and_validation,
-            strategies_cfg.position_sizing,
-        )
+        if ml_judge is not None:
+            self.ml_judge = ml_judge
+        elif settings.ml_judge_artifact_path is not None:
+            self.ml_judge = MLJudge.from_artifact(
+                settings.ml_judge_artifact_path,
+                strategies_cfg.ml_judge_and_validation,
+                strategies_cfg.position_sizing,
+            )
+            logger.info(
+                "Loaded calibrated MLJudge artifact from %s (ECE=%.4f, q33=%.4f, q70=%.4f)",
+                settings.ml_judge_artifact_path,
+                self.ml_judge.ece_out_of_sample,
+                self.ml_judge.net_r_q33_threshold,
+                self.ml_judge.net_r_q70_threshold,
+            )
+        else:
+            self.ml_judge = MLJudge(
+                strategies_cfg.ml_judge_and_validation,
+                strategies_cfg.position_sizing,
+            )
         self.virtual_auditor = VirtualAuditor(db)
         self.orderbook_inspector = orderbook_inspector or OrderbookInspector(
             analyst_cfg.layer_4_orderbook_live,
@@ -668,7 +684,7 @@ class QuantOrchestrator:
         if defense.shadow_mode_active and self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1:
             return False, None
 
-        candidates: list[tuple[float, str, Any]] = []
+        candidates: list[tuple[float, str, Any, pd.Series]] = []
         for sym in self.strategies_cfg.universe.symbols:
             if sym in FORBIDDEN_EXECUTION_SYMBOLS:  # C1-C
                 continue
@@ -679,20 +695,25 @@ class QuantOrchestrator:
             reg = regimes.get(sym, MarketRegime.TRANSITION)
             sig = self.strategy.evaluate_row(sym, row, reg)
             if sig is not None:
-                candidates.append((float(sig.rs_vol_adjusted_12h), sym, sig))
+                candidates.append((float(sig.rs_vol_adjusted_12h), sym, sig, row))
 
         if not candidates:
             return False, None
 
         candidates.sort(key=lambda item: (-item[0], item[1]))
-        _, sym, best_sig = candidates[0]
+        _, sym, best_sig, best_row = candidates[0]
 
         filters = self.exchange_cache.get(sym)
         bt = self.public_client.get_book_ticker(sym)
         entry_ref = bt.ask
 
+        stationary_feats = extract_stationary_features(best_row)
+        ml_raw_score = self.ml_judge.score_features(
+            stationary_feats,
+            rs_vol_adjusted_12h=float(best_sig.rs_vol_adjusted_12h),
+        )
         ml_eval = self.ml_judge.evaluate_signal(
-            raw_score=float(best_sig.rs_vol_adjusted_12h),
+            raw_score=ml_raw_score,
             stop_distance_pct=float(best_sig.stop_distance_pct),
             gross_rr_ratio=float(best_sig.gross_rr_ratio),
         )

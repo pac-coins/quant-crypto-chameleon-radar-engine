@@ -182,6 +182,7 @@ CREATE TABLE IF NOT EXISTS shadow_trades (
     r_gross               REAL,
     r_net                 REAL,
     ml_grade_silent       TEXT CHECK (ml_grade_silent IN ('A+','B','C') OR ml_grade_silent IS NULL),
+    ml_p_cal_silent       REAL,
     radar_signal_id       TEXT REFERENCES virtual_signals(signal_id),
     created_at_ms         INTEGER NOT NULL,
     closed_at_ms          INTEGER,
@@ -452,6 +453,7 @@ class Database:
             for col_name, col_def in (
                 ("depth_vwap_ask", "REAL"),
                 ("book_impact_bps", "REAL"),
+                ("ml_p_cal_silent", "REAL"),
             ):
                 if col_name not in existing_shadow_cols:
                     tx.execute(f"ALTER TABLE shadow_trades ADD COLUMN {col_name} {col_def}")

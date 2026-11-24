@@ -159,8 +159,8 @@ class PaperExecutor:
                     decision_ask_price, depth_vwap_ask, book_impact_bps,
                     sim_entry_price, stop_price, target_price,
                     qty, risk_pct, risk_usdt, virtual_equity_before,
-                    time_barrier_end_ms, ml_grade_silent, radar_signal_id, created_at_ms
-                ) VALUES (?, ?, ?, ?, 'OPEN', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    time_barrier_end_ms, ml_grade_silent, ml_p_cal_silent, radar_signal_id, created_at_ms
+                ) VALUES (?, ?, ?, ?, 'OPEN', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     req.symbol,
@@ -179,6 +179,7 @@ class PaperExecutor:
                     format(to_decimal(virtual_equity_before), "f"),
                     int(req.time_barrier_end_ms),
                     req.sizing.ml_grade_silent,
+                    req.sizing.ml_p_cal_silent,
                     req.radar_signal_id,
                     created_ms,
                 ),

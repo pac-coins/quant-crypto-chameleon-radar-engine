@@ -70,6 +70,7 @@ class RuntimeSettings(BaseSettings):
     offsite_backup_enabled: bool = False
     backup_telegram_chat_id: str | None = None
     backup_encryption_key: SecretStr | None = None
+    ml_judge_artifact_path: Path | None = None
 
     @field_validator(
         "binance_api_key",
@@ -79,6 +80,7 @@ class RuntimeSettings(BaseSettings):
         "healthcheck_url",
         "backup_telegram_chat_id",
         "backup_encryption_key",
+        "ml_judge_artifact_path",
         mode="before",
     )
     @classmethod
