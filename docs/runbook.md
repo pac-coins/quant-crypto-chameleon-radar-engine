@@ -343,4 +343,3 @@ tools/restore_drill.sh "$LATEST_BKP" --report-json /tmp/restore_drill_6a.json
 3. **Backup atômico + menor privilégio (ADR-010):** cria `.env.bak.<UTC>` (`chmod 0600`), altera `MODE=SHADOW_CHAMELEON`, **remove** `BINANCE_API_KEY`, `BINANCE_ED25519_PRIVATE_KEY_PATH`, `LIVE_CONFIRMATION` e `APPROVED_STRATEGIES_SHA256`, e revalida o `.env` final com `preflight_check --target-gate 6b` (revertendo automaticamente para o backup em caso de falha).
 4. **Sem reinício automático:** não executa `docker compose up`; o operador reinicia manualmente quando estiver pronto.
 5. **Fase 1 (dinheiro real) e Fase 2 são ESTRITAMENTE MANUAIS:** a ferramenta **recusa** qualquer alvo diferente de `6b` (ex.: `--to phase1` ou `--to phase2` encerra com código `2`). A decisão pós-Gate 6B segue a regra pré-registrada em [ADR-016](adr-016-regra-de-decisao-6b.md).
-
