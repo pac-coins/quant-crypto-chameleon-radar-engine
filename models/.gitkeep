@@ -1,0 +1,2 @@
+# Diretorio montado em somente leitura (/app/models:ro) para artefatos calibrados do MLJudge (B4).
+# Gere artefatos offline via: .venv/bin/python tools/train_ml_judge.py --db data/quant.db --output models/ml_judge_bull_v1.json
