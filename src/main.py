@@ -1138,6 +1138,128 @@ class QuantOrchestrator:
             unhandled_errors=unhandled,
         )
 
+    def run_subhourly_watchdog_tick(self, *, now_ms: int | None = None) -> bool:
+        """
+        Single-thread sub-hourly check for hanging STOP_LOSS_LIMIT orders while a LIVE trade is
+        PROTECTED (B6, respects ADR-002 single-writer). Returns True if a liquidation occurred.
+        Makes zero network calls when flat.
+        """
+        if self.oco_manager is None:
+            return False
+        open_t = self._has_open_live_trade()
+        if open_t is None or open_t["status"] != "PROTECTED":
+            return False
+
+        cur_ms = int(now_ms if now_ms is not None else self.clock.server_now_ms())
+        trade_id = int(open_t["trade_id"])
+        sym = str(open_t["symbol"])
+        try:
+            filters = self.exchange_cache.get(sym)
+            if cur_ms >= int(open_t["time_barrier_end_ms"]):
+                rep = self.oco_manager.close_on_time_barrier(
+                    trade_id=trade_id,
+                    symbol=sym,
+                    base_asset=filters.base_asset,
+                    oco_order_list_id=int(open_t["oco_order_list_id"]),
+                    oco_qty=Decimal(str(open_t["oco_qty"] or "0")),
+                    symbol_filters=filters,
+                )
+                if rep.executed:
+                    self.outbox.enqueue(
+                        "TIME_STOP",
+                        f"⏱️ Time-Stop executado em {sym} (trade #{trade_id}, status={rep.status}).",
+                        now_ms=cur_ms,
+                    )
+                    self.outbox.flush(now_ms=cur_ms)
+                    return True
+                return False
+
+            if open_t["oco_stop_limit_price"] is None:
+                return False
+            wd_rep = self.oco_manager.check_hanging_stop_watchdog(
+                trade_id=trade_id,
+                symbol=sym,
+                base_asset=filters.base_asset,
+                oco_order_list_id=int(open_t["oco_order_list_id"]),
+                oco_stop_price=Decimal(str(open_t["oco_stop_price"] or "0")),
+                oco_stop_limit_price=Decimal(str(open_t["oco_stop_limit_price"])),
+                symbol_filters=filters,
+                oco_qty=(
+                    Decimal(str(open_t["oco_qty"]))
+                    if open_t["oco_qty"] is not None
+                    else None
+                ),
+            )
+            if wd_rep is not None and wd_rep.executed:
+                self.outbox.enqueue(
+                    "STOP_WATCHDOG",
+                    (
+                        f"🚨 STOP_WATCHDOG sub-horário acionado em {sym} (trade #{trade_id}): "
+                        f"OCO cancelada e vendida a MARKET ({wd_rep.filled_qty})."
+                    ),
+                    now_ms=cur_ms,
+                )
+                self.outbox.flush(now_ms=cur_ms)
+                return True
+            return False
+        except Exception as exc:
+            logger.warning(
+                "Sub-hourly watchdog check failed for %s trade #%s: %s",
+                sym,
+                trade_id,
+                exc,
+            )
+            if self.db.get_state("emergency_halt") == "1":
+                try:
+                    self.outbox.enqueue(
+                        "KILL_SWITCH",
+                        format_kill_switch_alert(self.settings.mode.value, str(exc)),
+                        now_ms=cur_ms,
+                    )
+                    self.outbox.flush(now_ms=cur_ms)
+                except Exception:
+                    pass
+            return False
+
+    def wait_for_next_cycle_with_watchdog(
+        self,
+        *,
+        stop_requested_fn: Callable[[], bool] = lambda: False,
+        poll_interval_s: float = 20.0,
+    ) -> int:
+        """
+        Wait until next hourly boundary + fetch_delay_s while polling sub-hourly watchdog
+        whenever a LIVE trade is PROTECTED and honoring SIGTERM promptly (B6).
+        """
+        start_ms = self.clock.server_now_ms()
+        delay_ms = int(round(self.collector.fetch_delay_s * 1000.0))
+        current_boundary_ms = (start_ms // ONE_HOUR_MS) * ONE_HOUR_MS
+        if start_ms < current_boundary_ms + delay_ms:
+            target_boundary_ms = current_boundary_ms
+        else:
+            target_boundary_ms = current_boundary_ms + ONE_HOUR_MS
+        wake_ms = target_boundary_ms + delay_ms
+
+        interval = max(1.0, float(poll_interval_s))
+        while not stop_requested_fn():
+            now_ms = self.clock.server_now_ms()
+            if now_ms >= wake_ms:
+                break
+            has_open_live = self.oco_manager is not None and self._has_open_live_trade() is not None
+            if has_open_live:
+                self.run_subhourly_watchdog_tick(now_ms=now_ms)
+                now_ms = self.clock.server_now_ms()
+                if now_ms >= wake_ms:
+                    break
+                step_s = interval
+            else:
+                step_s = min(interval, 5.0)
+            remaining_s = max(0.0, (wake_ms - now_ms) / 1000.0)
+            sleep_s = min(step_s, remaining_s)
+            if sleep_s > 0.0:
+                self._sleep(sleep_s)
+        return target_boundary_ms
+
 
 def main() -> None:
     logging.basicConfig(
@@ -1186,7 +1308,10 @@ def main() -> None:
 
     try:
         while not stop_requested:
-            orch.collector.wait_for_cycle()
+            orch.wait_for_next_cycle_with_watchdog(
+                stop_requested_fn=lambda: stop_requested,
+                poll_interval_s=settings.watchdog_poll_interval_seconds,
+            )
             if stop_requested:
                 break
             try:

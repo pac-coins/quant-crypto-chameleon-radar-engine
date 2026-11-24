@@ -65,6 +65,7 @@ class RuntimeSettings(BaseSettings):
     db_path: Path = Path("data/quant.db")
     backup_dir: Path = Path("data/backups")
     backup_retention_days: int = Field(default=14, ge=1)
+    watchdog_poll_interval_seconds: float = Field(default=20.0, ge=1.0, le=300.0)
     healthcheck_url: SecretStr | None = None
     offsite_backup_enabled: bool = False
     backup_telegram_chat_id: str | None = None
