@@ -301,3 +301,118 @@ def test_aud05_train_ml_judge_uses_4h_aligned_regime_not_1h_close(
     assert all(r == MarketRegime.BEAR for r in post_warmup)
     assert all(b == MarketRegime.BEAR.value for b in post_btc_ctx)
 
+
+def test_aud06_fail_closed_when_btc_context_missing_or_stale(tmp_path: Path) -> None:
+    """
+    AUD-06 regression:
+    1. BullTrendPullbackStrategy MUST fail closed (return None) for altcoins when
+       btc_rs_12h is missing/NaN or btc_regime_4h is missing/empty/NaN.
+    2. QuantOrchestrator.run_once() MUST populate missing BTC context fail-closed
+       when BTCUSDT candles are absent/stale so altcoins cannot bypass BTC filters.
+    """
+    from src.strategies.bull_trend_pullback import BullTrendPullbackStrategy
+
+    strat = BullTrendPullbackStrategy(enabled=True)
+    valid_row = pd.Series(
+        {
+            "close_time_ms": 10_000_000,
+            "open": 100.0,
+            "high": 104.0,
+            "low": 99.5,
+            "close": 103.0,
+            "ema_9": 102.0,
+            "ema_20": 101.0,
+            "ema_50": 99.0,
+            "ema_100": 96.0,
+            "atr_14": 2.0,
+            "adx_14_4h": 21.5,
+            "rvol_20": 1.65,
+            "tbr": 0.56,
+            "of_delta_quote": 15_000.0,
+            "rs_vol_adjusted_12h": 1.85,
+            "btc_rs_12h": 1.10,
+            "btc_regime_4h": "BULL",
+            "prev_high_12h": 102.5,
+        }
+    )
+    # Sanity: valid BTC context approves SOLUSDT
+    assert strat.evaluate_row("SOLUSDT", valid_row, MarketRegime.BULL) is not None
+
+    # Missing / NaN btc_rs_12h MUST reject SOLUSDT (no default=0.0 bypass!)
+    row_nan_rs = valid_row.copy()
+    row_nan_rs["btc_rs_12h"] = float("nan")
+    assert strat.evaluate_row("SOLUSDT", row_nan_rs, MarketRegime.BULL) is None
+    row_no_rs = valid_row.drop(labels=["btc_rs_12h"])
+    assert strat.evaluate_row("SOLUSDT", row_no_rs, MarketRegime.BULL) is None
+
+    # Missing / empty / NaN btc_regime_4h MUST reject SOLUSDT
+    row_empty_reg = valid_row.copy()
+    row_empty_reg["btc_regime_4h"] = ""
+    assert strat.evaluate_row("SOLUSDT", row_empty_reg, MarketRegime.BULL) is None
+    row_no_reg = valid_row.drop(labels=["btc_regime_4h"])
+    assert strat.evaluate_row("SOLUSDT", row_no_reg, MarketRegime.BULL) is None
+
+    # BTCUSDT itself in BULL regime STILL works without external BTC comparison
+    assert strat.evaluate_row("BTCUSDT", row_no_rs, MarketRegime.BULL) is not None
+
+    # End-to-end orchestrator check: BTCUSDT missing from DB -> SOLUSDT aligned frame gets empty regime & NaN RS
+    st_cfg = StrategiesConfig.model_validate(load_yaml_strict(Path("config/strategies.yaml")))
+    an_cfg = AnalystConfig.model_validate(load_yaml_strict(Path("config/analyst.yaml")))
+    db_path = tmp_path / "aud06.db"
+    db = Database(db_path)
+    db.connect()
+    db.migrate()
+
+    end_ms = 1_700_000_000_000 - (1_700_000_000_000 % (4 * ONE_HOUR_MS))
+    # Seed ONLY SOLUSDT (NO BTCUSDT -> simulates stale/missing BTCUSDT)
+    _seed_uptrend(db, "SOLUSDT", end_ms, n_1h=350, n_4h=250)
+
+    pub = _StubPublic(end_ms + 3000)
+    clock = MonotonicClock()
+    clock.sync(pub.get_server_time_ms, samples=1)
+    all_syms = list(
+        dict.fromkeys(
+            list(st_cfg.universe.symbols) + list(an_cfg.scanner_universe.symbols) + ["BNBUSDT"]
+        )
+    )
+    ex_cache = ExchangeInfoCache(pub, db, all_syms)  # type: ignore[arg-type]
+    ex_cache.refresh_if_stale(end_ms + 3000)
+    outbox = TelegramOutbox(db, "chat1", transport=None)
+    settings = RuntimeSettings(
+        mode=RunMode.SHADOW_CHAMELEON,
+        telegram_bot_token=SecretStr("tg"),
+        telegram_chat_id="chat1",
+        db_path=db_path,
+        backup_dir=tmp_path / "backups",
+    )
+    orch = QuantOrchestrator(
+        settings=settings,
+        strategies_cfg=st_cfg,
+        analyst_cfg=an_cfg,
+        db=db,
+        public_client=pub,  # type: ignore[arg-type]
+        signed_client=None,
+        clock=clock,
+        exchange_cache=ex_cache,
+        outbox=outbox,
+        sleep_fn=lambda _: None,
+    )
+
+    seen_btc_ctx: list[tuple[Any, Any]] = []
+    orig_eval = orch.strategy.evaluate_row
+
+    def _capture_eval(sym: str, row: pd.Series, reg: MarketRegime, **kw: Any) -> Any:
+        if sym == "SOLUSDT":
+            seen_btc_ctx.append((row.get("btc_regime_4h"), row.get("btc_rs_12h")))
+        return orig_eval(sym, row, reg, **kw)
+
+    orch.strategy.evaluate_row = _capture_eval  # type: ignore[method-assign]
+    rep = orch.run_once(now_ms=end_ms + 3000, skip_collect=True)
+    assert rep.unhandled_errors == 0
+    assert rep.chameleon_executed is False
+    assert len(seen_btc_ctx) == 1
+    assert seen_btc_ctx[0][0] == ""
+    assert pd.isna(seen_btc_ctx[0][1])
+    db.close()
+
+

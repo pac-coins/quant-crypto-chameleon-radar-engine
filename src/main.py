@@ -1230,23 +1230,30 @@ class QuantOrchestrator:
             else (cur_ms // ONE_HOUR_MS) * ONE_HOUR_MS
         )
 
-        # Enrich all non-BTC frames with BTC 12h RS and BTC 4h regime (K9.3 context)
+        # Enrich all non-BTC frames with BTC 12h RS and BTC 4h regime (K9.3 context; AUD-06 fail-closed if BTC stale)
         btc_df = aligned_frames.get("BTCUSDT")
-        btc_regime_str = regimes.get("BTCUSDT", MarketRegime.TRANSITION).value
-        if btc_df is not None and not btc_df.empty:
+        if btc_df is not None and not btc_df.empty and "BTCUSDT" in regimes:
+            btc_regime_str = regimes["BTCUSDT"].value
             btc_ctx = pd.DataFrame({"close_time_ms": btc_df["close_time_ms"]})
             if "rs_vol_adjusted_12h" in btc_df.columns:
                 btc_ctx["rs_12h"] = btc_df["rs_vol_adjusted_12h"]
             for sym, df_al in list(aligned_frames.items()):
                 if sym == "BTCUSDT":
-                    df_al["btc_rs_12h"] = df_al.get("rs_vol_adjusted_12h", 0.0)
+                    df_al["btc_rs_12h"] = df_al.get("rs_vol_adjusted_12h", float("nan"))
                     df_al["btc_regime_4h"] = btc_regime_str
                     continue
                 enriched = align_btc_context(df_al, btc_ctx)
                 if "rs_12h_btc" in enriched.columns:
                     enriched["btc_rs_12h"] = enriched["rs_12h_btc"]
+                else:
+                    enriched["btc_rs_12h"] = float("nan")
                 enriched["btc_regime_4h"] = btc_regime_str
                 aligned_frames[sym] = enriched
+        else:
+            for sym, df_al in list(aligned_frames.items()):
+                df_al["btc_rs_12h"] = float("nan")
+                df_al["btc_regime_4h"] = ""
+                aligned_frames[sym] = df_al
 
         # C2-9: Chameleon execution path FIRST, Radar L4 SECOND
         chameleon_executed, chameleon_symbol = self._execute_chameleon_step(
