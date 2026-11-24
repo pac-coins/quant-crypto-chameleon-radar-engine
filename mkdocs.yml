@@ -63,6 +63,7 @@ nav:
   - Governança & Pesquisa:
       - Metodologia e Roadmap: methodology-and-roadmap.md
       - Decisões Arquiteturais (ADR): decisions.md
+      - ADR-016 — Regra de Decisão do Gate 6B: adr-016-regra-de-decisao-6b.md
       - Próximos Passos e Pré-mortem: next-steps.md
       - Auditoria do Backtest e Edge (K9.3): backtest-edge-audit.md
   - Auditorias & Histórico:
