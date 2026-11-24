@@ -170,6 +170,16 @@ class PaperExecutor:
             roundtrip_cost_pct=roundtrip_cost,
         )
         if res.status in ("TARGET", "STOP", "SAME_CANDLE_STOP", "TIME"):
+            now_ms = int(res.resolved_at_ms if res.resolved_at_ms is not None else time.time() * 1000)
+            eq_before = to_decimal(str(row["virtual_equity_before"]))
+            risk_usdt = to_decimal(str(row["risk_usdt"]))
+            if res.r_net is not None:
+                pnl_usdt = (risk_usdt * Decimal(str(round(float(res.r_net), 6)))).quantize(
+                    Decimal("0.01")
+                )
+                new_eq = max(Decimal("0.01"), eq_before + pnl_usdt)
+            else:
+                new_eq = eq_before
             with self.db.write_tx() as tx:
                 tx.execute(
                     """
@@ -190,6 +200,23 @@ class PaperExecutor:
                         res.resolved_at_ms,
                         int(row["shadow_id"]),
                     ),
+                )
+                tx.execute(
+                    """
+                    INSERT OR IGNORE INTO system_state(key, value, updated_at_ms)
+                    VALUES ('initial_shadow_equity_usdt', ?, ?)
+                    """,
+                    (format(eq_before, "f"), now_ms),
+                )
+                tx.execute(
+                    """
+                    INSERT INTO system_state(key, value, updated_at_ms)
+                    VALUES ('shadow_virtual_equity_usdt', ?, ?)
+                    ON CONFLICT(key) DO UPDATE SET
+                        value = excluded.value,
+                        updated_at_ms = excluded.updated_at_ms
+                    """,
+                    (format(new_eq, "f"), now_ms),
                 )
             if self.shadow_manager is not None and res.r_net is not None:
                 self.shadow_manager.record_trade_outcome(

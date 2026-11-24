@@ -284,6 +284,23 @@ class QuantOrchestrator:
             logger.warning("sapi_system_status error (%s); assuming maintenance block.", exc)
             return True
 
+    def _should_emit_rate_limited_alert(
+        self,
+        state_key: str,
+        now_ms: int,
+        *,
+        interval_ms: int = ONE_DAY_MS,
+    ) -> bool:
+        raw = self.db.get_state(state_key)
+        if raw is not None:
+            try:
+                if (int(now_ms) - int(raw)) < int(interval_ms):
+                    return False
+            except ValueError:
+                pass
+        self.db.set_state(state_key, str(int(now_ms)))
+        return True
+
     def _count_trades_last_24h(self, now_ms: int) -> int:
         cutoff = now_ms - ONE_DAY_MS
         with self.db.read() as conn:
@@ -516,6 +533,10 @@ class QuantOrchestrator:
         commission_payload: Optional[dict[str, Any]] = None
         if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1:
             free_usdt, eq_usdt, bnb_usdt = self._get_live_balances()
+            self.db.set_state("current_equity_usdt", eq_usdt)
+            self.db.set_state("bnb_free_usdt_equiv", bnb_usdt)
+            if eq_usdt > Decimal("0") and self.db.get_state("initial_tactical_equity_usdt") is None:
+                self.db.set_state("initial_tactical_equity_usdt", eq_usdt)
             get_comm = getattr(self.signed_client, "get_account_commission", None)
             if callable(get_comm) and self.strategies_cfg.universe.symbols:
                 try:
@@ -532,7 +553,11 @@ class QuantOrchestrator:
                     logger.warning("get_account_commission unavailable (%s); continuing with defaults", exc)
         else:
             stored_eq = self.db.get_state("shadow_virtual_equity_usdt")
-            eq_usdt = Decimal(stored_eq) if stored_eq else Decimal(str(self.settings.shadow_initial_usdt))
+            if stored_eq is not None:
+                eq_usdt = Decimal(stored_eq)
+            else:
+                eq_usdt = Decimal(str(self.settings.shadow_initial_usdt))
+                self.db.set_state("shadow_virtual_equity_usdt", eq_usdt)
             free_usdt = eq_usdt
             bnb_usdt = Decimal("10.00")
 
@@ -549,6 +574,35 @@ class QuantOrchestrator:
                 now_ms=now_ms,
             )
             return False, None
+        if (
+            self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1
+            and defense.bnb_below_recommended_reserve
+            and self._should_emit_rate_limited_alert("last_bnb_warn_alert_ms", now_ms)
+        ):
+            rec_bnb = self.strategies_cfg.portfolio.min_bnb_fee_reserve_usdt_equiv
+            self.outbox.enqueue(
+                "BNB_LOW_WARNING",
+                (
+                    f"⚠️ Reserva preventiva de BNB baixa ({self.settings.mode.value}): "
+                    f"{bnb_usdt:.2f} USDT < {rec_bnb:.2f} USDT recomendados "
+                    "(hard stop em 2,00 USDT). Recarregue BNB na conta Spot."
+                ),
+                now_ms=now_ms,
+            )
+        if (
+            self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1
+            and not defense.commission_rate_valid
+            and self._should_emit_rate_limited_alert("last_commission_warn_alert_ms", now_ms)
+        ):
+            self.outbox.enqueue(
+                "COMMISSION_WARNING",
+                (
+                    f"⚠️ Alerta de taxa de comissão ({self.settings.mode.value}): "
+                    "taxa taker efetiva reportada pela Binance excede 0,10%. "
+                    "Verifique se o desconto BNB ('Use BNB to pay fees') está ativo."
+                ),
+                now_ms=now_ms,
+            )
         if defense.shadow_mode_active and self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1:
             return False, None
 
@@ -852,6 +906,21 @@ class QuantOrchestrator:
             aligned_frames[sym] = df_al
             snap = self.regime_detector.detect_from_aligned_frame(df_al)
             regimes[sym] = snap.regime
+            try:
+                close_4h_ms = int(df_4h["close_time_ms"].iloc[-1])
+                self.db.upsert_regime_history(
+                    symbol=sym,
+                    close_time_4h_ms=close_4h_ms,
+                    regime=snap.regime.value,
+                    close_4h=snap.close_4h,
+                    ema100_4h=snap.ema100_4h,
+                    ema100_slope_4h=snap.ema100_slope_4h,
+                    chop14_4h=snap.chop14_4h,
+                    adx14_4h=snap.adx14_4h,
+                    fallback_reason=snap.fallback_reason,
+                )
+            except Exception as exc:
+                logger.warning("Failed to persist regime_history for %s: %s", sym, exc)
             observed_closes.append(int(df_al["close_time_ms"].iloc[-1]))
 
         cycle_close_ms = (
@@ -915,6 +984,11 @@ class QuantOrchestrator:
                     raise RuntimeError(f"Database.verify_backup failed for {candidate_backup}")
                 backup_path = candidate_backup
                 self._last_backup_day_utc = day_utc
+                Database.prune_old_backups(
+                    self.settings.backup_dir,
+                    keep_latest=self.settings.backup_retention_days,
+                    prefix=self.settings.db_path.stem,
+                )
             except Exception as exc:
                 logger.error("Daily SQLite backup failed: %s", exc)
                 unhandled += 1

@@ -64,6 +64,7 @@ class RuntimeSettings(BaseSettings):
     telegram_chat_id: str
     db_path: Path = Path("data/quant.db")
     backup_dir: Path = Path("data/backups")
+    backup_retention_days: int = Field(default=14, ge=1)
     healthcheck_url: SecretStr | None = None
     offsite_backup_enabled: bool = False
     backup_telegram_chat_id: str | None = None
