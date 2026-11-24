@@ -9,10 +9,10 @@
 
 ## 1. Por que esta regra existe antes do Gate 6B
 
-A auditoria do Bloco 3 ([Auditoria do Backtest e Edge](backtest-edge-audit.md)) registrou dois fatos críticos sobre a estratégia congelada **`K9.3`** (`n = 282` trades, $E[R]_{\text{net}} = +0{,}230\text{R}$, IC 95% $[+0{,}068\text{R};\, +0{,}392\text{R}]$, `PF = 1,62` base / `1,53` pessimista, ~1,3 trade/semana):
+A auditoria do Bloco 3 ([Auditoria do Backtest e Edge](backtest-edge-audit.md)) registrou dois fatos críticos sobre a estratégia congelada **`K9.3`** (`n = 282` trades em ~4,25 anos, `~1,3 trade/semana`, $E[R]_{\text{net}} = +0{,}230\text{R}$, IC 95% $[+0{,}068\text{R};\, +0{,}392\text{R}]$, `PF = 1,43` base / `1,29` pessimista, `DSR = 0,96`):
 
-1. **`AUD-02`:** o cofre de Holdout histórico foi consultado em 4 candidatos (`K8.2`, `K9.0`, `K9.2`, `K9.3`) antes do congelamento.
-2. **`AUD-03`:** o registro de tentativas do `DSR` contabilizou 9 ensaios em vez de $\ge 13$.
+1. **`AUD-02`:** o Gate 3 foi avaliado sobre 100% do histórico (60% Treino *in-sample* + 25% Validação + 15% Holdout misturados, sem Purging/Embargo); a parcela realmente fora da amostra (`Validação + Holdout`) tem ~113 trades (`< 150`).
+2. **`AUD-03`:** o `DSR = 0,96` está estruturalmente inflado por quatro distorções (`tpy = 150` em vez de `~66,4/ano`, `K = 9` em vez de `30–40` sub-variantes reais, `var = 0,25` e Holdout consultado durante `K5→K9`).
 
 Por isso, o **Gate 6B** (`SHADOW_CHAMELEON` em tempo real, com book real via `COALESCE(depth_vwap_ask, decision_ask_price)`) é o **primeiro Holdout Prospectivo Verdadeiro** (*forward out-of-sample*, [Metodologia §2.3](methodology-and-roadmap.md)) com zero contaminação.
 
