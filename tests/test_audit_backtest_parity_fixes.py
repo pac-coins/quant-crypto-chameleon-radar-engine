@@ -209,3 +209,95 @@ def test_aud01_run_once_classifies_bull_with_350_1h_and_250_4h_candles(tmp_path:
     assert rows["ADAUSDT"][0] == MarketRegime.TRANSITION.value
     assert rows["ADAUSDT"][1] == "WARMUP_LT_120"
     db.close()
+
+
+def test_aud05_train_ml_judge_uses_4h_aligned_regime_not_1h_close(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    """
+    AUD-05 regression: tools/train_ml_judge.py MUST evaluate regime via 4h aligned columns
+    (detect_series_from_aligned_frame), NOT 1h close (detect_series).
+    We create a deliberate divergence: 1h candles rise linearly (would be BULL on 1h),
+    while 4h candles fall steadily (true 4h BEAR). Captured regimes after 4h warmup MUST be BEAR!
+    """
+    import tools.train_ml_judge as trainer
+
+    db_path = tmp_path / "aud05_ml.db"
+    db = Database(db_path)
+    db.connect()
+    db.migrate()
+
+    base_ms = 1_700_000_000_000 - (1_700_000_000_000 % (4 * ONE_HOUR_MS))
+    rows: list[CandleRow] = []
+    # 720 hourly candles rising smoothly (1h close > 1h ema_100)
+    for i in range(720):
+        o_ms = base_ms + i * ONE_HOUR_MS
+        c_ms = o_ms + ONE_HOUR_MS
+        px = 100.0 + i * 0.2
+        rows.append(
+            CandleRow(
+                symbol="BTCUSDT",
+                interval="1h",
+                open_time_ms=o_ms,
+                close_time_ms=c_ms,
+                open=px - 0.1,
+                high=px + 0.5,
+                low=px - 0.5,
+                close=px,
+                volume=100.0,
+                quote_volume=100.0 * px,
+                number_of_trades=50,
+                taker_buy_base_volume=60.0,
+                taker_buy_quote_volume=60.0 * px,
+                ingested_at_ms=c_ms,
+            )
+        )
+    # 180 4h candles falling steadily (4h close < 4h ema_100 and slope < 0 -> BEAR!)
+    for i in range(180):
+        o_ms = base_ms + i * 4 * ONE_HOUR_MS
+        c_ms = o_ms + 4 * ONE_HOUR_MS
+        px = 500.0 - i * 1.5
+        rows.append(
+            CandleRow(
+                symbol="BTCUSDT",
+                interval="4h",
+                open_time_ms=o_ms,
+                close_time_ms=c_ms,
+                open=px + 0.5,
+                high=px + 1.0,
+                low=px - 1.0,
+                close=px,
+                volume=400.0,
+                quote_volume=400.0 * px,
+                number_of_trades=200,
+                taker_buy_base_volume=150.0,
+                taker_buy_quote_volume=150.0 * px,
+                ingested_at_ms=c_ms,
+            )
+        )
+    db.upsert_candles(rows)
+    db.close()
+
+    observed_regimes: list[tuple[int, MarketRegime, str]] = []
+
+    def _spy_eval(self: Any, sym: str, row: pd.Series, reg: MarketRegime) -> None:
+        observed_regimes.append((int(row["close_time_ms"]), reg, str(row.get("btc_regime_4h", ""))))
+        return None
+
+    monkeypatch.setattr(trainer.BullTrendPullbackStrategy, "evaluate_row", _spy_eval)
+    try:
+        trainer.train_ml_judge_from_sqlite(
+            db_path=db_path,
+            output_path=tmp_path / "unused.json",
+        )
+    except RuntimeError:
+        pass  # expected since _spy_eval returns None (0 trades)
+
+    # After 120 4h warmup bars (480 hours), 4h regime MUST be BEAR (never 1h BULL!)
+    post_warmup = [r for ts, r, _ in observed_regimes if ts >= base_ms + 500 * ONE_HOUR_MS]
+    post_btc_ctx = [b for ts, _, b in observed_regimes if ts >= base_ms + 500 * ONE_HOUR_MS]
+    assert len(post_warmup) > 20
+    assert all(r == MarketRegime.BEAR for r in post_warmup)
+    assert all(b == MarketRegime.BEAR.value for b in post_btc_ctx)
+
