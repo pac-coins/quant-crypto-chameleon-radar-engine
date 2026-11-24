@@ -19,8 +19,7 @@ As decisões centrais da arquitetura unificada são:
   silenciosa) e apenas `bull_trend_pullback` emite sinais executáveis;
 * **três modos via `.env`:** `ANALYST_ONLY`, `SHADOW_CHAMELEON` e
   `LIVE_CHAMELEON_PHASE_1`, com chaves Binance proibidas nos dois primeiros;
-* **processo único e SQLite WAL:** respeita o teto de 100 MB de RAM em VPS
-  gratuita e elimina contenção de escrita via `BEGIN IMMEDIATE`;
+* **processo único e SQLite WAL:** opera em container único com teto de **512 MB** de RAM (`mem_limit: 512m`, ADR-015) e elimina contenção de escrita via `BEGIN IMMEDIATE`;
 * **governador de peso compartilhado:** prioridades `CRITICAL > HIGH > LOW` e
   `critical_section()` protegem a criação da OCO contra `429`/`418` do `depth`;
 * **causalidade e rigor estatístico:** alinhamento por `close_time_utc`,
@@ -35,15 +34,15 @@ As decisões centrais da arquitetura unificada são:
    Categoria 1 (C1-A a C1-E) e 9 refinamentos de Categoria 2 (C2-1 a C2-9).
 3. **[Contrato de Dados](data-contract.md):** schema SQL completo (v1) e
    máquina de estados de `trades`.
-4. **[Especificação do Bloco 1](block-1-spec.md)**, **[Especificação do Bloco 2](block-2-spec.md)** e **[Especificação do Bloco 3](block-3-spec.md):**
-   assinaturas (`type hints`) congeladas do Bloco 1 (`config.py`, `database.py`,
-   `binance_client.py`, `candle_collector.py`), do Bloco 2 (`indicators.py`,
-   `order_flow.py`, `price_action.py`, `feature_store.py`, `regime_detector.py`) e
-   do Bloco 3 (`strategies/`, `causal_simulator.py`, `ablation_and_dsr.py`, `notebooks/`),
-   além dos Gates 1, 2 e 3 unificados.
+4. **Especificações dos Blocos 1 a 6:** [Bloco 1](block-1-spec.md), [Bloco 2](block-2-spec.md),
+   [Bloco 3](block-3-spec.md), [Bloco 4](block-4-spec.md), [Bloco 5](block-5-spec.md) e
+   [Bloco 6](block-6-spec.md), cobrindo da fundação (`config.py`, `database.py`, `binance_client.py`)
+   até execução OCO, Radar L1–L5, Auditor Virtual e orquestração em `src/main.py`.
 5. **[Executor (Chameleon v6)](architecture.md)** e **[Radar & Auditor (v1.1)](radar.md):**
    especificações matemáticas e operacionais de cada subsistema.
-6. **[Decisões (ADR)](decisions.md)**, **[Metodologia e roadmap](methodology-and-roadmap.md)**
+6. **[Runbook Operacional](runbook.md)** e **[Backup e Restauração](backup-and-restore.md):**
+   procedimentos de incidente (`HALT_REVIEW`, `EMERGENCY_HALT`, rotação Ed25519, BNB, manutenção) e disaster recovery.
+7. **[Decisões (ADR)](decisions.md)**, **[Metodologia e roadmap](methodology-and-roadmap.md)**
    e **[TODO](todo.md):** governança e lista de triagem atualizada.
 
 > **Aviso:** este material é uma especificação técnica. Não constitui

@@ -1,6 +1,6 @@
 # Quadro geral de triagem e execução operacional (Pós-Construção)
 
-> **Nota:** Todos os itens de engenharia e auditoria de integração dos **Blocos 1 a 6** (bem como a tabela de sugestões cosméticas descartadas da Categoria 3) foram implementados, homologados por `pytest` (29/29) e migrados para a documentação permanente em [Metodologia e Roadmap — Seção 6](methodology-and-roadmap.md#6-registro-historico-de-triagem-homologada-blocos-1-a-6-e-itens-cosmeticos-descartados).
+> **Nota:** Todos os itens de engenharia e auditoria de integração dos **Blocos 1 a 6** (bem como a tabela de sugestões cosméticas descartadas da Categoria 3) foram implementados, homologados por `pytest` (94 passed na suíte completa) e migrados para a documentação permanente em [Metodologia e Roadmap — Seção 6](methodology-and-roadmap.md#6-registro-historico-de-triagem-homologada-blocos-1-a-6-e-itens-cosmeticos-descartados).
 
 ---
 
