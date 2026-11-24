@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import shutil
 import signal
 import time
 from dataclasses import dataclass
@@ -58,6 +59,7 @@ from src.strategies.bull_trend_pullback import BullTrendPullbackStrategy
 logger = logging.getLogger("quant_orchestrator")
 ONE_HOUR_MS = 3_600_000
 ONE_DAY_MS = 86_400_000
+ONE_WEEK_MS = 7 * ONE_DAY_MS
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,6 +95,7 @@ class QuantOrchestrator:
         orderbook_inspector: OrderbookInspector | None = None,
         ml_judge: MLJudge | None = None,
         sleep_fn: Callable[[float], None] = time.sleep,
+        disk_usage_fn: Callable[[Path], Any] = shutil.disk_usage,
     ) -> None:
         self.settings = settings
         self.strategies_cfg = strategies_cfg
@@ -104,6 +107,7 @@ class QuantOrchestrator:
         self.exchange_cache = exchange_cache
         self.outbox = outbox
         self._sleep = sleep_fn
+        self._disk_usage = disk_usage_fn
 
         self.collector = collector or CandleCollector(
             client=public_client,
@@ -300,6 +304,64 @@ class QuantOrchestrator:
                 pass
         self.db.set_state(state_key, str(int(now_ms)))
         return True
+
+    def _maybe_emit_weekly_radar_scorecard(self, now_ms: int) -> bool:
+        """Send VirtualAuditor weekly scorecard via TelegramOutbox once per 7 days (B3)."""
+        if not self.analyst_cfg.virtual_auditor.send_weekly_scorecard_telegram:
+            return False
+        raw_last = self.db.get_state("last_weekly_scorecard_ms")
+        if raw_last is None:
+            # Check if DB already has history >= 7 days old; otherwise seed baseline now.
+            with self.db.read() as conn:
+                row = conn.execute("SELECT MIN(cycle_close_time_ms) FROM cycle_health").fetchone()
+            first_ts = int(row[0]) if (row is not None and row[0] is not None) else None
+            if first_ts is None or (int(now_ms) - first_ts) < ONE_WEEK_MS:
+                self.db.set_state("last_weekly_scorecard_ms", str(int(now_ms)))
+                return False
+            since_ms = int(now_ms) - ONE_WEEK_MS
+        else:
+            try:
+                since_ms = int(raw_last)
+            except ValueError:
+                since_ms = int(now_ms) - ONE_WEEK_MS
+            if (int(now_ms) - since_ms) < ONE_WEEK_MS:
+                return False
+
+        md = self.virtual_auditor.generate_weekly_scorecard_markdown(since_ms, int(now_ms))
+        self.outbox.enqueue("RADAR_WEEKLY_SCORECARD", md, now_ms=int(now_ms))
+        self.db.set_state("last_weekly_scorecard_ms", str(int(now_ms)))
+        return True
+
+    def _check_disk_usage(self, now_ms: int, *, warn_pct: float = 70.0) -> Optional[float]:
+        """Monitor VPS disk usage around DB path and alert when >= warn_pct (B3)."""
+        try:
+            target = self.settings.db_path.parent
+            if not target.exists():
+                target = Path(".")
+            usage = self._disk_usage(target)
+            total = int(usage.total)
+            used = int(usage.used)
+            if total <= 0:
+                return None
+            used_pct = (used / total) * 100.0
+            self.db.set_state("disk_usage_pct", f"{used_pct:.2f}")
+            if used_pct >= float(warn_pct) and self._should_emit_rate_limited_alert(
+                "last_disk_warn_alert_ms", now_ms
+            ):
+                free_gb = int(usage.free) / (1024**3)
+                self.outbox.enqueue(
+                    "DISK_USAGE_WARNING",
+                    (
+                        f"⚠️ Uso de disco elevado na VPS ({self.settings.mode.value}): "
+                        f"{used_pct:.1f}% utilizado (limite preventivo {warn_pct:.0f}%, "
+                        f"livre: {free_gb:.2f} GB). Verifique logs e backups."
+                    ),
+                    now_ms=int(now_ms),
+                )
+            return used_pct
+        except Exception as exc:
+            logger.warning("Disk usage check failed: %s", exc)
+            return None
 
     def _count_trades_last_24h(self, now_ms: int) -> int:
         cutoff = now_ms - ONE_DAY_MS
@@ -847,6 +909,18 @@ class QuantOrchestrator:
 
         try:
             self.exchange_cache.refresh_if_stale(cur_ms)
+            invalid_syms = getattr(self.exchange_cache, "last_invalid_symbols", ())
+            if invalid_syms and self._should_emit_rate_limited_alert(
+                "last_exchange_info_warn_ms", cur_ms
+            ):
+                self.outbox.enqueue(
+                    "EXCHANGE_INFO_WARNING",
+                    (
+                        f"⚠️ Símbolo(s) inválido(s)/deslistado(s) isolado(s) em exchangeInfo "
+                        f"(-1121): {', '.join(invalid_syms)}. Pares do Chameleon preservados."
+                    ),
+                    now_ms=cur_ms,
+                )
         except Exception as exc:
             if self._has_cached_execution_filters():
                 logger.warning(
@@ -970,6 +1044,8 @@ class QuantOrchestrator:
                     radar_signal_id=matched_sig_id,
                 )
 
+        self._maybe_emit_weekly_radar_scorecard(cur_ms)
+        self._check_disk_usage(cur_ms)
         self.outbox.flush(now_ms=cur_ms)
 
         backup_path: Optional[Path] = None
@@ -1077,7 +1153,12 @@ def main() -> None:
     db.migrate()
 
     public_client, signed_client, _governor, clock = build_clients(cfg)
-    exchange_cache = ExchangeInfoCache(public_client, db, cfg.market_data_universe)
+    exchange_cache = ExchangeInfoCache(
+        public_client,
+        db,
+        cfg.market_data_universe,
+        priority_symbols=cfg.execution_universe,
+    )
     transport = HttpTelegramTransport(settings.telegram_bot_token.get_secret_value())
     outbox = TelegramOutbox(db, settings.telegram_chat_id, transport=transport)
 
