@@ -138,7 +138,9 @@ def score_layers_1_to_3(
     # ---- Layer 3: Volume & Order Flow (0..25) ----
     score_l3 = 0
     rvol = _finite(row.get(f"rvol_{l3_cfg.rvol_lookback}"))
-    tbr = _finite(row.get("taker_buy_ratio"))
+    tbr = _finite(row.get("tbr"))
+    if tbr is None:
+        tbr = _finite(row.get("taker_buy_ratio"))
 
     if rvol is not None:
         if rvol >= l3_cfg.high_conviction_rvol:
