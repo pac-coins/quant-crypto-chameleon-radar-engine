@@ -7,34 +7,23 @@ SQLite database) into:
   2. CausalSingleSlotSimulator.run_multi_asset_simulation() over the exact same candles
      and evaluation window.
 
-Compares on which hourly timestamps (close_time_ms) and in which symbols each engine
-decides to enter a trade, WITHOUT modifying src/ or config/strategies.yaml.
-
-Defects discovered and reproduced deterministically by this test suite:
-  - Defect #1 (CRITICAL — 100% silent signal loss in live/testnet/shadow execution):
-    src/strategies/bull_trend_pullback.py:20 uses `isinstance(val, (int, float))`.
-    Because QuantOrchestrator._execute_chameleon_step (src/main.py:883) extracts rows
-    via `df_al.iloc[-1]` (preserving `numpy.int64` for `close_time_ms`) whereas
-    CausalSingleSlotSimulator (src/backtest/causal_simulator.py:315) extracts rows via
-    `df.iterrows()` (unboxing `close_time_ms` to Python `int`), and
-    `isinstance(np.int64(...), (int, float))` is False in Python, `_first_finite`
-    returns `NaN` for `close_time_ms` on EVERY hourly cycle in QuantOrchestrator —
-    causing evaluate_row() to return None 100% of the time in production/testnet/shadow!
-    (The exact same bug affects tools/train_ml_judge.py:168, which also uses `df_al.iloc[idx]`.)
-  - Defect #2 (MEDIUM — same-bar re-entry on exit candle t_exit):
-    src/main.py:782-796 closes an open shadow trade at t_exit and immediately allows a
-    new entry on the SAME candle t_exit, whereas src/backtest/causal_simulator.py:325,371
-    sets `slot_busy_until_ms = sim_trade.exit_time_ms` and skips `t_ms <= slot_busy_until_ms`.
-  - Defect #3 (LOW/MEDIUM — asymmetric 1h/4h warmup window after AUD-01):
-    src/main.py:1205-1207 evaluates 4h regime directly on `df_4h_causal`, whereas
-    src/backtest/causal_simulator.py:263-264 still calls `detect_series_from_aligned_frame`,
-    which only counts unique 4h bars present inside the 1h-truncated aligned frame.
+ALL parity tests run end-to-end with ZERO monkeypatching:
+  - Test 1 PROVES Defect #1 is fixed: numpy.int64 `close_time_ms` from pandas `df_al.iloc[-1]`
+    is accepted by `bull_trend_pullback._first_finite` (while `bool` stays rejected), so
+    `QuantOrchestrator.run_once()` and `CausalSingleSlotSimulator` emit identical entries.
+  - Test 2 verifies multi-asset K9.3 parity across 632h (> load_frame limit=500): RS_12h
+    tie-breaking, BNBUSDT C1-C exclusion, single-slot suppression, and TARGET/STOP/TIME exits.
+  - Test 3 verifies BTC 4h BEAR veto blocks altcoin entries identically in both engines.
+  - Test 4 PROVES Defect #2 is fixed: same-bar re-entry on exit candle t_exit is blocked in
+    BOTH QuantOrchestrator.run_once() and CausalSingleSlotSimulator, and both resume cleanly
+    on t_exit + 1h.
+  - Test 5 documents Defect #3 (not yet authorized for change): asymmetric 1h/4h warmup
+    window when SQLite holds >= 120 4h bars but < 480 1h bars.
 """
 
 from __future__ import annotations
 
 import math
-import numbers
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
@@ -42,7 +31,6 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 import pandas as pd
-import pytest
 from pydantic import SecretStr
 
 import src.strategies.bull_trend_pullback as bull_mod
@@ -83,25 +71,6 @@ PARITY_SYMBOLS: tuple[str, ...] = (
     "AVAXUSDT",
     "BNBUSDT",  # Forbidden for execution (C1-C); included to prove both paths ignore it
 )
-
-
-def _proposed_first_finite_fix(
-    row: pd.Series,
-    *candidates: str,
-    default: float = float("nan"),
-) -> float:
-    """Test-only reference of the proposed fix for src/strategies/bull_trend_pullback.py:16-22."""
-    for col in candidates:
-        if col in row:
-            val = row[col]
-            if (
-                val is not None
-                and isinstance(val, numbers.Real)
-                and not isinstance(val, bool)
-                and math.isfinite(float(val))
-            ):
-                return float(val)
-    return default
 
 
 @dataclass(frozen=True)
@@ -480,22 +449,39 @@ def _run_orchestrator_vs_simulator(
     return orch_entries, sim_entries, orch_shadow_rows, sim_trades
 
 
-def test_parity_unmodified_orchestrator_exposes_np_int64_total_signal_loss(tmp_path: Path) -> None:
+def test_parity_defect1_fixed_np_int64_iloc_row_matches_simulator_without_monkeypatch(
+    tmp_path: Path,
+) -> None:
     """
-    DEFECT #1 (CRITICAL): Feeds UNMODIFIED QuantOrchestrator.run_once() and
-    CausalSingleSlotSimulator with identical SQLite history (zero monkeypatching).
-
-    Root cause:
-      - src/strategies/bull_trend_pullback.py:20 checks `isinstance(val, (int, float))`.
-      - src/main.py:883 extracts `row = df_al.iloc[-1]` where `row["close_time_ms"]` is
-        `numpy.int64` -> `isinstance(np.int64(...), (int, float))` is FALSE -> `_first_finite`
-        returns NaN -> `evaluate_row()` returns None on 100% of live/testnet/shadow cycles!
-      - src/backtest/causal_simulator.py:315 iterates via `df.iterrows()`, which unboxes
-        `close_time_ms` to Python `int` -> `evaluate_row()` succeeds in backtest.
+    PROVES DEFECT #1 IS FIXED (zero monkeypatching):
+      - `bull_trend_pullback._first_finite` now accepts `numpy.int64` (via `numbers.Real`,
+        while still rejecting `bool` / `np.bool_`) on rows sliced with `df_al.iloc[-1]`
+        (used by `QuantOrchestrator._execute_chameleon_step` and `tools/train_ml_judge.py`);
+      - Unmodified `QuantOrchestrator.run_once()` and `CausalSingleSlotSimulator` produce the
+        EXACT same entry timestamp and symbol (`SOLUSDT` at h=524).
     """
     base_open_ms = 1_700_000_000_000 - (1_700_000_000_000 % (4 * ONE_HOUR_MS))
     total_hours = 530
     eval_start_h = 523
+    t_sol = base_open_ms + (524 + 1) * ONE_HOUR_MS
+
+    # Direct unit proof on pandas iloc[-1] (np.int64) vs iterrows() (int) and bool exclusion
+    df_probe = pd.DataFrame(
+        {
+            "close_time_ms": [np.int64(t_sol)],
+            "flag": [True],
+            "np_flag": [np.bool_(True)],
+            "btc_regime_4h": ["BULL"],
+            "close": [231.0],
+        }
+    )
+    row_iloc = df_probe.iloc[-1]
+    row_iterrows = next(r for _, r in df_probe.iterrows())
+    assert isinstance(row_iloc["close_time_ms"], np.int64)
+    assert bull_mod._first_finite(row_iloc, "close_time_ms", "close_time") == float(t_sol)
+    assert bull_mod._first_finite(row_iterrows, "close_time_ms", "close_time") == float(t_sol)
+    assert math.isnan(bull_mod._first_finite(row_iloc, "flag"))
+    assert math.isnan(bull_mod._first_finite(row_iloc, "np_flag"))
 
     breakouts = [
         BreakoutSpec("SOLUSDT", hour_index=524, body_pct=0.055, volume_mult=3.5, tbr=0.75),
@@ -514,37 +500,21 @@ def test_parity_unmodified_orchestrator_exposes_np_int64_total_signal_loss(tmp_p
         candles_4h_by_sym=c4h,
         eval_start_ms=eval_start_ms,
         eval_end_ms=eval_end_ms,
-        db_name="parity_unmodified_defect1.db",
+        db_name="parity_defect1_fixed.db",
     )
 
-    t_sol = base_open_ms + (524 + 1) * ONE_HOUR_MS
-
-    # Backtest simulator fires SOLUSDT cleanly at h=524
     assert sim_entries == [(t_sol, "SOLUSDT")]
-    # Unmodified QuantOrchestrator silently drops 100% of signals due to np.int64 in _first_finite!
-    assert orch_entries == []
-
-    # Direct proof of root cause on pandas iloc[-1] vs iterrows():
-    df_probe = pd.DataFrame(
-        {"close_time_ms": [np.int64(t_sol)], "btc_regime_4h": ["BULL"], "close": [231.0]}
-    )
-    row_iloc = df_probe.iloc[-1]
-    row_iterrows = next(r for _, r in df_probe.iterrows())
-    assert isinstance(row_iloc["close_time_ms"], np.int64)
-    assert not isinstance(row_iloc["close_time_ms"], (int, float))
-    assert math.isnan(bull_mod._first_finite(row_iloc, "close_time_ms", "close_time"))
-    assert bull_mod._first_finite(row_iterrows, "close_time_ms", "close_time") == float(t_sol)
+    assert orch_entries == [(t_sol, "SOLUSDT")]
+    assert orch_entries == sim_entries
 
 
 def test_parity_multi_asset_entries_tiebreak_single_slot_and_time_barrier(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """
-    Core parity verification (632h = 158x4h bars, exceeding load_frame limit=500):
-    With ONLY `_first_finite` monkeypatched in-test to isolate the rest of the pipeline
-    (zero edits to src/), verifies QuantOrchestrator.run_once() and CausalSingleSlotSimulator
-    decide the EXACT same entry hours and symbols across:
+    Core parity verification (632h = 158x4h bars, exceeding load_frame limit=500, zero monkeypatch):
+    Verifies QuantOrchestrator.run_once() and CausalSingleSlotSimulator decide the EXACT same
+    entry hours and symbols across:
       1. Simultaneous multi-asset K9.3 breakout with RS_12h tie-breaker (SOLUSDT > ETHUSDT)
          and C1-C BNBUSDT exclusion -> TARGET exit;
       2. Single-asset K9.3 breakout (ETHUSDT) -> STOP exit;
@@ -552,8 +522,6 @@ def test_parity_multi_asset_entries_tiebreak_single_slot_and_time_barrier(
          -> TIME_BARRIER (72h) exit;
       4. Post-TIME_BARRIER breakout (LINKUSDT).
     """
-    monkeypatch.setattr(bull_mod, "_first_finite", _proposed_first_finite_fix)
-
     base_open_ms = 1_700_000_000_000 - (1_700_000_000_000 % (4 * ONE_HOUR_MS))
     total_hours = 632
     eval_start_h = 522
@@ -612,14 +580,11 @@ def test_parity_multi_asset_entries_tiebreak_single_slot_and_time_barrier(
 
 def test_parity_btc_bear_veto_blocks_altcoin_entries_in_both_engines(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """
-    Verifies K9.3 BTC 4h BEAR veto parity (with _first_finite isolated via monkeypatch so
-    the veto is genuinely tested rather than masked by Defect #1).
+    Verifies K9.3 BTC 4h BEAR veto parity without monkeypatching: when BTCUSDT is in 4h BEAR
+    while SOLUSDT triggers an otherwise valid K9.3 breakout, BOTH engines veto the entry.
     """
-    monkeypatch.setattr(bull_mod, "_first_finite", _proposed_first_finite_fix)
-
     base_open_ms = 1_700_000_000_000 - (1_700_000_000_000 % (4 * ONE_HOUR_MS))
     total_hours = 552
     eval_start_h = 536
@@ -652,20 +617,17 @@ def test_parity_btc_bear_veto_blocks_altcoin_entries_in_both_engines(
     assert orch_entries == sim_entries
 
 
-def test_parity_exposes_same_bar_reentry_divergence_on_exit_candle(
+def test_parity_defect2_fixed_same_bar_reentry_blocked_and_next_bar_allowed(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """
-    DEFECT #2 (MEDIUM): Reproduces same-bar re-entry divergence when a new breakout fires on
-    the EXACT same candle t_exit where the prior trade exits (with Defect #1 isolated in-test):
-      - QuantOrchestrator._execute_chameleon_step (src/main.py:782-796) closes the shadow
-        trade at t_exit FIRST and immediately allows a new entry on the SAME candle t_exit.
-      - CausalSingleSlotSimulator (src/backtest/causal_simulator.py:325,371) sets
-        slot_busy_until_ms = sim_trade.exit_time_ms and skips t_ms <= slot_busy_until_ms.
+    PROVES DEFECT #2 IS FIXED (zero monkeypatching):
+      - Trade 1 enters SOLUSDT at h=524 and hits TARGET at h=527;
+      - ETHUSDT fires a clean K9.3 breakout on the EXACT exit hour h=527 -> BOTH engines
+        MUST block same-bar re-entry on h=527;
+      - LINKUSDT fires a clean K9.3 breakout on the NEXT hour h=528 (t_exit + 1h) -> BOTH
+        engines MUST enter LINKUSDT identically at h=528.
     """
-    monkeypatch.setattr(bull_mod, "_first_finite", _proposed_first_finite_fix)
-
     base_open_ms = 1_700_000_000_000 - (1_700_000_000_000 % (4 * ONE_HOUR_MS))
     total_hours = 536
     eval_start_h = 522
@@ -673,6 +635,7 @@ def test_parity_exposes_same_bar_reentry_divergence_on_exit_candle(
     breakouts = [
         BreakoutSpec("SOLUSDT", hour_index=524, body_pct=0.055, volume_mult=3.5, tbr=0.75, outcome="TARGET", outcome_delay_bars=3),
         BreakoutSpec("ETHUSDT", hour_index=527, body_pct=0.055, volume_mult=3.5, tbr=0.76),
+        BreakoutSpec("LINKUSDT", hour_index=528, body_pct=0.055, volume_mult=3.5, tbr=0.76),
     ]
 
     c1h, c4h = _build_multi_asset_history(
@@ -690,31 +653,30 @@ def test_parity_exposes_same_bar_reentry_divergence_on_exit_candle(
         candles_4h_by_sym=c4h,
         eval_start_ms=eval_start_ms,
         eval_end_ms=eval_end_ms,
-        db_name="parity_same_bar.db",
+        db_name="parity_same_bar_fixed.db",
     )
 
     t_sol = base_open_ms + (524 + 1) * ONE_HOUR_MS
-    t_eth_same_exit_bar = base_open_ms + (527 + 1) * ONE_HOUR_MS
+    t_link_next_bar = base_open_ms + (528 + 1) * ONE_HOUR_MS
 
-    assert orch_entries == [(t_sol, "SOLUSDT"), (t_eth_same_exit_bar, "ETHUSDT")]
-    assert sim_entries == [(t_sol, "SOLUSDT")]
-    assert orch_entries != sim_entries
+    expected = [(t_sol, "SOLUSDT"), (t_link_next_bar, "LINKUSDT")]
+    assert orch_entries == expected
+    assert sim_entries == expected
+    assert orch_entries == sim_entries
 
 
 def test_parity_exposes_asymmetric_1h_4h_warmup_divergence(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """
-    DEFECT #3 (LOW/MEDIUM): Reproduces asymmetric 1h/4h warmup divergence when the DB has
-    >= 120 4h candles (150x4h) but < 480 1h candles (160x1h -> only 40 4h bars in df_aligned):
+    DEFECT #3 (LOW/MEDIUM, untouched per scope): Reproduces asymmetric 1h/4h warmup divergence
+    when the DB has >= 120 4h candles (150x4h) but < 480 1h candles (160x1h -> only 40 4h bars
+    inside df_aligned), running end-to-end with zero monkeypatching:
       - QuantOrchestrator.run_once() (src/main.py:1205-1207, AUD-01 fix) classifies BULL on
         df_4h_causal and enters SOLUSDT.
       - CausalSingleSlotSimulator (src/backtest/causal_simulator.py:263-264) still uses
         detect_series_from_aligned_frame(df_aligned) and stays stuck in WARMUP_LT_120 ([]).
     """
-    monkeypatch.setattr(bull_mod, "_first_finite", _proposed_first_finite_fix)
-
     base_open_ms = 1_700_000_000_000 - (1_700_000_000_000 % (4 * ONE_HOUR_MS))
     total_hours = 600
     eval_start_h = 576
@@ -752,3 +714,56 @@ def test_parity_exposes_asymmetric_1h_4h_warmup_divergence(
     assert orch_entries == [(t_sol, "SOLUSDT")]
     assert sim_entries == []
     assert orch_entries != sim_entries
+
+
+def test_defect2_live_mode_blocks_same_bar_reentry_and_allows_next_bar(tmp_path: Path) -> None:
+    """
+    Verifies Defect #2 guard also protects LIVE mode (including after sub-hourly watchdog
+    or reconciler closure persisted in system_state['last_live_exit_bar_close_ms']):
+    blocks re-entry at cycle_close_ms == exit_bar_close_ms and allows re-entry at +1h.
+    """
+    st_cfg = StrategiesConfig.model_validate(load_yaml_strict(Path("config/strategies.yaml")))
+    an_cfg = AnalystConfig.model_validate(load_yaml_strict(Path("config/analyst.yaml")))
+
+    db_path = tmp_path / "live_same_bar.db"
+    db = Database(db_path)
+    db.connect()
+    db.migrate()
+
+    bar_close_ms = 1_700_006_400_000
+    pub = _ReplayPublicClient(bar_close_ms + 3_000)
+    clock = MonotonicClock()
+    clock.sync(pub.get_server_time_ms, samples=1)
+    ex_cache = ExchangeInfoCache(pub, db, ["SOLUSDT", "BNBUSDT"])  # type: ignore[arg-type]
+    ex_cache.refresh_if_stale(bar_close_ms + 3_000)
+    key_file = tmp_path / "k.pem"
+    key_file.write_text("dummy", encoding="utf-8")
+
+    settings = RuntimeSettings(
+        mode=RunMode.LIVE_CHAMELEON_PHASE_1,
+        binance_env="TESTNET",  # type: ignore[arg-type]
+        binance_api_key=SecretStr("k"),
+        binance_ed25519_private_key_path=key_file,
+        telegram_bot_token=SecretStr("tg"),
+        telegram_chat_id="chat1",
+        db_path=db_path,
+        backup_dir=tmp_path / "backups_live",
+    )
+    orch = QuantOrchestrator(
+        settings=settings,
+        strategies_cfg=st_cfg,
+        analyst_cfg=an_cfg,
+        db=db,
+        public_client=pub,  # type: ignore[arg-type]
+        signed_client=None,
+        clock=clock,
+        exchange_cache=ex_cache,
+        outbox=TelegramOutbox(db, "chat1", transport=None),
+        sleep_fn=lambda _: None,
+    )
+
+    assert orch._has_closed_trade_on_bar(bar_close_ms) is False
+    db.set_state("last_live_exit_bar_close_ms", str(bar_close_ms))
+    assert orch._has_closed_trade_on_bar(bar_close_ms) is True
+    assert orch._has_closed_trade_on_bar(bar_close_ms + ONE_HOUR_MS) is False
+    db.close()

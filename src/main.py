@@ -664,6 +664,33 @@ class QuantOrchestrator:
             for r in rows
         ]
 
+    def _has_closed_trade_on_bar(self, cycle_close_ms: int) -> bool:
+        """
+        Paridade Single-Slot com CausalSingleSlotSimulator (t_ms <= slot_busy_until_ms):
+        impede reentrada na mesma vela horária em que a posição anterior fechou.
+        """
+        if self.settings.mode == RunMode.SHADOW_CHAMELEON:
+            with self.db.read() as conn:
+                row = conn.execute(
+                    """
+                    SELECT 1 FROM shadow_trades
+                    WHERE status = 'CLOSED'
+                      AND closed_at_ms IS NOT NULL
+                      AND closed_at_ms >= ?
+                    LIMIT 1
+                    """,
+                    (int(cycle_close_ms),),
+                ).fetchone()
+            return row is not None
+        if self._is_live_mode:
+            raw_exit = self.db.get_state("last_live_exit_bar_close_ms")
+            if raw_exit is not None:
+                try:
+                    return int(raw_exit) >= int(cycle_close_ms)
+                except ValueError:
+                    return False
+        return False
+
     def _manage_shadow_open_positions(self) -> None:
         if self.settings.mode != RunMode.SHADOW_CHAMELEON:
             return
@@ -676,6 +703,14 @@ class QuantOrchestrator:
             bars = self._load_recent_1h_candle_rows(sym, int(open_sh["signal_close_time_ms"]))
             self.paper_executor.evaluate_open_shadow_trade({sym: bars})
 
+    def _is_live_trade_closed(self, trade_id: int) -> bool:
+        with self.db.read() as conn:
+            row = conn.execute(
+                "SELECT status FROM trades WHERE trade_id = ?",
+                (int(trade_id),),
+            ).fetchone()
+        return row is not None and str(row["status"]) == "CLOSED"
+
     def _manage_live_open_positions(self, now_ms: int) -> tuple[bool, int]:
         """
         Gerencia posições LIVE (StateReconciler, Time-Stop e Watchdog) em prioridade CRITICAL,
@@ -685,6 +720,7 @@ class QuantOrchestrator:
         if not self._is_live_mode or self.oco_manager is None:
             return False, 0
 
+        open_before = self._has_open_live_trade()
         errors = 0
         if self.reconciler is not None:
             from src.core.state_reconciler import ReconcileAction as _ReconcileAction
@@ -717,7 +753,13 @@ class QuantOrchestrator:
                 return True, errors
 
         open_t = self._has_open_live_trade()
-        if open_t is None or open_t["status"] != "PROTECTED":
+        if open_t is None:
+            if open_before is not None and self._is_live_trade_closed(int(open_before["trade_id"])):
+                exit_bar_close_ms = (int(now_ms) // ONE_HOUR_MS) * ONE_HOUR_MS
+                self.db.set_state("last_live_exit_bar_close_ms", str(exit_bar_close_ms))
+                return True, errors
+            return False, errors
+        if open_t["status"] != "PROTECTED":
             return False, errors
 
         trade_id = int(open_t["trade_id"])
@@ -759,6 +801,15 @@ class QuantOrchestrator:
                 )
             return True, errors
 
+        if (
+            open_before is not None
+            and self._has_open_live_trade() is None
+            and self._is_live_trade_closed(int(open_before["trade_id"]))
+        ):
+            exit_bar_close_ms = (int(now_ms) // ONE_HOUR_MS) * ONE_HOUR_MS
+            self.db.set_state("last_live_exit_bar_close_ms", str(exit_bar_close_ms))
+            return True, errors
+
         return False, errors
 
     def _manage_open_positions(self, now_ms: int) -> None:
@@ -795,6 +846,8 @@ class QuantOrchestrator:
         if self.settings.mode == RunMode.SHADOW_CHAMELEON and self.paper_executor.has_open_shadow_trade():
             return False, None
         if self._is_live_mode and self._has_open_live_trade() is not None:
+            return False, None
+        if self._has_closed_trade_on_bar(cycle_close_ms):
             return False, None
 
         commission_payload: Optional[dict[str, Any]] = None
@@ -1399,6 +1452,10 @@ class QuantOrchestrator:
                     symbol_filters=filters,
                 )
                 if rep.executed:
+                    self.db.set_state(
+                        "last_live_exit_bar_close_ms",
+                        str(int(open_t["time_barrier_end_ms"])),
+                    )
                     self.outbox.enqueue(
                         "TIME_STOP",
                         f"⏱️ Time-Stop executado em {sym} (trade #{trade_id}, status={rep.status}).",
@@ -1425,6 +1482,8 @@ class QuantOrchestrator:
                 ),
             )
             if wd_rep is not None and wd_rep.executed:
+                exit_bar_close_ms = ((cur_ms - 1) // ONE_HOUR_MS + 1) * ONE_HOUR_MS
+                self.db.set_state("last_live_exit_bar_close_ms", str(exit_bar_close_ms))
                 self.outbox.enqueue(
                     "STOP_WATCHDOG",
                     (
