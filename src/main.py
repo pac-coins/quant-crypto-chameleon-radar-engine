@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Sequence
 import pandas as pd
 
 from src.auditing.virtual_auditor import VirtualAuditor
+from src.backtest.ablation_and_dsr import compute_cvar_99
 from src.core.binance_client import (
     BinanceAPIError,
     ExchangeInfoCache,
@@ -36,7 +37,11 @@ from src.data.candle_collector import CandleCollector, align_4h_to_1h, align_btc
 from src.execution.executor_protocol import ExecutionReport, ExecutionRequest, NoOpExecutor
 from src.execution.paper_executor import PaperExecutor
 from src.features.feature_store import FeatureRequest, FeatureStore
-from src.features.ml_judge import MLJudge, extract_stationary_features
+from src.features.ml_judge import (
+    MLJudge,
+    compute_expected_calibration_error,
+    extract_stationary_features,
+)
 
 if TYPE_CHECKING:
     from src.core.state_reconciler import StateReconciler
@@ -52,7 +57,8 @@ from src.radar.confluence_scorer import RadarSignal, score_and_build_signal
 from src.radar.orderbook_inspector import OrderbookInspector
 from src.radar.structure_ema import Layer123Score, score_layers_1_to_3
 from src.regimes.regime_detector import MarketRegime, RegimeDetector
-from src.risk.position_sizer import PositionSizer
+from src.risk.position_sizer import PositionSizer, SignalGrade
+from src.risk.profit_splitter import ProfitSplitter
 from src.risk.shadow_manager import ShadowManager
 from src.strategies.bull_trend_pullback import BullTrendPullbackStrategy
 
@@ -60,6 +66,7 @@ logger = logging.getLogger("quant_orchestrator")
 ONE_HOUR_MS = 3_600_000
 ONE_DAY_MS = 86_400_000
 ONE_WEEK_MS = 7 * ONE_DAY_MS
+_LIVE_MODES = (RunMode.LIVE_CHAMELEON_PHASE_1, RunMode.LIVE_CHAMELEON_PHASE_2)
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,10 +140,6 @@ class QuantOrchestrator:
                 FeatureRequest("sweep", analyst_cfg.layer_2_price_action.liquidity_sweep_lookback_candles, "1h"),
             ),
         )
-        self.position_sizer = PositionSizer(
-            strategies_cfg.position_sizing,
-            strategies_cfg.portfolio,
-        )
         self.shadow_manager = ShadowManager(
             strategies_cfg.drawdown_and_shadow_protection,
             strategies_cfg.portfolio,
@@ -162,6 +165,17 @@ class QuantOrchestrator:
                 strategies_cfg.ml_judge_and_validation,
                 strategies_cfg.position_sizing,
             )
+
+        phase2_ml_filter_active = bool(
+            settings.mode == RunMode.LIVE_CHAMELEON_PHASE_2
+            and strategies_cfg.ml_judge_and_validation.use_ml_filter
+            and self.ml_judge.ece_out_of_sample <= strategies_cfg.ml_judge_and_validation.max_allowed_ece
+        )
+        self.position_sizer = PositionSizer(
+            strategies_cfg.position_sizing,
+            strategies_cfg.portfolio,
+            use_ml_filter=phase2_ml_filter_active,
+        )
         self.virtual_auditor = VirtualAuditor(db)
         self.orderbook_inspector = orderbook_inspector or OrderbookInspector(
             analyst_cfg.layer_4_orderbook_live,
@@ -178,7 +192,8 @@ class QuantOrchestrator:
         )
         self.oco_manager: OcoOrderManager | None = None
         self.reconciler: StateReconciler | None = None
-        if settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1 and signed_client is not None:
+        self.profit_splitter: ProfitSplitter | None = None
+        if settings.mode in _LIVE_MODES and signed_client is not None:
             from src.core.state_reconciler import StateReconciler as _StateReconciler
             from src.execution.oco_order_manager import OcoOrderManager as _OcoOrderManager
 
@@ -205,10 +220,181 @@ class QuantOrchestrator:
                 filters_provider=exchange_cache.get,
                 shadow_manager=self.shadow_manager,
             )
+            self.profit_splitter = ProfitSplitter(
+                strategies_cfg.profit_splitter,
+                db=db,
+                signed_client=signed_client,
+            )
 
         self._last_clock_sync_ms: int = 0
         self._last_backup_day_utc: int = -1
         self._last_emitted_radar_signals: dict[str, str] = {}
+
+    @property
+    def _is_live_mode(self) -> bool:
+        return self.settings.mode in _LIVE_MODES
+
+    def _process_newly_closed_live_trades(self, now_ms: int) -> int:
+        """
+        Idempotently process newly closed LIVE trades (B7):
+        1. Runs ShadowManager.evaluate_phase_downgrade() over the trailing 30 live trades + ECE_30;
+        2. In Phase 2 with profit_splitter.enabled, invokes ProfitSplitter.on_trade_closed()
+           at most once per trade_id (guarded by `last_post_close_processed_trade_id`).
+        """
+        if not self._is_live_mode:
+            return 0
+        raw_last = self.db.get_state("last_post_close_processed_trade_id")
+        try:
+            last_id = int(raw_last) if raw_last is not None else 0
+        except ValueError:
+            last_id = 0
+
+        env_val = self.settings.binance_env.value
+        with self.db.read() as conn:
+            new_rows = conn.execute(
+                """
+                SELECT trade_id, realized_r, ml_p_cal_silent
+                FROM trades
+                WHERE environment = ? AND status = 'CLOSED' AND trade_id > ?
+                ORDER BY trade_id ASC
+                """,
+                (env_val, last_id),
+            ).fetchall()
+
+        if not new_rows:
+            return 0
+
+        processed = 0
+        prev_downgraded = self.db.get_state("conviction_downgraded") == "1"
+
+        for r in new_rows:
+            tid = int(r["trade_id"])
+
+            # 1. Rolling 30-trade auto-downgrade evaluation (Roadmap §5.1)
+            with self.db.read() as conn:
+                tail_rows = conn.execute(
+                    """
+                    SELECT realized_r, ml_p_cal_silent
+                    FROM trades
+                    WHERE environment = ? AND status = 'CLOSED' AND trade_id <= ?
+                      AND realized_r IS NOT NULL
+                    ORDER BY trade_id DESC
+                    LIMIT 30
+                    """,
+                    (env_val, tid),
+                ).fetchall()
+            tail_rows = list(reversed(tail_rows))
+            r_30 = [float(tr["realized_r"]) for tr in tail_rows]
+            probs_30: list[float] = []
+            outcomes_30: list[int] = []
+            for tr in tail_rows:
+                if tr["ml_p_cal_silent"] is not None:
+                    probs_30.append(float(tr["ml_p_cal_silent"]))
+                    outcomes_30.append(1 if float(tr["realized_r"]) > 0.0 else 0)
+            ece_30 = (
+                compute_expected_calibration_error(probs_30, outcomes_30, n_bins=10)
+                if len(probs_30) >= 30
+                else None
+            )
+            conv_down, _ = self.shadow_manager.evaluate_phase_downgrade(
+                recent_live_r_30=r_30,
+                recent_ece_30=ece_30,
+            )
+            if conv_down and not prev_downgraded:
+                mean_30 = (sum(r_30) / len(r_30)) if r_30 else 0.0
+                ece_txt = f"{ece_30:.4f}" if ece_30 is not None else "N/A"
+                self.outbox.enqueue(
+                    "PHASE_DOWNGRADE",
+                    (
+                        f"⚠️ Auto-Downgrade Fase 2 -> Fase 1 acionado ({self.settings.mode.value}): "
+                        f"mean(R_30)={mean_30:+.3f}R, ECE_30={ece_txt}. "
+                        "Alocação extra Nota A+ desarmada (risco base restaurado)."
+                    ),
+                    now_ms=now_ms,
+                )
+            prev_downgraded = conv_down
+
+            # 2. Idempotent ProfitSplitter (Phase 2 only, when enabled)
+            if (
+                self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_2
+                and self.profit_splitter is not None
+                and self.strategies_cfg.profit_splitter.enabled
+                and self._has_open_live_trade() is None
+            ):
+                try:
+                    _free_u, eq_after, bnb_u = self._get_live_balances()
+                    prev_eq_str = self.db.get_state("current_equity_usdt")
+                    eq_before = Decimal(prev_eq_str) if prev_eq_str else eq_after
+                    def_check = self.shadow_manager.evaluate_defense(
+                        current_equity_usdt=eq_after,
+                        bnb_free_usdt_equiv=bnb_u,
+                        trades_last_24h=self._count_trades_last_24h(now_ms),
+                    )
+                    split_res = self.profit_splitter.on_trade_closed(
+                        equity_before_usdt=eq_before,
+                        equity_after_usdt=eq_after,
+                        cppi_drawdown_active=def_check.cppi_active,
+                    )
+                    if split_res.transferred_to_funding_usdt > Decimal("0"):
+                        self.outbox.enqueue(
+                            "PROFIT_SPLIT",
+                            (
+                                f"🏦 Cofre de Lucros MAIN_FUNDING ({self.settings.mode.value}): "
+                                f"transferidos {split_res.transferred_to_funding_usdt:.2f} USDT "
+                                f"(tranId={split_res.transfer_tx_id}, HWM={split_res.new_hwm_usdt:.2f} USDT)."
+                            ),
+                            now_ms=now_ms,
+                        )
+                except Exception as exc:
+                    logger.warning("ProfitSplitter processing failed for trade #%s: %s", tid, exc)
+
+            if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_2:
+                prev_cnt = int(self.db.get_state("phase2_closed_trades_count") or "0")
+                self.db.set_state("phase2_closed_trades_count", str(prev_cnt + 1))
+
+            self.db.set_state("last_post_close_processed_trade_id", str(tid))
+            processed += 1
+
+        return processed
+
+    def _compute_phase2_sizing_guards(
+        self,
+        *,
+        conviction_downgraded: bool,
+    ) -> tuple[Optional[float], int]:
+        """
+        Compute (portfolio_cvar99_loss_pct, phase2b_graduation_stage) for Phase 2 sizing (B7):
+        - Empirical CVaR 99% from realized live trade equity returns (when >= 10 closed trades);
+        - Stage 1 (<= 1.5% on A+) until >= 30 Phase 2 closed trades maintain mean(R_30) > +0.15R
+          without auto-downgrade, then Stage 2 (<= 2.0%).
+        """
+        env_val = self.settings.binance_env.value
+        with self.db.read() as conn:
+            rows = conn.execute(
+                """
+                SELECT realized_r, risk_pct
+                FROM trades
+                WHERE environment = ? AND status = 'CLOSED' AND realized_r IS NOT NULL
+                ORDER BY trade_id ASC
+                """,
+                (env_val,),
+            ).fetchall()
+
+        cvar99_loss_pct: Optional[float] = None
+        if len(rows) >= 10:
+            eq_returns = [float(r["realized_r"]) * float(r["risk_pct"]) for r in rows]
+            cvar_val = compute_cvar_99(eq_returns)
+            cvar99_loss_pct = abs(min(0.0, float(cvar_val)))
+
+        if conviction_downgraded:
+            return cvar99_loss_pct, 1
+
+        p2_count = int(self.db.get_state("phase2_closed_trades_count") or "0")
+        if p2_count >= 30 and len(rows) >= 30:
+            last_30_r = [float(r["realized_r"]) for r in rows[-30:]]
+            if (sum(last_30_r) / len(last_30_r)) > 0.15:
+                return cvar99_loss_pct, 2
+        return cvar99_loss_pct, 1
 
     def _all_universe_symbols(self) -> tuple[str, ...]:
         return tuple(
@@ -249,7 +435,7 @@ class QuantOrchestrator:
         if need_4h:
             self.collector.backfill(need_4h, "4h", lookback_candles=250)
 
-        if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1 and self.reconciler is not None:
+        if self._is_live_mode and self.reconciler is not None:
             from src.core.state_reconciler import ReconcileAction as _ReconcileAction
 
             try:
@@ -496,7 +682,7 @@ class QuantOrchestrator:
         isolado de erros em exchangeInfo ou velas exclusivas do Radar (A1-09, A2-01).
         Retorna (entries_blocked, unhandled_errors).
         """
-        if self.settings.mode != RunMode.LIVE_CHAMELEON_PHASE_1 or self.oco_manager is None:
+        if not self._is_live_mode or self.oco_manager is None:
             return False, 0
 
         errors = 0
@@ -579,7 +765,7 @@ class QuantOrchestrator:
         if self.settings.mode == RunMode.SHADOW_CHAMELEON:
             self._manage_shadow_open_positions()
             return
-        if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1:
+        if self._is_live_mode:
             self._manage_live_open_positions(now_ms)
 
     def _execute_chameleon_step(
@@ -595,21 +781,24 @@ class QuantOrchestrator:
         """Run Chameleon execution path FIRST (C2-9) before Radar L4."""
         if self.settings.mode == RunMode.SHADOW_CHAMELEON:
             self._manage_shadow_open_positions()
-        elif self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1 and not live_already_managed:
+        elif self._is_live_mode and not live_already_managed:
             mgmt_blocked, _ = self._manage_live_open_positions(now_ms)
             if mgmt_blocked:
                 entries_blocked = True
+
+        if self._is_live_mode:
+            self._process_newly_closed_live_trades(now_ms)
 
         if entries_blocked or self.settings.mode == RunMode.ANALYST_ONLY:
             return False, None
 
         if self.settings.mode == RunMode.SHADOW_CHAMELEON and self.paper_executor.has_open_shadow_trade():
             return False, None
-        if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1 and self._has_open_live_trade() is not None:
+        if self._is_live_mode and self._has_open_live_trade() is not None:
             return False, None
 
         commission_payload: Optional[dict[str, Any]] = None
-        if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1:
+        if self._is_live_mode:
             free_usdt, eq_usdt, bnb_usdt = self._get_live_balances()
             self.db.set_state("current_equity_usdt", eq_usdt)
             self.db.set_state("bnb_free_usdt_equiv", bnb_usdt)
@@ -653,7 +842,7 @@ class QuantOrchestrator:
             )
             return False, None
         if (
-            self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1
+            self._is_live_mode
             and defense.bnb_below_recommended_reserve
             and self._should_emit_rate_limited_alert("last_bnb_warn_alert_ms", now_ms)
         ):
@@ -668,7 +857,7 @@ class QuantOrchestrator:
                 now_ms=now_ms,
             )
         if (
-            self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1
+            self._is_live_mode
             and not defense.commission_rate_valid
             and self._should_emit_rate_limited_alert("last_commission_warn_alert_ms", now_ms)
         ):
@@ -681,7 +870,7 @@ class QuantOrchestrator:
                 ),
                 now_ms=now_ms,
             )
-        if defense.shadow_mode_active and self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1:
+        if defense.shadow_mode_active and self._is_live_mode:
             return False, None
 
         candidates: list[tuple[float, str, Any, pd.Series]] = []
@@ -719,6 +908,16 @@ class QuantOrchestrator:
         )
         pending_hodl = Decimal(self.db.get_state("pending_hodl_bucket_usdt") or "0")
 
+        proposed_grade = ml_eval.grade
+        cvar99_loss_pct: Optional[float] = None
+        phase2b_stage = 1
+        if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_2:
+            cvar99_loss_pct, phase2b_stage = self._compute_phase2_sizing_guards(
+                conviction_downgraded=defense.conviction_downgraded,
+            )
+            if defense.conviction_downgraded and proposed_grade == SignalGrade.A_PLUS:
+                proposed_grade = SignalGrade.B
+
         sizing = self.position_sizer.evaluate_and_size(
             symbol=sym,
             entry_price=entry_ref,
@@ -730,7 +929,9 @@ class QuantOrchestrator:
             symbol_filters=filters,
             drawdown_risk_multiplier=defense.risk_multiplier,
             ml_calibrated_prob=ml_eval.calibrated_prob,
-            ml_proposed_grade=ml_eval.grade,
+            ml_proposed_grade=proposed_grade,
+            portfolio_cvar99_loss_pct=cvar99_loss_pct,
+            phase2b_graduation_stage=phase2b_stage,
         )
         if not sizing.approved:
             return False, None
@@ -757,7 +958,7 @@ class QuantOrchestrator:
                 virtual_equity_before=eq_usdt,
                 now_ms=now_ms,
             )
-        elif self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1 and self.oco_manager is not None:
+        elif self._is_live_mode and self.oco_manager is not None:
             report = self.oco_manager.execute_entry(req)
         else:
             report = self.noop_executor.execute_entry(req)
@@ -836,7 +1037,7 @@ class QuantOrchestrator:
                 emitted += 1
                 self._last_emitted_radar_signals[sig.symbol] = sig.signal_id
                 is_live_managed = (
-                    self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1
+                    self._is_live_mode
                     and sig.symbol in execution_set
                 )
                 self.outbox.enqueue(
@@ -868,7 +1069,7 @@ class QuantOrchestrator:
         Anota silenciosamente trades.radar_signal_id / shadow_trades.radar_signal_id após o Radar
         persistir virtual_signals (preserva C2-9 sem atrasar a entrada e respeita a FK).
         """
-        if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1:
+        if self._is_live_mode:
             table = "trades"
         elif self.settings.mode == RunMode.SHADOW_CHAMELEON:
             table = "shadow_trades"
@@ -923,7 +1124,7 @@ class QuantOrchestrator:
         # CRITICAL — antes de exchangeInfo (HIGH) e coleta de velas de símbolos exclusivos do Radar!
         live_mgmt_blocked = False
         live_already_managed = False
-        if self.settings.mode == RunMode.LIVE_CHAMELEON_PHASE_1:
+        if self._is_live_mode:
             live_mgmt_blocked, live_mgmt_errors = self._manage_live_open_positions(cur_ms)
             unhandled += live_mgmt_errors
             live_already_managed = True
