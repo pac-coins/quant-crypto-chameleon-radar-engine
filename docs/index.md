@@ -32,13 +32,13 @@ flowchart LR
 | Dimensão | Situação verificada | Referência |
 | --- | --- | --- |
 | **Código implementado** | Blocos 1–6 + Backlog `B1`–`B7` + CI + Preflight | [Próximos Passos e Pré-mortem](next-steps.md) |
-| **Suíte de testes** | `pytest`: **116 passed** (Gates 1–6, fault injection, `B1`–`B7`, `preflight`, paridade `AUD-01/05/06`) | [Guia Rápido](quickstart.md) |
+| **Suíte de testes** | `pytest`: **119 passed** (Gates 1–6, fault injection, `B1`–`B7`, `preflight`, `AUD-01/04/05/06`, Radar L3) | [Guia Rápido](quickstart.md) |
 | **Estratégia congelada** | `K9.3` (`bull_trend_pullback` em `config/strategies.yaml`, travada por SHA-256) | [Auditoria do Backtest e Edge](backtest-edge-audit.md) |
 | **Etapa operacional** | Transição de **Gate 6A** (Testnet) → **Gate 6B** (Shadow Live) | [Metodologia e Roadmap](methodology-and-roadmap.md) |
 | **Runtime** | Container único `mem_limit: 512m` (ADR-015) + `HEALTHCHECK` read-only | [Arquitetura Unificada](unified-architecture.md) |
 
 !!! important "Nota da auditoria de backtest e paridade"
-    Os bugs operacionais **AUD-01**, **AUD-05** e **AUD-06** (warmup 4h, deriva EMA100 e contexto BTC fail-closed) já foram corrigidos e testados. Consulte os achados estatísticos **AUD-02/AUD-03** na [Auditoria do Backtest e Edge (`K9.3`)](backtest-edge-audit.md) antes da decisão de capital na Fase 1.
+    Os bugs operacionais **AUD-01**, **AUD-04**, **AUD-05** e **AUD-06** (warmup 4h, fronteira `end_time_ms`, deriva EMA100 e contexto BTC fail-closed) já foram corrigidos e testados. Consulte os achados estatísticos **AUD-02/AUD-03** na [Auditoria do Backtest e Edge (`K9.3`)](backtest-edge-audit.md) antes da decisão de capital na Fase 1.
 
 ---
 
