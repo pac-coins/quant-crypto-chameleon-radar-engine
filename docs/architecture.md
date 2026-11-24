@@ -286,7 +286,7 @@ $$Q_{\text{oco}} = \text{floor\_step}\left( \min\left( Q_{\text{executed}} - \su
 
 | Sintoma Observado | Arquivo Responsável | Causa Técnica e Diagnóstico Imediato |
 | --- | --- | --- |
-| Rejeição `PRICE_FILTER`, `LOT_SIZE` ou `NOTIONAL` | `src/core/binance_client.py` ou `src/risk/position_sizer.py` | Cache do `/api/v3/exchangeInfo` expirado ou conversão fora do wrapper `Decimal`. Rodar `pytest tests/test_block1_data.py`. |
+| Rejeição `PRICE_FILTER`, `LOT_SIZE` ou `NOTIONAL` | `src/core/binance_client.py` ou `src/risk/position_sizer.py` | Cache do `/api/v3/exchangeInfo` expirado ou conversão fora do wrapper `Decimal`. Rodar `pytest tests/test_block1_causal_and_decimal.py tests/test_block1_db_governor_modes.py`. |
 | Erro `-2010` ao criar ordem OCO logo após a compra | `src/execution/oco_order_manager.py` | Ou o preço caiu abaixo do `stopPrice` (deve acionar fallback `MARKET`), ou a reserva de BNB acabou (a comissão comeu o ativo base). |
 | Servidor reiniciou após queda de internet na compra | `src/core/state_reconciler.py` | Verificar status `PENDING_ENTRY` resolvido via `GET /api/v3/order?origClientOrderId=...`. |
 | Erro `-1021 Timestamp for this request was ahead/behind` | `src/core/binance_client.py` | Deriva de clock na VPS. Verificar log de `sync_monotonic_clock()` e latência RTT com a Binance. |
@@ -331,7 +331,7 @@ quant-crypto-chameleon/
 │   ├── execution/
 │   │   └── oco_order_manager.py            # POST /api/v3/orderList/oco, quantidade líquida e Time-Stop atômico
 │   ├── notifications/
-│   │   └── telegram_reporter.py            # Transparência de regime, tamanho do lote, offset de clock e saúde
+│   │   └── telegram.py                     # Outbox persistente, alertas de operação, kill-switch e envio de backup offsite
 │   └── main.py                             # Maestro de ciclo horário + verificador de manutenção da corretora
 ├── tests/
 │   ├── test_block1_causal_and_decimal.py

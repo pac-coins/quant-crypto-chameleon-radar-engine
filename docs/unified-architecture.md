@@ -6,11 +6,11 @@ processo**, os dois sistemas do ecossistema:
 * **QuantCrypto Chameleon Engine (v6.0)** — o **Braço Executor**: motor Spot
   blindado (Single-Slot, OCO, Reconciliador de Boot, Teto Duplo de Risco e
   segregação via carteira `FUNDING`). Especificação em [Arquitetura do Executor](architecture.md).
-* **QuantCrypto Radar & Analyst Engine (v1.0)** — o **Cérebro Analítico**:
+* **QuantCrypto Radar & Analyst Engine (v1.1)** — o **Cérebro Analítico**:
   scanner multi-ativo (15 a 20 moedas) com funil de 5 camadas e Auditor
   Virtual no SQLite. Especificação em [Radar & Auditor](radar.md).
 
-O repositório passará a se chamar **`quant-crypto-chameleon-radar-engine`**.
+O repositório chama-se **`quant-crypto-chameleon-radar-engine`** (ADR-014).
 
 !!! info "Convenção de rótulos usada nesta documentação"
     * **[FATO]** — fato da API Binance, do SQLite ou da matemática (verificável).
@@ -101,17 +101,16 @@ BACKUP_DIR=/app/data/backups
 
 ## 3. Processo único e orçamento de hardware
 
-**[DECISÃO] (ADR-001):** Radar e Chameleon rodam **no mesmo processo Python**,
-com **uma thread de orquestração** e **uma conexão escritora** no SQLite. Isso
-fica dentro de um container com `mem_limit: 100m`.
+**[DECISÃO] (ADR-001 / ADR-015):** Radar e Chameleon rodam **no mesmo processo Python**,
+com **uma thread de orquestração** e **uma conexão escritora** no SQLite, dentro de
+um único container com **`mem_limit: 512m`** (`MemoryMax=512M` no systemd; originalmente
+estimado em `100m` na ADR-001 e elevado pela ADR-015 após medição empírica abaixo).
 
 **[FATO] RAM:** só os imports de `pandas` + `numpy` ocupam cerca de 40 a 60 MB
 de RSS (estimativa típica em CPython 3.11/3.12). Dois containers duplicariam
-esse custo e estourariam o teto de 100 MB. Com um único processo, DataFrames de
-300 a 1.000 linhas por símbolo e símbolos processados **sequencialmente**, o
-consumo esperado fica entre 60 e 80 MB.
+esse custo e criariam dois escritores concorrentes no SQLite.
 
-> **Atualização (ADR-015):** medição empírica na VM mostrou que `import src.main`
+> **Medição empírica (ADR-015):** na VM real, `import src.main`
 > (`pandas`, `numpy`, `pydantic`, `cryptography`, `requests`) já consome **93,4 MB**
 > de RSS antes mesmo de carregar os DataFrames de 16 ativos. Por isso o teto foi
 > elevado para **`mem_limit: 512m`** (`MemoryMax=512M` no systemd) para evitar
@@ -376,7 +375,7 @@ quant-crypto-chameleon-radar-engine/
 ├── docs/                               # Esta documentação (MkDocs)
 ├── .env.example
 ├── Dockerfile                          # 1 processo, python:3.12-slim
-├── docker-compose.yml                  # 1 serviço, mem_limit 100m, volume local para data/
+├── docker-compose.yml                  # 1 serviço, mem_limit 512m (ADR-015), volume local para data/
 ├── requirements.txt
 └── README.md
 ```
