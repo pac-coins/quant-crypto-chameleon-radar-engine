@@ -33,7 +33,7 @@
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 
-# 2. Rodar suíte completa de testes (113 passed)
+# 2. Rodar suíte completa de testes (116 passed)
 .venv/bin/python -m pytest -q
 
 # 3. Configurar .env e validar pré-requisitos em modo somente-leitura
@@ -74,6 +74,6 @@ A documentação completa está publicada em **[pac-coins.github.io/quant-crypto
 
 * **Estratégia congelada (ADR-009):** `config/strategies.yaml` está congelado na configuração `K9.3` e protegido por verificação automática de SHA-256 no boot de produção e no CI (`.github/workflows/ci.yml`).
 * **Escritor único (ADR-002):** apenas a thread principal do bot escreve no SQLite WAL; todas as ferramentas em `tools/` e o `HEALTHCHECK` abrem o banco em `URI mode=ro` + `PRAGMA query_only=ON`.
-* **Estado atual:** **Blocos 1–6 + Backlog `B1`–`B7`** implementados (`pytest`: 113 passed). O projeto encontra-se em validação operacional (**Gate 6A** → **Gate 6B**) e não deve operar capital real sem aprovação formal dos gates e correção dos achados críticos listados em [docs/backtest-edge-audit.md](docs/backtest-edge-audit.md).
+* **Estado atual:** **Blocos 1–6 + Backlog `B1`–`B7` + correções `AUD-01/05/06`** implementados (`pytest`: 116 passed). O projeto encontra-se em validação operacional (**Gate 6A** → **Gate 6B**) e não deve operar capital real sem aprovação formal dos gates e leitura cética de [docs/backtest-edge-audit.md](docs/backtest-edge-audit.md).
 
 > **Aviso:** este software é um projeto de engenharia quantitativa. Não constitui recomendação financeira.

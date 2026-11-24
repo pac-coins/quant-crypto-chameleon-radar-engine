@@ -4,7 +4,7 @@ Bot Spot na Binance (1h/4h, sem alavancagem) em **1 processo Python** e **1 SQLi
 
 ## 1. Estado Atual (Fase e Gates)
 
-- **Blocos 1–6 + Backlog B1–B7 + CI/Preflight:** implementados e aprovados nos testes (`pytest`: 113 passed; `docs/methodology-and-roadmap.md:225-230`, `docs/next-steps.md`). Estratégia congelada no Bloco 3: **`K9.3`** (`bull_trend_pullback`, ver auditoria cética e achado P0 **AUD-01** em `docs/backtest-edge-audit.md`).
+- **Blocos 1–6 + Backlog B1–B7 + CI/Preflight + AUD-01/05/06:** implementados e aprovados nos testes (`pytest`: 116 passed; `docs/methodology-and-roadmap.md:225-230`, `docs/next-steps.md`). Estratégia congelada no Bloco 3: **`K9.3`** (`bull_trend_pullback`, ver auditoria estatística `AUD-02`/`AUD-03` em `docs/backtest-edge-audit.md`).
 - **Gate atual:** **Gate 6A** — 7 dias na Binance Spot Testnet (`MODE=LIVE_CHAMELEON_PHASE_1`, `BINANCE_ENV=TESTNET`: 168 ciclos horários consecutivos sem exceções não tratadas, `|clock_offset_ms| <= 500 ms` e restauração validada; `docs/methodology-and-roadmap.md:84-87`).
 - **Próximos gates:** **Gate 6B** (`MODE=SHADOW_CHAMELEON`, `>= 30 dias` ou `>= 25 trades`, slippage médio `<= 0,08%`; `methodology-and-roadmap.md:90-92`) → **Fase 1** (`PRODUCTION`, só `bull_trend_pullback` em `BULL`, risco 1%, IA/Radar silenciosos) → **Fase 2** (`LIVE_CHAMELEON_PHASE_2`, 5 requisitos simultâneos em `methodology-and-roadmap.md:114-121`).
 - **Runtime:** container único `mem_limit: 512m` (`docker-compose.yml:6`, `deploy/quant-chameleon.service:13`, ADR-015) + `HEALTHCHECK` read-only (`Dockerfile:21-22`) + mount `./models:/app/models:ro` (`docker-compose.yml:13`).
