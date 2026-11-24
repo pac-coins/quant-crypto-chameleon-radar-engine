@@ -431,9 +431,9 @@ class QuantOrchestrator:
                 if int(c4) < 140:
                     need_4h.append(sym)
         if need_1h:
-            self.collector.backfill(need_1h, "1h", lookback_candles=350)
+            self.collector.backfill(need_1h, "1h", lookback_candles=500)
         if need_4h:
-            self.collector.backfill(need_4h, "4h", lookback_candles=250)
+            self.collector.backfill(need_4h, "4h", lookback_candles=600)
 
         if self._is_live_mode and self.reconciler is not None:
             from src.core.state_reconciler import ReconcileAction as _ReconcileAction
@@ -1183,8 +1183,8 @@ class QuantOrchestrator:
         for sym in all_symbols:
             if sym in stale_set:
                 continue
-            df_1h = load_frame(self.db, sym, "1h", limit=350)
-            df_4h = load_frame(self.db, sym, "4h", limit=250)
+            df_1h = load_frame(self.db, sym, "1h", limit=500)
+            df_4h = load_frame(self.db, sym, "4h", limit=600)
             if df_1h.empty or df_4h.empty:
                 regimes[sym] = MarketRegime.TRANSITION
                 continue
@@ -1200,24 +1200,29 @@ class QuantOrchestrator:
                     df_al["high"].shift(1).rolling(donchian_lb, min_periods=donchian_lb).max()
                 )
             aligned_frames[sym] = df_al
-            snap = self.regime_detector.detect_from_aligned_frame(df_al)
+            # AUD-01 / AUD-05: evaluate MECE 4h regime directly on causal 4h history (<= last_1h_close_ms)
+            # instead of the 1h-truncated df_al (which capped unique 4h bars below MIN_WARMUP_CANDLES_4H=120).
+            last_1h_close_ms = int(df_1h["close_time_ms"].iloc[-1])
+            df_4h_causal = df_4h_f[df_4h_f["close_time_ms"] <= last_1h_close_ms]
+            snap = self.regime_detector.detect_on_4h_frame(df_4h_causal)
             regimes[sym] = snap.regime
             try:
-                close_4h_ms = int(df_4h["close_time_ms"].iloc[-1])
-                self.db.upsert_regime_history(
-                    symbol=sym,
-                    close_time_4h_ms=close_4h_ms,
-                    regime=snap.regime.value,
-                    close_4h=snap.close_4h,
-                    ema100_4h=snap.ema100_4h,
-                    ema100_slope_4h=snap.ema100_slope_4h,
-                    chop14_4h=snap.chop14_4h,
-                    adx14_4h=snap.adx14_4h,
-                    fallback_reason=snap.fallback_reason,
-                )
+                if not df_4h_causal.empty:
+                    close_4h_ms = int(df_4h_causal["close_time_ms"].iloc[-1])
+                    self.db.upsert_regime_history(
+                        symbol=sym,
+                        close_time_4h_ms=close_4h_ms,
+                        regime=snap.regime.value,
+                        close_4h=snap.close_4h,
+                        ema100_4h=snap.ema100_4h,
+                        ema100_slope_4h=snap.ema100_slope_4h,
+                        chop14_4h=snap.chop14_4h,
+                        adx14_4h=snap.adx14_4h,
+                        fallback_reason=snap.fallback_reason,
+                    )
             except Exception as exc:
                 logger.warning("Failed to persist regime_history for %s: %s", sym, exc)
-            observed_closes.append(int(df_al["close_time_ms"].iloc[-1]))
+            observed_closes.append(last_1h_close_ms)
 
         cycle_close_ms = (
             max(observed_closes)
